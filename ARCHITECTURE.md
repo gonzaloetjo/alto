@@ -19,24 +19,27 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 │                            ORCHESTRATOR                                  │
 │                           (CLAUDE.md)                                    │
 │                                                                          │
-│  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐     │
-│  │PLANNING │──▶│BETWEEN_ │──▶│IN_TASK  │──▶│BETWEEN_ │──▶│BLOCKED  │     │
-│  │         │   │TASKS    │   │         │   │TASKS    │   │(human)  │     │
-│  └────┬────┘   └────┬────┘   └────┬────┘   └─────────┘   └─────────┘     │
-│       │             │             │                                      │
-│       ▼             ▼             ▼                                      │
-│  ┌─────────┐   ┌─────────┐   ┌────────────────────────────────────┐      │
-│  │ planner │   │ arbiter │   │          ROLE AGENTS               │      │
-│  └─────────┘   └─────────┘   │  ┌─────────┐ ┌─────────┐ ┌──────┐  │      │
-│                              │  │ backend │ │frontend │ │  qa  │  │      │
-│                              │  └─────────┘ └─────────┘ └──────┘  │      │
-│                              │  ┌─────────┐ ┌─────────┐ ┌──────┐  │      │
-│                              │  │recorder │ │  docs   │ │gitops│  │      │
-│                              │  └─────────┘ └─────────┘ └──────┘  │      │
-│                              │  ┌──────────┐ ┌──────────┐         │      │
-│                              │  │ reviewer │ │ enforcer │         │      │
-│                              │  └──────────┘ └──────────┘         │      │
-│                              └────────────────────────────────────┘      │
+│  ┌──────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐    │
+│  │ARCHITECT │──▶│PLANNING │──▶│BETWEEN_ │──▶│IN_TASK  │──▶│BLOCKED  │    │
+│  │(orch)    │   │         │   │TASKS    │   │         │   │(human)  │    │
+│  └────┬─────┘   └────┬────┘   └────┬────┘   └────┬────┘   └─────────┘    │
+│       │              │             │             │                       │
+│       │              ▼             ▼             ▼                       │
+│       │         ┌─────────┐   ┌─────────┐   ┌────────────────────────┐   │
+│       │         │ planner │   │ arbiter │   │      ROLE AGENTS       │   │
+│       │         └─────────┘   └─────────┘   │  ┌───────┐ ┌───────┐   │   │
+│       │                                     │  │backend│ │frontend│  │   │
+│       ▼                                     │  └───────┘ └───────┘   │   │
+│  ┌──────────────────┐                       │  ┌───────┐ ┌───────┐   │   │
+│  │ EnterPlanMode    │                       │  │  qa   │ │ docs  │   │   │
+│  │ (if approval on) │                       │  └───────┘ └───────┘   │   │
+│  │                  │                       │  ┌────────┐ ┌────────┐ │   │
+│  │ Outputs:         │                       │  │recorder│ │ gitops │ │   │
+│  │ - milestones.md  │                       │  └────────┘ └────────┘ │   │
+│  │ - decisions.md   │                       │  ┌────────┐ ┌────────┐ │   │
+│  └──────────────────┘                       │  │reviewer│ │enforcer│ │   │
+│                                             │  └────────┘ └────────┘ │   │
+│                                             └────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -154,7 +157,10 @@ skills/
 └── settings.json            # Project-wide permissions + hooks config
 
 runs/
-├── plan.md                  # Generated: architecture, task outline
+├── milestones.md            # Generated: high-level steps (orchestrator output)
+├── decisions.md             # Generated: architectural trade-offs (orchestrator output)
+├── planning-config.json     # Generated: planning configuration from devenv
+├── plan.md                  # Generated: detailed batch plan (planner output)
 ├── state.json               # Generated: current task + phase + role
 ├── tasks/                   # Generated: task-XXX.md (YAML frontmatter + DoD)
 ├── handoffs/                # Generated: task-XXX.md (changes + verify + next)
@@ -177,33 +183,62 @@ runs/
 
 The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 
-```
-1. Boot:
-   * If no tasks/state exist → set phase = "PLANNING"
-   * Invoke alto-planner to generate runs/plan.md + runs/tasks/* + runs/state.json
-   * Set phase = "BETWEEN_TASKS"
+### Boot (New Run)
 
-2. Arbiter check (before each task):
+```
+1. Architecture Phase (orchestrator does this directly):
+   * Set phase = "ARCHITECTURE"
+   * Read runs/planning-config.json for require_approval setting
+   * If require_approval is true:
+     - Use EnterPlanMode tool
+     - Explore codebase, read objective.md
+     - Design high-level approach
+     - Write runs/milestones.md (milestones, estimated task count)
+     - Write runs/decisions.md (architectural choices)
+     - Use ExitPlanMode tool (user approves)
+   * If require_approval is false:
+     - Explore and write milestones/decisions directly
+
+2. Planning Phase:
+   * Set phase = "PLANNING"
+   * Invoke alto-planner with milestones.md as input
+   * Planner creates runs/plan.md + runs/tasks/task-001..N.md
+   * Set phase = "BETWEEN_TASKS"
+```
+
+### Execution Loop
+
+```
+3. Arbiter check (before each task):
    * If runs/arbiter/pending.json exists → invoke alto-arbiter
    * Read runs/arbiter/decision.json
    * If needs_human == true → set phase = "BLOCKED" and STOP
 
-3. Execute:
+4. Replan check (after batch completion):
+   * If replan_every is set and completed_tasks % replan_every == 0:
+     - Set phase = "PLANNING"
+     - Invoke alto-planner to create next batch
+     - Continue to next task
+
+5. Execute:
    * Read runs/state.json → open current runs/tasks/task-XXX.md
    * Set phase = "IN_TASK", current_role = <role from task>
    * Invoke the task's role agent (backend/frontend/docs/qa/gitops)
 
-4. Validate (inside the role agent):
+6. Validate (inside the role agent):
    * Run task.check_command until it passes (fix failures and re-run)
 
-5. Handoff:
+7. Handoff:
    * Role agent writes runs/handoffs/task-XXX.md
    * If task specifies post agents → invoke them in order (e.g., docs → gitops)
 
-6. Advance:
+8. Update Progress:
+   * If task completes an objective item → mark [x] in objective.md
+
+9. Advance:
    * Mark task complete in runs/state.json
    * Set phase = "BETWEEN_TASKS", clear current_role
-   * Proceed to next task (loop to step 2)
+   * Proceed to next task (loop to step 3)
 ```
 
 ---
@@ -212,9 +247,10 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 
 | Phase | Description |
 |-------|-------------|
-| `PLANNING` | Planner is generating/updating tasks |
+| `ARCHITECTURE` | Orchestrator exploring codebase, designing milestones |
+| `PLANNING` | Planner is generating task files from milestones |
 | `IN_TASK` | A role agent is actively executing a task |
-| `BETWEEN_TASKS` | Task completed; arbiter may trigger |
+| `BETWEEN_TASKS` | Task completed; arbiter may trigger; replan may occur |
 | `BLOCKED` | Human review required (arbiter decision or repeated failures) |
 
 ---
@@ -223,7 +259,7 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 
 | Agent | Primary responsibility | Typical constraints |
 |-------|-------------------------|---------------------|
-| `alto-planner` | Generate plan + task queue + state | edits **runs/** only; no Bash |
+| `alto-planner` | Create task files from milestones | edits **runs/** only; no Bash |
 | `alto-backend` | API, DB schema, worker logic | obey `allowed_paths`; run checks |
 | `alto-frontend` | Dashboard UI, charts, client state | obey `allowed_paths`; run checks |
 | `alto-recorder` | Record task changes in handoffs | **runs/handoffs/** only |
@@ -242,7 +278,7 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | Agent | Model | Rationale |
 |-------|-------|-----------|
 | `alto-arbiter` | **opus** | Critical judgment - decides if run should stop |
-| `alto-planner` | **opus** | Architecture decisions, task decomposition |
+| `alto-planner` | **opus** (configurable) | Task decomposition from milestones |
 | `alto-reviewer` | **opus** | Quality judgment - validates code and tests |
 | `alto-frontend` | **opus** | Complex UI implementation requiring design judgment |
 | `code-simplifier` | **opus** | Code quality refinement requiring judgment |

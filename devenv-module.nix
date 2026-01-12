@@ -101,6 +101,39 @@ in
       default = "runs";
       description = "Directory for ALTO runtime state";
     };
+
+    # Planning configuration
+    planning = {
+      requireApproval = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Require user approval after architecture phase. Set false for fully autonomous.";
+      };
+
+      replanStrategy = lib.mkOption {
+        type = lib.types.enum [ "auto" "fixed" "none" ];
+        default = "auto";
+        description = "How to determine replan frequency. 'auto' = based on estimated task count, 'fixed' = use fixedBatchSize, 'none' = no replanning.";
+      };
+
+      fixedBatchSize = lib.mkOption {
+        type = lib.types.int;
+        default = 5;
+        description = "Batch size when replanStrategy = 'fixed'. Ignored for 'auto' or 'none'.";
+      };
+
+      architectModel = lib.mkOption {
+        type = lib.types.enum [ "opus" "sonnet" ];
+        default = "opus";
+        description = "Model for architecture phase (orchestrator exploration).";
+      };
+
+      plannerModel = lib.mkOption {
+        type = lib.types.enum [ "opus" "sonnet" ];
+        default = "opus";
+        description = "Model for planner agent (task file generation).";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -195,9 +228,9 @@ in
     # Agents via native devenv options (now supports model)
     claude.code.agents = {
       alto-planner = {
-        description = "Generates and maintains runs/plan.md and writes the next tasks under runs/tasks/. Use proactively at session start and whenever tasks are missing or need replanning.";
+        description = "Creates task files from milestones. Use after architecture phase to generate next batch of tasks.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-        model = "opus";
+        model = cfg.planning.plannerModel;
         prompt = readAgentPrompt "alto-planner";
       };
       alto-backend = {
@@ -287,11 +320,14 @@ in
 {
   "protocol": "alto-v1",
   "run_branch": null,
-  "phase": "PLANNING",
+  "phase": null,
   "current_task_id": null,
   "current_role": null,
   "completed_task_ids": [],
   "last_handoff": null,
+  "estimated_tasks": null,
+  "replan_every": null,
+  "needs_architect": false,
   "updated_at": null
 }
 STATE_EOF
@@ -319,6 +355,17 @@ ARBITER_EOF
 }
 ARBSTATE_EOF
         fi
+
+        # Write planning config (always overwrite to keep in sync)
+        cat > "$RUNS_DIR/planning-config.json" << 'PLANNING_EOF'
+{
+  "require_approval": ${lib.boolToString cfg.planning.requireApproval},
+  "replan_strategy": "${cfg.planning.replanStrategy}",
+  "fixed_batch_size": ${toString cfg.planning.fixedBatchSize},
+  "architect_model": "${cfg.planning.architectModel}",
+  "planner_model": "${cfg.planning.plannerModel}"
+}
+PLANNING_EOF
 
         # Copy CLAUDE.md (always overwrite to keep protocol in sync)
         cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
