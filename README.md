@@ -38,6 +38,7 @@ your-project/
 │   ├── hooks/           # 7 tracking hooks
 │   ├── skills/          # Protocol + optional domain skills
 │   └── settings.json    # Permissions + hooks config
+├── .mcp.json            # MCP servers (includes devenv MCP)
 ├── runs/
 │   ├── state.json       # Current phase, task, role
 │   ├── tasks/           # Task definitions
@@ -45,6 +46,8 @@ your-project/
 │   └── arbiter/         # Human review checkpoints
 └── CLAUDE.md            # Orchestrator protocol
 ```
+
+The **devenv MCP server** is automatically configured, allowing Claude to search packages and understand devenv configurations.
 
 ## Configuration Options
 
