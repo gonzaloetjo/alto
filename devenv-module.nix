@@ -94,133 +94,21 @@ in
     # Ensure python3 and jq are available for hooks
     packages = [ pkgs.python3 pkgs.jq ];
 
-    # Enable Claude Code integration
-    claude.code.enable = true;
-
-    # Configure permissions
-    claude.code.permissions = {
-      defaultMode = cfg.permissions.defaultMode;
-      allow = map (cmd: "Bash(${cmd}:*)") cfg.permissions.allowBash;
-      ask = map (cmd: "Bash(${cmd}:*)") cfg.permissions.askBash;
-      deny = (map (pat: "Read(${pat})") cfg.permissions.denyRead)
-           ++ (map (cmd: "Bash(${cmd}:*)") cfg.permissions.denyBash);
-    };
-
-    # Configure MCP servers - include devenv's built-in MCP for config assistance
-    claude.code.mcpServers = {
-      devenv = {
-        type = "stdio";
-        command = "devenv";
-        args = [ "mcp" ];
-        env = {
-          DEVENV_ROOT = config.devenv.root;
-        };
-      };
-    };
-
-    # Configure hooks using native devenv format
-    claude.code.hooks = {
-      SessionStart = [
-        {
-          hooks = [{
-            type = "command";
-            command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py";
-          }];
-        }
-      ];
-
-      PostToolUse = [
-        {
-          matcher = "Bash";
-          hooks = [{
-            type = "command";
-            command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
-          }];
-        }
-        {
-          matcher = "Edit";
-          hooks = [{
-            type = "command";
-            command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
-          }];
-        }
-        {
-          matcher = "Write";
-          hooks = [{
-            type = "command";
-            command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
-          }];
-        }
-      ];
-
-      PermissionRequest = [
-        {
-          matcher = "*";
-          hooks = [{
-            type = "command";
-            command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py";
-          }];
-        }
-      ];
-
-      Stop = [
-        {
-          hooks = [
-            {
-              type = "command";
-              command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
-            }
-            {
-              type = "command";
-              command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
-            }
-            {
-              type = "command";
-              command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
-            }
-          ];
-        }
-      ];
-
-      SubagentStop = [
-        {
-          hooks = [
-            {
-              type = "command";
-              command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
-            }
-            {
-              type = "command";
-              command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
-            }
-            {
-              type = "command";
-              command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
-            }
-          ];
-        }
-      ];
-    };
-
-    # Note: We don't use claude.code.agents because it doesn't support 'model' option
-    # ALTO agents need different models (haiku, sonnet, opus) for cost/quality optimization
-    # Instead, we copy agent .md files directly which include model in YAML frontmatter
-
-    # Deploy ALTO runtime files on shell entry
+    # Deploy ALTO files on shell entry
     enterShell = ''
       _alto_deploy() {
         local ALTO_SRC="${altoSrc}"
         local RUNS_DIR="${cfg.runsDir}"
 
-        echo "ALTO: Deploying runtime files..."
+        echo "ALTO: Deploying Claude Code configuration..."
 
-        # Create directories
+        # Create .claude directory structure
         mkdir -p .claude/agents .claude/hooks .claude/skills
 
-        # Copy agents (with model info in YAML frontmatter)
+        # Copy agents
         cp -r "$ALTO_SRC"/agents/*.md .claude/agents/ 2>/dev/null || true
 
-        # Copy hook scripts (referenced by claude.code.hooks)
+        # Copy hooks
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
         # Copy ALTO protocol skills
@@ -231,6 +119,129 @@ in
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
         ''}
+
+        # Generate settings.json with hooks, permissions, and MCP servers
+        cat > .claude/settings.json << 'SETTINGS_EOF'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "defaultMode": "${cfg.permissions.defaultMode}",
+    "allow": [
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.allowBash}
+    ],
+    "ask": [
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.askBash}
+    ],
+    "deny": [
+      ${lib.concatMapStringsSep ",\n      " (pat: "\"Read(${pat})\"") cfg.permissions.denyRead},
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.denyBash}
+    ]
+  }
+}
+SETTINGS_EOF
+
+        # Generate .mcp.json with devenv MCP server for config assistance
+        cat > .mcp.json << 'MCP_EOF'
+{
+  "mcpServers": {
+    "devenv": {
+      "type": "stdio",
+      "command": "devenv",
+      "args": ["mcp"],
+      "env": {
+        "DEVENV_ROOT": "."
+      }
+    }
+  }
+}
+MCP_EOF
 
         # Create runs directory structure
         mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools}
