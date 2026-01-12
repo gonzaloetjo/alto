@@ -94,128 +94,26 @@ in
     # Ensure python3 and jq are available for hooks
     packages = [ pkgs.python3 pkgs.jq ];
 
-    # Enable Claude Code integration
-    claude.code.enable = true;
+    # Note on native devenv claude.code.* options:
+    # - claude.code.agents: missing 'model' option (PR needed)
+    # - claude.code.hooks: missing SessionStart, PermissionRequest hookTypes
+    # Until devenv adds these, we use file-based deployment via enterShell
 
-    # Configure permissions using native devenv format
-    claude.code.permissions = {
-      defaultMode = cfg.permissions.defaultMode;
-      allow = map (cmd: "Bash(${cmd}:*)") cfg.permissions.allowBash;
-      ask = map (cmd: "Bash(${cmd}:*)") cfg.permissions.askBash;
-      deny = (map (pat: "Read(${pat})") cfg.permissions.denyRead)
-           ++ (map (cmd: "Bash(${cmd}:*)") cfg.permissions.denyBash);
-    };
-
-    # Configure MCP servers - include devenv's built-in MCP for config assistance
-    claude.code.mcpServers = {
-      devenv = {
-        type = "stdio";
-        command = "devenv";
-        args = [ "mcp" ];
-        env = {
-          DEVENV_ROOT = config.devenv.root;
-        };
-      };
-    };
-
-    # Configure hooks using native devenv submodule format
-    claude.code.hooks = {
-      # Session start hook
-      alto-session-start = {
-        enable = true;
-        hookType = "SessionStart";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-start.py'';
-      };
-
-      # Tool recording hooks (PostToolUse)
-      alto-record-bash = {
-        enable = true;
-        hookType = "PostToolUse";
-        matcher = "Bash";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/tool-record.py'';
-      };
-
-      alto-record-edit = {
-        enable = true;
-        hookType = "PostToolUse";
-        matcher = "Edit";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/tool-record.py'';
-      };
-
-      alto-record-write = {
-        enable = true;
-        hookType = "PostToolUse";
-        matcher = "Write";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/tool-record.py'';
-      };
-
-      # Permission tracking
-      alto-permission-record = {
-        enable = true;
-        hookType = "PermissionRequest";
-        matcher = ".*";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/permission-record.py'';
-      };
-
-      # Stop hooks - usage recording
-      alto-stop-usage = {
-        enable = true;
-        hookType = "Stop";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/usage-record.py'';
-      };
-
-      alto-stop-arbiter = {
-        enable = true;
-        hookType = "Stop";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/arbiter-scheduler.py'';
-      };
-
-      alto-stop-summary = {
-        enable = true;
-        hookType = "Stop";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-summary.py'';
-      };
-
-      # Subagent stop hooks
-      alto-subagent-usage = {
-        enable = true;
-        hookType = "SubagentStop";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/usage-record.py'';
-      };
-
-      alto-subagent-arbiter = {
-        enable = true;
-        hookType = "SubagentStop";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/arbiter-scheduler.py'';
-      };
-
-      alto-subagent-summary = {
-        enable = true;
-        hookType = "SubagentStop";
-        command = ''python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-summary.py'';
-      };
-    };
-
-    # Note: We don't use claude.code.agents because it doesn't support 'model' option
-    # ALTO agents need different models (haiku, sonnet, opus) for cost/quality optimization
-    # PR planned for devenv to add model support
-
-    # Deploy ALTO runtime files on shell entry
-    # (agents with model info, hook scripts, skills, runs/, CLAUDE.md)
+    # Deploy ALTO files on shell entry
     enterShell = ''
       _alto_deploy() {
         local ALTO_SRC="${altoSrc}"
         local RUNS_DIR="${cfg.runsDir}"
 
-        echo "ALTO: Deploying runtime files..."
+        echo "ALTO: Deploying Claude Code configuration..."
 
-        # Create directories
+        # Create .claude directory structure
         mkdir -p .claude/agents .claude/hooks .claude/skills
 
-        # Copy agents (with model info in YAML frontmatter - not supported by devenv yet)
+        # Copy agents (with model info in YAML frontmatter)
         cp -r "$ALTO_SRC"/agents/*.md .claude/agents/ 2>/dev/null || true
 
-        # Copy hook scripts (referenced by claude.code.hooks)
+        # Copy hooks
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
         # Copy ALTO protocol skills
@@ -226,6 +124,129 @@ in
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
         ''}
+
+        # Generate settings.json with hooks and permissions
+        cat > .claude/settings.json << 'SETTINGS_EOF'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "defaultMode": "${cfg.permissions.defaultMode}",
+    "allow": [
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.allowBash}
+    ],
+    "ask": [
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.askBash}
+    ],
+    "deny": [
+      ${lib.concatMapStringsSep ",\n      " (pat: "\"Read(${pat})\"") cfg.permissions.denyRead},
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.denyBash}
+    ]
+  }
+}
+SETTINGS_EOF
+
+        # Generate .mcp.json with devenv MCP server for config assistance
+        cat > .mcp.json << 'MCP_EOF'
+{
+  "mcpServers": {
+    "devenv": {
+      "type": "stdio",
+      "command": "devenv",
+      "args": ["mcp"],
+      "env": {
+        "DEVENV_ROOT": "."
+      }
+    }
+  }
+}
+MCP_EOF
 
         # Create runs directory structure
         mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools}
