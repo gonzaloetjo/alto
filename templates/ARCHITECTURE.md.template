@@ -64,7 +64,7 @@ project/
 ├── src/           # Source code
 ├── tests/         # Test files
 ├── docs/          # Documentation
-├── runs/          # ASM runtime state
+├── runs/          # ALTO runtime state
 └── .claude/       # Claude Code configuration
 ```
 
