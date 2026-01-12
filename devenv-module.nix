@@ -13,7 +13,7 @@ let
 in
 {
   options.alto = {
-    enable = lib.mkEnableOption "ALTO (Agents State Machine) for Claude Code";
+    enable = lib.mkEnableOption "ALTO (Autonomous Lifecycle Task Orchestrator) for Claude Code";
 
     # Arbiter configuration
     arbiter = {
@@ -103,6 +103,12 @@ in
         default = true;
         description = "Enable alto-enforcer agent";
       };
+
+      codeSimplifier = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable code-simplifier agent for code clarity refinement";
+      };
     };
 
     # Hooks configuration
@@ -110,19 +116,43 @@ in
       sessionStart = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable session-start hook for state tracking";
+        description = "Enable session-start hook (SessionStart event)";
       };
 
       sessionSummary = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable session-summary hook";
+        description = "Enable session-summary hook (SessionEnd event)";
       };
 
       toolRecord = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable tool-record hook for usage tracking";
+        description = "Enable tool-record hook (PostToolUse event)";
+      };
+
+      toolUseRecord = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable tool-use-record hook (PostToolUse event)";
+      };
+
+      usageRecord = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable usage-record hook (Stop/SubagentStop events)";
+      };
+
+      permissionRecord = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable permission-record hook (PermissionRequest event)";
+      };
+
+      arbiterScheduler = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable arbiter-scheduler hook (Stop/SubagentStop events)";
       };
     };
 
@@ -231,7 +261,7 @@ EOF
         alto-frontend = {
           description = "Implements frontend tasks. Use for UI, components, client state.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-          model = "sonnet";
+          model = "opus";
           prompt = readAgent "alto-frontend";
         };
       })
@@ -249,7 +279,7 @@ EOF
         alto-docs = {
           description = "Writes implementation documentation for readers.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-          model = "haiku";
+          model = "sonnet";
           prompt = readAgent "alto-docs";
         };
       })
@@ -276,7 +306,7 @@ EOF
         alto-reviewer = {
           description = "Reviews code quality after role agent completes.";
           tools = [ "Read" "Bash" ];
-          model = "sonnet";
+          model = "opus";
           prompt = readAgent "alto-reviewer";
         };
       })
@@ -290,6 +320,15 @@ EOF
         };
       })
 
+      (lib.mkIf cfg.agents.codeSimplifier {
+        code-simplifier = {
+          description = "Simplifies and refines code for clarity and maintainability.";
+          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+          model = "opus";
+          prompt = readAgent "code-simplifier";
+        };
+      })
+
       # Extra project-specific agents
       cfg.extraAgents
     ];
@@ -300,9 +339,17 @@ EOF
         alto-session-start = {
           enable = true;
           name = "ALTO Session Start";
-          hookType = "PostToolUse";
-          matcher = ".*";
+          hookType = "SessionStart";
           command = readHook "session-start.py";
+        };
+      })
+
+      (lib.mkIf cfg.hooks.sessionSummary {
+        alto-session-summary = {
+          enable = true;
+          name = "ALTO Session Summary";
+          hookType = "SessionEnd";
+          command = readHook "session-summary.py";
         };
       })
 
@@ -315,12 +362,67 @@ EOF
           command = readHook "tool-record.py";
         };
       })
+
+      (lib.mkIf cfg.hooks.toolUseRecord {
+        alto-tool-use-record = {
+          enable = true;
+          name = "ALTO Tool Use Record";
+          hookType = "PostToolUse";
+          matcher = ".*";
+          command = readHook "tool-use-record.py";
+        };
+      })
+
+      (lib.mkIf cfg.hooks.usageRecord {
+        alto-usage-record = {
+          enable = true;
+          name = "ALTO Usage Record";
+          hookType = "Stop";
+          command = readHook "usage-record.py";
+        };
+        alto-usage-record-subagent = {
+          enable = true;
+          name = "ALTO Usage Record (Subagent)";
+          hookType = "SubagentStop";
+          command = readHook "usage-record.py";
+        };
+      })
+
+      (lib.mkIf cfg.hooks.permissionRecord {
+        alto-permission-record = {
+          enable = true;
+          name = "ALTO Permission Record";
+          hookType = "PermissionRequest";
+          command = readHook "permission-record.py";
+        };
+      })
+
+      (lib.mkIf cfg.hooks.arbiterScheduler {
+        alto-arbiter-scheduler = {
+          enable = true;
+          name = "ALTO Arbiter Scheduler";
+          hookType = "Stop";
+          command = readHook "arbiter-scheduler.py";
+        };
+        alto-arbiter-scheduler-subagent = {
+          enable = true;
+          name = "ALTO Arbiter Scheduler (Subagent)";
+          hookType = "SubagentStop";
+          command = readHook "arbiter-scheduler.py";
+        };
+      })
     ];
 
-    # Add ALTO protocol skill
-    claude.code.skills.alto-protocol = {
-      description = "ALTO task/state/handoff protocol for Claude Code subagents";
-      content = builtins.readFile (altoRoot + "/skills/alto-protocol/SKILL.md");
+    # Add ALTO skills
+    claude.code.skills = {
+      alto-protocol = {
+        description = "ALTO task/state/handoff protocol for Claude Code subagents";
+        content = builtins.readFile (altoRoot + "/skills/alto-protocol/SKILL.md");
+      };
+      alto-feature-setup = {
+        description = "Interactive checklist for setting up new features with ALTO";
+        content = builtins.readFile (altoRoot + "/skills/alto-feature-setup/SKILL.md");
+      };
     };
   };
 }

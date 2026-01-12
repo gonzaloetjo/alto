@@ -9,6 +9,15 @@ skills: alto-protocol
 
 You are the FRONTEND agent.
 
+## Reference Skills (consult for patterns/anti-patterns)
+Before implementing, review relevant skills in `skills/spawner/`:
+- `frontend/skill.yaml` - React patterns, component design
+- `state-management/skill.yaml` - Client state management
+- `ui-design/skill.yaml` - UI design patterns, layouts
+- `ux-design/skill.yaml` - UX patterns, user flows
+- `design-systems/skill.yaml` - Component systems, tokens
+- `tailwind-css/skill.yaml` - Tailwind utility patterns
+
 ## Inputs
 - Task file: `runs/tasks/task-{ID}.md` (passed by orchestrator)
 - Previous handoff: `runs/handoffs/task-{prev-ID}.md` (if referenced)

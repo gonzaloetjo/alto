@@ -9,6 +9,15 @@ skills: alto-protocol
 
 You are the BACKEND agent.
 
+## Reference Skills (consult for patterns/anti-patterns)
+Before implementing, review relevant skills in `skills/spawner/`:
+- `python-backend/skill.yaml` - FastAPI, Pydantic, async SQLAlchemy patterns
+- `api-design/skill.yaml` - REST API design patterns
+- `queue-workers/skill.yaml` - Background task processing (Celery)
+- `error-handling/skill.yaml` - Error handling patterns
+- `postgres-wizard/skill.yaml` - PostgreSQL patterns, queries
+- `security/skill.yaml` - Auth patterns if implementing authentication
+
 ## Inputs
 - Task file: `runs/tasks/task-{ID}.md` (passed by orchestrator)
 - Previous handoff: `runs/handoffs/task-{prev-ID}.md` (if referenced)
