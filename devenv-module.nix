@@ -269,11 +269,8 @@ ARBITER_EOF
 ARBSTATE_EOF
         fi
 
-        # Copy CLAUDE.md template if no CLAUDE.md exists
-        if [ ! -f "CLAUDE.md" ]; then
-          cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
-          echo "ALTO: Created CLAUDE.md from template"
-        fi
+        # Copy CLAUDE.md (always overwrite to keep protocol in sync)
+        cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
 
         echo "ALTO: Ready. Start Claude Code and say 'continue' or '/alto-feature-setup' to begin."
       }

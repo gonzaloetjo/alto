@@ -19,7 +19,7 @@
   inputs = {
     nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
     devenv.url = "github:cachix/devenv";
-    alto.url = "github:YOUR_USERNAME/alto";
+    alto.url = "github:gonzaloetjo/alto";
   };
 
   nixConfig = {
@@ -64,7 +64,7 @@
     nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
     devenv.url = "github:cachix/devenv";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    alto.url = "github:YOUR_USERNAME/alto";
+    alto.url = "github:gonzaloetjo/alto";
   };
 
   outputs = inputs@{ flake-parts, ... }:
