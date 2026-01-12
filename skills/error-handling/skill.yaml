@@ -1,0 +1,2905 @@
+# Error Handling Patterns Skill
+version: 1.0.0
+skill_id: error-handling
+name: Error Handling Patterns
+category: backend
+layer: 2
+
+description: |
+  Expert at building resilient applications through proper error handling.
+  Covers Result types, error boundaries, try-catch patterns, typed errors,
+  and graceful degradation.
+
+triggers:
+  - "error handling"
+  - "try catch"
+  - "error boundary"
+  - "Result type"
+  - "exception"
+
+identity:
+  role: Error Handling Specialist
+  personality: |
+    Embraces failure as a first-class citizen. Prefers explicit
+    error handling over silent failures.
+  principles:
+    - "Fail fast, recover gracefully"
+    - "Errors are data, not exceptions"
+    - "Never swallow errors silently"
+    - "Log for developers, message for users"
+
+expertise:
+  patterns:
+    - "Result/Either types"
+    - "Error boundaries"
+    - "Typed error classes"
+    - "Retry with backoff"
+    - "Circuit breaker"
+
+patterns:
+  result_type:
+    description: "Result type for explicit error handling"
+    why_over_exceptions: |
+      | Aspect | Result Types | Exceptions |
+      |--------|--------------|------------|
+      | Visibility | Errors in type signature | Hidden in implementation |
+      | Composability | map/flatMap chains | Try-catch nesting |
+      | Forgettable | Compiler enforces handling | Easy to forget |
+      | Performance | No stack trace overhead | Stack trace on every throw |
+    example: |
+      type Result<T, E = Error> =
+        | { success: true; data: T }
+        | { success: false; error: E };
+
+      function ok<T>(data: T): Result<T, never> {
+        return { success: true, data };
+      }
+
+      function err<E>(error: E): Result<never, E> {
+        return { success: false, error };
+      }
+
+      // Utility functions for composition
+      function map<T, U, E>(result: Result<T, E>, fn: (data: T) => U): Result<U, E> {
+        return result.success ? ok(fn(result.data)) : result;
+      }
+
+      function flatMap<T, U, E>(result: Result<T, E>, fn: (data: T) => Result<U, E>): Result<U, E> {
+        return result.success ? fn(result.data) : result;
+      }
+
+      function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
+        return result.success ? result.data : defaultValue;
+      }
+
+      // Async Result handling
+      async function mapAsync<T, U, E>(
+        result: Result<T, E>,
+        fn: (data: T) => Promise<U>
+      ): Promise<Result<U, E>> {
+        return result.success ? ok(await fn(result.data)) : result;
+      }
+
+      // Result.all for parallel operations
+      function resultAll<T, E>(results: Result<T, E>[]): Result<T[], E> {
+        const values: T[] = [];
+        for (const result of results) {
+          if (!result.success) return result;
+          values.push(result.data);
+        }
+        return ok(values);
+      }
+
+      // Practical usage
+      async function getUser(id: string): Promise<Result<User, UserError>> {
+        try {
+          const user = await db.query.users.findFirst({
+            where: eq(users.id, id),
+          });
+          if (!user) {
+            return err({ code: "NOT_FOUND", message: "User not found" });
+          }
+          return ok(user);
+        } catch (e) {
+          return err({ code: "DB_ERROR", message: "Database error" });
+        }
+      }
+
+      // Composing Results
+      const enrichedUser = await mapAsync(
+        await getUser(id),
+        async (user) => ({ ...user, profile: await fetchProfile(user.id) })
+      );
+
+      // Parallel operations with Result.all
+      const [user, posts, settings] = await Promise.all([
+        getUser(id),
+        getPosts(id),
+        getSettings(id),
+      ]);
+      const combined = resultAll([user, posts, settings]);
+    when_not_to_use: |
+      - Simple scripts where exceptions are fine
+      - Framework code that expects exceptions (Express error handlers)
+      - When team isn't familiar with the pattern
+
+    # Extended Result utilities (jury consensus: frequently requested)
+    advanced_utilities: |
+      // Result.partition - separate successes from failures
+      function partition<T, E>(results: Result<T, E>[]): { successes: T[]; failures: E[] } {
+        const successes: T[] = [];
+        const failures: E[] = [];
+        for (const result of results) {
+          if (result.success) successes.push(result.data);
+          else failures.push(result.error);
+        }
+        return { successes, failures };
+      }
+
+      // Result.traverse - apply fallible operation to array, collect all or fail
+      async function traverse<T, U, E>(
+        items: T[],
+        fn: (item: T) => Promise<Result<U, E>>
+      ): Promise<Result<U[], E>> {
+        const results: U[] = [];
+        for (const item of items) {
+          const result = await fn(item);
+          if (!result.success) return result;
+          results.push(result.data);
+        }
+        return ok(results);
+      }
+
+      // Result.recover - transform error to success (fallback)
+      function recover<T, E>(
+        result: Result<T, E>,
+        fallback: (error: E) => T
+      ): Result<T, never> {
+        return result.success ? result : ok(fallback(result.error));
+      }
+
+      // Result.tap - side effect without changing result (logging, metrics)
+      function tap<T, E>(
+        result: Result<T, E>,
+        onSuccess: (data: T) => void,
+        onError?: (error: E) => void
+      ): Result<T, E> {
+        if (result.success) onSuccess(result.data);
+        else onError?.(result.error);
+        return result;
+      }
+
+      // Result.match - exhaustive pattern matching
+      function match<T, E, R>(
+        result: Result<T, E>,
+        handlers: { ok: (data: T) => R; err: (error: E) => R }
+      ): R {
+        return result.success ? handlers.ok(result.data) : handlers.err(result.error);
+      }
+
+      // Usage example with all utilities
+      const users = await traverse(userIds, getUser);
+      const { successes, failures } = partition(results);
+
+      const finalResult = tap(
+        recover(apiResult, (err) => ({ fallback: true, reason: err.message })),
+        (data) => logger.info('Success', data),
+        (err) => logger.warn('Using fallback', err)
+      );
+
+      const message = match(result, {
+        ok: (user) => `Welcome, ${user.name}!`,
+        err: (e) => `Error: ${e.message}`,
+      });
+
+    # Performance comparison: Result vs Exceptions (jury request)
+    performance_benchmarks: |
+      // Performance characteristics
+      //
+      // | Scenario                    | Result Type | Exceptions |
+      // |-----------------------------|-------------|------------|
+      // | Happy path (no error)       | ~same       | ~same      |
+      // | Error path (rare)           | Faster      | Slower*    |
+      // | Error path (frequent)       | Much faster | Much slower|
+      // | Stack trace needed          | Manual      | Automatic  |
+      // | Memory per error            | Lower       | Higher     |
+      //
+      // *Exceptions are slower due to stack trace capture
+      //
+      // Rule of thumb:
+      // - Expected failures (validation, not found): Use Result
+      // - Unexpected failures (bugs, crashes): Use Exceptions
+      // - Hot paths with frequent failures: Definitely Result
+
+      // Benchmark example (pseudo-code)
+      // Result: ~50ns per error (no stack trace)
+      // Exception: ~5000ns per error (with stack trace)
+      //
+      // For 10,000 validation errors:
+      // Result: 0.5ms
+      // Exception: 50ms (100x slower)
+
+    # Zod integration pattern (jury request)
+    validation_integration: |
+      import { z } from 'zod';
+
+      // Convert Zod result to Result type
+      function fromZod<T>(schema: z.ZodSchema<T>, data: unknown): Result<T, ValidationError> {
+        const parsed = schema.safeParse(data);
+        if (parsed.success) {
+          return ok(parsed.data);
+        }
+        return err(new ValidationError(
+          'Validation failed',
+          Object.fromEntries(
+            parsed.error.issues.map(i => [i.path.join('.'), [i.message]])
+          )
+        ));
+      }
+
+      // Usage with API handler
+      const UserSchema = z.object({
+        email: z.string().email(),
+        name: z.string().min(1),
+        age: z.number().min(0).optional(),
+      });
+
+      async function createUser(body: unknown): Promise<Result<User, AppError>> {
+        const validated = fromZod(UserSchema, body);
+        if (!validated.success) return validated;
+
+        return await userRepository.create(validated.data);
+      }
+
+    # Debugging Result chains (jury request)
+    debugging_patterns: |
+      // Problem: Result chains hide where errors originated
+      // Solution: Add debug context at each step
+
+      // Debug-aware Result wrapper
+      function withDebug<T, E>(
+        result: Result<T, E>,
+        context: string
+      ): Result<T, E & { _debug?: string[] }> {
+        if (result.success) return result;
+
+        const debugPath = (result.error as any)._debug || [];
+        return err({
+          ...result.error,
+          _debug: [...debugPath, context],
+        } as E & { _debug: string[] });
+      }
+
+      // Usage: trace error origin through chain
+      const result = await pipe(
+        getUser(id),
+        (r) => withDebug(r, 'getUser'),
+        (r) => flatMap(r, enrichProfile),
+        (r) => withDebug(r, 'enrichProfile'),
+        (r) => flatMap(r, validatePermissions),
+        (r) => withDebug(r, 'validatePermissions'),
+      );
+
+      if (!result.success) {
+        console.log('Error path:', result.error._debug);
+        // Output: ['getUser', 'enrichProfile'] - failed at enrichProfile
+      }
+
+      // VS Code debugging tip: Add conditional breakpoint
+      // Condition: !result.success
+      // This pauses only when Result is an error
+
+  typed_errors:
+    description: "Typed error classes with operational vs programming distinction"
+    key_distinction:
+      operational_errors: "Expected failures (bad input, not found, rate limit) - return to client with details"
+      programming_errors: "Bugs that shouldn't happen (null access, type errors) - crash, alert, hide from client"
+    performance_note: "Error creation with stack traces has overhead - avoid in hot paths. Use Result types for high-frequency expected failures."
+    error_tracking_integration:
+      - "Include error.cause for chained errors"
+      - "Add toJSON() for structured logging"
+      - "Use Error.captureStackTrace for clean traces"
+      - "Tag errors with requestId for correlation"
+    example: |
+      // errors/base.ts - Abstract base with operational vs programming
+      export abstract class AppError extends Error {
+        abstract readonly code: string;
+        abstract readonly statusCode: number;
+        abstract readonly isOperational: boolean;
+
+        constructor(message: string, public readonly cause?: Error) {
+          super(message);
+          this.name = this.constructor.name;
+          Error.captureStackTrace(this, this.constructor);
+        }
+
+        // Structured serialization for logging and responses
+        toJSON() {
+          return {
+            code: this.code,
+            message: this.message,
+            ...(process.env.NODE_ENV === 'development' && {
+              stack: this.stack,
+              cause: this.cause?.message,
+            }),
+          };
+        }
+      }
+
+      // Operational: expected failures - safe to show client
+      export abstract class OperationalError extends AppError {
+        readonly isOperational = true;
+      }
+
+      // Programming: bugs - hide from client, alert team
+      export abstract class ProgrammerError extends AppError {
+        readonly isOperational = false;
+      }
+
+      // Concrete operational errors
+      export class NotFoundError extends OperationalError {
+        readonly code = 'NOT_FOUND';
+        readonly statusCode = 404;
+        constructor(resource: string, id?: string) {
+          super(id ? `${resource} with ID ${id} not found` : `${resource} not found`);
+        }
+      }
+
+      export class ValidationError extends OperationalError {
+        readonly code = 'VALIDATION_ERROR';
+        readonly statusCode = 400;
+        constructor(message: string, public readonly fields: Record<string, string[]>) {
+          super(message);
+        }
+      }
+
+      export class UnauthorizedError extends OperationalError {
+        readonly code = 'UNAUTHORIZED';
+        readonly statusCode = 401;
+        constructor(message = 'Authentication required') { super(message); }
+      }
+
+      export class ForbiddenError extends OperationalError {
+        readonly code = 'FORBIDDEN';
+        readonly statusCode = 403;
+        constructor(message = 'Access denied') { super(message); }
+      }
+
+      export class ConflictError extends OperationalError {
+        readonly code = 'CONFLICT';
+        readonly statusCode = 409;
+        constructor(message: string) { super(message); }
+      }
+
+      export class RateLimitError extends OperationalError {
+        readonly code = 'RATE_LIMIT';
+        readonly statusCode = 429;
+        constructor(public readonly retryAfter: number) {
+          super(`Rate limit exceeded. Retry after ${retryAfter}s`);
+        }
+      }
+
+      // Error codes enum - useful for microservices and client SDKs
+      export const ErrorCodes = {
+        // Client errors (4xx)
+        VALIDATION_ERROR: 'VALIDATION_ERROR',
+        NOT_FOUND: 'NOT_FOUND',
+        UNAUTHORIZED: 'UNAUTHORIZED',
+        FORBIDDEN: 'FORBIDDEN',
+        CONFLICT: 'CONFLICT',
+        RATE_LIMIT: 'RATE_LIMIT',
+
+        // Server errors (5xx)
+        INTERNAL_ERROR: 'INTERNAL_ERROR',
+        SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+        GATEWAY_ERROR: 'GATEWAY_ERROR',
+
+        // Domain-specific (extend per service)
+        PAYMENT_FAILED: 'PAYMENT_FAILED',
+        INVENTORY_EXHAUSTED: 'INVENTORY_EXHAUSTED',
+      } as const;
+
+      export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+
+      // Global error handler with operational distinction
+      export function errorHandler(err: Error, req: Request): Response {
+        const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+
+        // Log all errors with context
+        console.error('[Error]', {
+          requestId,
+          message: err.message,
+          stack: err.stack,
+          url: req.url,
+        });
+
+        // Operational: return details to client
+        if (err instanceof OperationalError) {
+          return Response.json(
+            { ...err.toJSON(), requestId },
+            { status: err.statusCode }
+          );
+        }
+
+        // Programming error: hide details, alert team
+        if (err instanceof AppError && !err.isOperational) {
+          captureException(err, { tags: { requestId } });
+        }
+
+        // Unknown: generic message
+        return Response.json(
+          { code: 'INTERNAL_ERROR', message: 'Something went wrong', requestId },
+          { status: 500 }
+        );
+      }
+
+      // Type guards for exhaustive handling
+      function isNotFoundError(e: unknown): e is NotFoundError {
+        return e instanceof NotFoundError;
+      }
+
+      // Usage with exhaustive checking
+      try {
+        await updateUser(id, data);
+      } catch (e) {
+        if (isNotFoundError(e)) return handleNotFound(e);
+        if (e instanceof ValidationError) return handleValidation(e);
+        throw e; // Re-throw unexpected errors
+      }
+
+  error_boundary:
+    description: "React error boundaries for graceful failure isolation"
+    what_boundaries_catch:
+      - "Errors during rendering"
+      - "Errors in lifecycle methods"
+      - "Errors in constructors of child components"
+    what_boundaries_dont_catch:
+      - "Event handlers (use try-catch inside handlers)"
+      - "Async code (setTimeout, requestAnimationFrame, promises)"
+      - "Server-side rendering errors"
+      - "Errors thrown in the error boundary itself"
+    strategic_placement:
+      route_level: "app/error.tsx - catches route segment errors"
+      global_level: "app/global-error.tsx - catches root layout errors (must include <html>)"
+      component_level: "Wrap risky components (external data, user content, third-party libs)"
+      granular_rule: "Not every component needs a boundary - add around data-dependent, user-generated, or third-party components"
+    performance_note: "Error boundaries have minimal overhead - the class component stays mounted and only activates on error"
+    example: |
+      // app/error.tsx - Route-level boundary (Next.js App Router)
+      "use client";
+
+      import { useEffect } from 'react';
+      import { captureException } from '@sentry/nextjs';
+
+      export default function Error({
+        error,
+        reset,
+      }: {
+        error: Error & { digest?: string };
+        reset: () => void;
+      }) {
+        useEffect(() => {
+          // Log to error tracking with digest for server correlation
+          captureException(error, { tags: { digest: error.digest } });
+        }, [error]);
+
+        return (
+          <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
+            <h2>Something went wrong</h2>
+            <p className="text-muted-foreground">We've been notified.</p>
+            <div className="flex gap-2">
+              <button onClick={() => window.location.reload()}>Refresh</button>
+              <button onClick={reset}>Try again</button>
+            </div>
+          </div>
+        );
+      }
+
+      // app/global-error.tsx - Root layout errors (MUST include html/body)
+      "use client";
+      export default function GlobalError({ error, reset }) {
+        return (
+          <html><body>
+            <h1>Critical Error</h1>
+            <button onClick={reset}>Reset</button>
+          </body></html>
+        );
+      }
+
+      // Reusable boundary component for granular use
+      class ErrorBoundary extends React.Component<
+        { children: ReactNode; fallback?: ReactNode; onError?: (e: Error) => void },
+        { hasError: boolean; error: Error | null }
+      > {
+        state = { hasError: false, error: null };
+
+        static getDerivedStateFromError(error: Error) {
+          return { hasError: true, error };
+        }
+
+        componentDidCatch(error: Error, info: React.ErrorInfo) {
+          this.props.onError?.(error);
+          captureException(error, { extra: { componentStack: info.componentStack } });
+        }
+
+        render() {
+          if (this.state.hasError) {
+            return this.props.fallback ?? <DefaultFallback />;
+          }
+          return this.props.children;
+        }
+      }
+
+      // Strategic granular boundaries
+      export default function Dashboard() {
+        return (
+          <div>
+            <Header /> {/* Simple, trusted - no boundary */}
+
+            <ErrorBoundary fallback={<ChartSkeleton />}>
+              <AnalyticsChart /> {/* External API data - risky */}
+            </ErrorBoundary>
+
+            <ErrorBoundary fallback={<FeedSkeleton />}>
+              <ActivityFeed /> {/* User-generated content - risky */}
+            </ErrorBoundary>
+          </div>
+        );
+      }
+
+      // Event handlers need try-catch (boundaries don't catch these!)
+      function RiskyButton() {
+        const handleClick = async () => {
+          try {
+            await riskyOperation();
+          } catch (e) {
+            toast.error('Operation failed');
+            captureException(e);
+          }
+        };
+        return <button onClick={handleClick}>Click</button>;
+      }
+
+      // Suspense + Error Boundary combo (React 18+)
+      import { Suspense } from 'react';
+
+      function DataSection() {
+        return (
+          <ErrorBoundary fallback={<DataError />}>
+            <Suspense fallback={<DataSkeleton />}>
+              <AsyncDataComponent /> {/* Uses use() or throws promise */}
+            </Suspense>
+          </ErrorBoundary>
+        );
+      }
+
+      // Suspense with error handling for data fetching
+      function useDataWithSuspense<T>(fetcher: () => Promise<T>): T {
+        const [promise] = useState(() => fetcher());
+        const [result, setResult] = useState<{ data?: T; error?: Error } | null>(null);
+
+        if (!result) {
+          throw promise.then(
+            data => setResult({ data }),
+            error => setResult({ error })
+          );
+        }
+
+        if (result.error) throw result.error; // Caught by ErrorBoundary
+        return result.data!;
+      }
+
+  retry_with_backoff:
+    description: "Retry transient failures with exponential backoff and jitter"
+    key_principle: "Retry transient failures, fail fast on permanent errors"
+    transient_errors:
+      should_retry:
+        - "429 Too Many Requests"
+        - "502 Bad Gateway"
+        - "503 Service Unavailable"
+        - "504 Gateway Timeout"
+        - "ECONNREFUSED, ETIMEDOUT, ECONNRESET"
+        - "Network errors (fetch failed)"
+      should_not_retry:
+        - "400 Bad Request (your bug)"
+        - "401 Unauthorized (auth is broken)"
+        - "403 Forbidden (permission issue)"
+        - "404 Not Found (resource doesn't exist)"
+        - "422 Validation Error (bad input)"
+    jitter_importance: "Without jitter, retries synchronize causing thundering herd - always add random jitter"
+    logging_requirement: "Always log retry attempts with attempt number, delay, and error for debugging"
+    example: |
+      // Production-ready retry with logging, jitter, and transient detection
+      async function withRetry<T>(
+        fn: () => Promise<T>,
+        options: {
+          maxAttempts?: number;
+          baseDelay?: number;
+          maxDelay?: number;
+          shouldRetry?: (error: Error) => boolean;
+          onRetry?: (error: Error, attempt: number, delay: number) => void;
+        } = {}
+      ): Promise<T> {
+        const {
+          maxAttempts = 3,
+          baseDelay = 1000,
+          maxDelay = 30000,
+          shouldRetry = isTransientError,
+          onRetry = defaultRetryLogger,
+        } = options;
+
+        let lastError: Error;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            return await fn();
+          } catch (error) {
+            lastError = error as Error;
+
+            // Don't retry if max attempts reached or error is permanent
+            if (attempt === maxAttempts || !shouldRetry(lastError)) {
+              throw lastError;
+            }
+
+            // Exponential backoff with jitter (prevents thundering herd)
+            const exponentialDelay = baseDelay * Math.pow(2, attempt - 1);
+            const jitter = Math.random() * 1000; // 0-1s random jitter
+            const delay = Math.min(exponentialDelay + jitter, maxDelay);
+
+            // Log retry attempt (critical for debugging)
+            onRetry(lastError, attempt, delay);
+
+            await new Promise(r => setTimeout(r, delay));
+          }
+        }
+
+        throw lastError!;
+      }
+
+      // Default logger - always log retries!
+      function defaultRetryLogger(error: Error, attempt: number, delay: number) {
+        console.warn(`[Retry] Attempt ${attempt} failed, retrying in ${delay.toFixed(0)}ms`, {
+          error: error.message,
+          attempt,
+          delay,
+        });
+      }
+
+      // Transient error detection
+      function isTransientError(error: Error): boolean {
+        // Network errors - always transient
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          return true;
+        }
+
+        // Connection errors
+        const message = error.message.toLowerCase();
+        if (message.includes('econnrefused') ||
+            message.includes('etimedout') ||
+            message.includes('econnreset') ||
+            message.includes('socket hang up')) {
+          return true;
+        }
+
+        // HTTP status codes that might be transient
+        if ('status' in error) {
+          const status = (error as any).status;
+          return status === 429 || status === 502 || status === 503 || status === 504;
+        }
+
+        // Database transient errors
+        if (message.includes('deadlock') ||
+            message.includes('lock wait timeout') ||
+            message.includes('connection pool')) {
+          return true;
+        }
+
+        return false;
+      }
+
+      // Usage examples
+      // API calls
+      const data = await withRetry(
+        () => fetch('/api/data').then(r => {
+          if (!r.ok) throw Object.assign(new Error(r.statusText), { status: r.status });
+          return r.json();
+        }),
+        { maxAttempts: 3, baseDelay: 1000 }
+      );
+
+      // Database operations
+      const user = await withRetry(
+        () => db.query.users.findFirst({ where: eq(users.id, id) }),
+        {
+          maxAttempts: 3,
+          shouldRetry: (e) => e.message.includes('deadlock'),
+          onRetry: (e, attempt) => {
+            logger.warn({ error: e, attempt }, 'DB retry');
+          },
+        }
+      );
+
+      // With custom backoff for rate limits
+      const result = await withRetry(
+        () => rateLimitedAPI.call(),
+        {
+          maxAttempts: 5,
+          baseDelay: 2000, // Start higher for rate limits
+          maxDelay: 60000, // Allow longer waits
+        }
+      );
+
+  circuit_breaker:
+    description: "Stop calling failing services - fail fast instead of waiting"
+    states:
+      closed: "Normal operation - requests pass through"
+      open: "Failing - requests rejected immediately without calling service"
+      half_open: "Testing - one request allowed to check if service recovered"
+    when_to_use:
+      - "External API calls that might be down"
+      - "Database connections under load"
+      - "Microservice communication"
+      - "Any remote call that can fail and cause cascading failures"
+    example: |
+      class CircuitBreaker {
+        private state: 'closed' | 'open' | 'half-open' = 'closed';
+        private failureCount = 0;
+        private lastFailureTime = 0;
+        private successCount = 0;
+
+        constructor(
+          private readonly options: {
+            failureThreshold: number;     // Failures before opening
+            resetTimeout: number;         // Time before trying again (ms)
+            successThreshold: number;     // Successes to close from half-open
+            onStateChange?: (from: string, to: string) => void;
+          }
+        ) {}
+
+        async execute<T>(fn: () => Promise<T>): Promise<T> {
+          if (this.state === 'open') {
+            if (Date.now() - this.lastFailureTime >= this.options.resetTimeout) {
+              this.transition('half-open');
+            } else {
+              throw new CircuitOpenError('Circuit breaker is open');
+            }
+          }
+
+          try {
+            const result = await fn();
+            this.onSuccess();
+            return result;
+          } catch (error) {
+            this.onFailure();
+            throw error;
+          }
+        }
+
+        private onSuccess() {
+          if (this.state === 'half-open') {
+            this.successCount++;
+            if (this.successCount >= this.options.successThreshold) {
+              this.transition('closed');
+            }
+          }
+          this.failureCount = 0;
+        }
+
+        private onFailure() {
+          this.failureCount++;
+          this.lastFailureTime = Date.now();
+
+          if (this.state === 'half-open') {
+            this.transition('open');
+          } else if (this.failureCount >= this.options.failureThreshold) {
+            this.transition('open');
+          }
+        }
+
+        private transition(newState: 'closed' | 'open' | 'half-open') {
+          const oldState = this.state;
+          this.state = newState;
+          if (newState === 'closed') {
+            this.failureCount = 0;
+            this.successCount = 0;
+          }
+          this.options.onStateChange?.(oldState, newState);
+        }
+      }
+
+      // Usage
+      const paymentCircuit = new CircuitBreaker({
+        failureThreshold: 5,
+        resetTimeout: 30000,
+        successThreshold: 3,
+        onStateChange: (from, to) => {
+          logger.warn({ from, to }, 'Payment circuit state change');
+          if (to === 'open') alertOps('Payment service circuit opened');
+        },
+      });
+
+      async function processPayment(order: Order) {
+        return paymentCircuit.execute(() => paymentService.charge(order));
+      }
+
+  bulkhead:
+    description: "Isolate failures - don't let one slow service exhaust all resources"
+    concept: "Like ship compartments - flood one, others stay dry"
+    implementation_options:
+      - "Separate thread pools per service"
+      - "Semaphores to limit concurrent calls"
+      - "Queue with max size per operation type"
+    example: |
+      class Bulkhead {
+        private currentConcurrency = 0;
+        private queue: Array<{ resolve: () => void }> = [];
+
+        constructor(
+          private readonly maxConcurrency: number,
+          private readonly maxQueueSize: number = 100
+        ) {}
+
+        async execute<T>(fn: () => Promise<T>): Promise<T> {
+          if (this.currentConcurrency >= this.maxConcurrency) {
+            if (this.queue.length >= this.maxQueueSize) {
+              throw new BulkheadFullError('Bulkhead queue full');
+            }
+            await new Promise<void>(resolve => this.queue.push({ resolve }));
+          }
+
+          this.currentConcurrency++;
+          try {
+            return await fn();
+          } finally {
+            this.currentConcurrency--;
+            const next = this.queue.shift();
+            next?.resolve();
+          }
+        }
+      }
+
+      // Separate bulkheads per external service
+      const paymentBulkhead = new Bulkhead(10);   // Max 10 concurrent payment calls
+      const inventoryBulkhead = new Bulkhead(20); // Max 20 concurrent inventory calls
+
+      // Slow inventory service won't block payment processing
+      async function checkout(order: Order) {
+        const [payment, inventory] = await Promise.all([
+          paymentBulkhead.execute(() => chargeCard(order)),
+          inventoryBulkhead.execute(() => reserveItems(order)),
+        ]);
+      }
+
+  structured_logging:
+    description: "Log errors with context for debugging and correlation"
+    key_fields:
+      required:
+        - "timestamp"
+        - "level (error, warn, info)"
+        - "message"
+        - "error.name"
+        - "error.message"
+        - "error.stack"
+      recommended:
+        - "requestId (for correlation)"
+        - "userId"
+        - "traceId (for distributed tracing)"
+        - "spanId"
+        - "service"
+        - "environment"
+    example: |
+      import pino from 'pino';
+
+      const logger = pino({
+        level: process.env.LOG_LEVEL || 'info',
+        formatters: {
+          level: (label) => ({ level: label }),
+        },
+        base: {
+          service: 'api-gateway',
+          environment: process.env.NODE_ENV,
+        },
+      });
+
+      // Create child logger with request context
+      function createRequestLogger(req: Request) {
+        return logger.child({
+          requestId: req.headers.get('x-request-id') || crypto.randomUUID(),
+          traceId: req.headers.get('x-trace-id'),
+          userId: req.user?.id,
+          path: req.url,
+          method: req.method,
+        });
+      }
+
+      // Structured error logging
+      function logError(log: pino.Logger, error: Error, context?: object) {
+        log.error({
+          err: {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            code: (error as any).code,
+            cause: error.cause,
+          },
+          ...context,
+        }, error.message);
+      }
+
+      // Usage in error handler
+      app.use((err, req, res, next) => {
+        const log = createRequestLogger(req);
+        logError(log, err, {
+          body: req.body,
+          query: req.query,
+        });
+        // ... handle response
+      });
+
+  testing_error_handling:
+    description: "Test your error handling - it's often the least tested code"
+    patterns:
+      unit_tests: |
+        // Test that errors are thrown correctly
+        describe('getUser', () => {
+          it('returns NotFoundError for missing user', async () => {
+            await expect(getUser('nonexistent')).rejects.toThrow(NotFoundError);
+          });
+
+          it('returns ValidationError for invalid id', async () => {
+            await expect(getUser('')).rejects.toThrow(ValidationError);
+          });
+
+          it('includes error code and message', async () => {
+            try {
+              await getUser('nonexistent');
+            } catch (e) {
+              expect(e).toBeInstanceOf(NotFoundError);
+              expect(e.code).toBe('NOT_FOUND');
+              expect(e.statusCode).toBe(404);
+            }
+          });
+        });
+
+        // Test Result types
+        describe('getUserResult', () => {
+          it('returns ok for existing user', async () => {
+            const result = await getUserResult('user-1');
+            expect(result.success).toBe(true);
+            if (result.success) {
+              expect(result.data.id).toBe('user-1');
+            }
+          });
+
+          it('returns err for missing user', async () => {
+            const result = await getUserResult('nonexistent');
+            expect(result.success).toBe(false);
+            if (!result.success) {
+              expect(result.error.code).toBe('NOT_FOUND');
+            }
+          });
+        });
+
+      integration_tests: |
+        // Test error responses from API
+        describe('POST /api/orders', () => {
+          it('returns 400 for invalid order', async () => {
+            const res = await request(app)
+              .post('/api/orders')
+              .send({ items: [] });
+
+            expect(res.status).toBe(400);
+            expect(res.body.code).toBe('VALIDATION_ERROR');
+            expect(res.body.fields).toHaveProperty('items');
+          });
+
+          it('returns 401 for unauthenticated request', async () => {
+            const res = await request(app)
+              .post('/api/orders')
+              .send({ items: [{ id: '1', qty: 1 }] });
+
+            expect(res.status).toBe(401);
+            expect(res.body.code).toBe('UNAUTHORIZED');
+          });
+
+          it('returns 404 for nonexistent product', async () => {
+            const res = await request(app)
+              .post('/api/orders')
+              .auth(validToken)
+              .send({ items: [{ id: 'nonexistent', qty: 1 }] });
+
+            expect(res.status).toBe(404);
+          });
+        });
+
+      error_boundary_tests: |
+        // Test React error boundaries
+        import { render, screen } from '@testing-library/react';
+
+        // Suppress console.error for expected errors
+        const originalError = console.error;
+        beforeAll(() => { console.error = jest.fn(); });
+        afterAll(() => { console.error = originalError; });
+
+        function ThrowingComponent() {
+          throw new Error('Test error');
+        }
+
+        describe('ErrorBoundary', () => {
+          it('renders fallback when child throws', () => {
+            render(
+              <ErrorBoundary fallback={<div>Error occurred</div>}>
+                <ThrowingComponent />
+              </ErrorBoundary>
+            );
+
+            expect(screen.getByText('Error occurred')).toBeInTheDocument();
+          });
+
+          it('calls onError callback', () => {
+            const onError = jest.fn();
+
+            render(
+              <ErrorBoundary onError={onError} fallback={<div>Error</div>}>
+                <ThrowingComponent />
+              </ErrorBoundary>
+            );
+
+            expect(onError).toHaveBeenCalledWith(expect.any(Error));
+          });
+
+          it('renders children when no error', () => {
+            render(
+              <ErrorBoundary fallback={<div>Error</div>}>
+                <div>Normal content</div>
+              </ErrorBoundary>
+            );
+
+            expect(screen.getByText('Normal content')).toBeInTheDocument();
+          });
+        });
+
+      retry_tests: |
+        // Test retry logic
+        describe('withRetry', () => {
+          it('retries on transient error', async () => {
+            let attempts = 0;
+            const fn = jest.fn().mockImplementation(() => {
+              attempts++;
+              if (attempts < 3) throw new Error('Transient');
+              return 'success';
+            });
+
+            const result = await withRetry(fn, { maxAttempts: 3 });
+
+            expect(result).toBe('success');
+            expect(fn).toHaveBeenCalledTimes(3);
+          });
+
+          it('throws after max attempts', async () => {
+            const fn = jest.fn().mockRejectedValue(new Error('Always fails'));
+
+            await expect(withRetry(fn, { maxAttempts: 3 }))
+              .rejects.toThrow('Always fails');
+            expect(fn).toHaveBeenCalledTimes(3);
+          });
+
+          it('does not retry permanent errors', async () => {
+            const error = Object.assign(new Error('Not found'), { status: 404 });
+            const fn = jest.fn().mockRejectedValue(error);
+
+            await expect(withRetry(fn)).rejects.toThrow('Not found');
+            expect(fn).toHaveBeenCalledTimes(1);
+          });
+        });
+
+anti_patterns:
+  swallowing_errors:
+    description: "Catching and ignoring errors - the silent killer"
+    severity: critical
+    real_world_disaster: |
+      E-commerce checkout: Card charged but order creation silently fails.
+      User thinks order placed. You have no logs. Days later, angry refund requests.
+    detection:
+      eslint_rule: '{ "no-empty": ["error", { "allowEmptyCatch": false }] }'
+      code_review: "Search for 'catch' followed by empty braces or only console.log"
+    wrong: |
+      try {
+        await processPayment(order);
+        await createOrder(order);
+      } catch (e) {
+        // Silent failure - payment charged, order lost!
+      }
+    fix_progression:
+      minimum: "Log the error - at least you'll know it happened"
+      better: "Log + send to error tracking (Sentry, etc.)"
+      best: "Log + track + queue for retry or manual intervention"
+    right: |
+      try {
+        await processPayment(order);
+        await createOrder(order);
+      } catch (error) {
+        logger.error({ error, orderId: order.id }, 'Order processing failed');
+        captureException(error);
+        await queueForManualReview(order);
+        throw error; // Let caller know it failed
+      }
+    decision_matrix:
+      critical_operations: "Log + Alert + Queue for retry"
+      important_operations: "Log + Queue for retry"
+      nice_to_have: "Log warning, continue"
+      never_acceptable: "Empty catch block"
+
+  generic_catch:
+    description: "Catching all errors identically - hiding bugs in expected errors"
+    severity: high
+    problem: |
+      All errors return 500. Validation errors (400), auth errors (401), not found (404)
+      all look the same. Actual bugs hide among expected failures.
+    wrong: |
+      try {
+        await processOrder(order);
+      } catch (e) {
+        return res.status(500).json({ error: 'Something went wrong' });
+      }
+    right: |
+      try {
+        await processOrder(order);
+      } catch (e) {
+        if (e instanceof ValidationError) {
+          return res.status(400).json({ code: e.code, message: e.message, fields: e.fields });
+        }
+        if (e instanceof NotFoundError) {
+          return res.status(404).json({ code: e.code, message: e.message });
+        }
+        if (e instanceof UnauthorizedError) {
+          return res.status(401).json({ code: e.code, message: e.message });
+        }
+        // Unknown = actual bug - log, alert, return generic
+        logger.error({ error: e }, 'Unexpected error');
+        captureException(e);
+        return res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Something went wrong' });
+      }
+    key_principle: "Expected errors → handle specifically. Unexpected errors → log, alert, hide details."
+
+  missing_error_boundaries:
+    description: "React app without error boundaries - one component crash kills everything"
+    severity: high
+    problem: |
+      One bad API response in ActivityFeed component → entire app white screen.
+      User loses all unsaved work. No graceful degradation.
+    strategic_placement:
+      wrap_always: "External API data, user-generated content, third-party components"
+      no_boundary_needed: "Simple static UI, trusted internal components"
+    wrong: |
+      export default function App() {
+        return (
+          <div>
+            <Header />
+            <UserProfile />   {/* Throws → entire app dies */}
+            <ActivityFeed />  {/* External API → risky */}
+          </div>
+        );
+      }
+    right: |
+      export default function App() {
+        return (
+          <div>
+            <Header /> {/* Simple, trusted */}
+            <ErrorBoundary fallback={<ProfileSkeleton />}>
+              <UserProfile />
+            </ErrorBoundary>
+            <ErrorBoundary fallback={<FeedSkeleton />}>
+              <ActivityFeed />
+            </ErrorBoundary>
+          </div>
+        );
+      }
+
+  no_retry_logic:
+    description: "Treating transient failures as permanent - giving up too easily"
+    severity: medium
+    problem: |
+      Single network hiccup or momentary service restart causes permanent failure.
+      API call fails once → user sees error, when retry would have succeeded.
+    when_to_retry:
+      always: "429, 502, 503, 504, network errors, connection refused"
+      never: "400, 401, 403, 404, 422 - these are permanent, retry won't help"
+    wrong: |
+      const data = await fetch('/api/data').then(r => r.json());
+      // One failure = permanent failure
+    right: |
+      const data = await withRetry(
+        () => fetch('/api/data').then(r => {
+          if (!r.ok) throw Object.assign(new Error(r.statusText), { status: r.status });
+          return r.json();
+        }),
+        {
+          maxAttempts: 3,
+          baseDelay: 1000,
+          shouldRetry: (e) => [429, 502, 503, 504].includes(e.status),
+          onRetry: (e, attempt) => console.warn(`Retry ${attempt}:`, e.message),
+        }
+      );
+
+framework_variations:
+  description: "Error handling patterns vary by framework - know the idiomatic approach"
+
+  vue3:
+    global_handler: |
+      // main.ts - Global error handler
+      import { createApp } from 'vue';
+      import * as Sentry from '@sentry/vue';
+
+      const app = createApp(App);
+
+      // Capture all Vue errors
+      app.config.errorHandler = (err, instance, info) => {
+        console.error('[Vue Error]', { err, info, component: instance?.$options.name });
+        Sentry.captureException(err, {
+          extra: { info, component: instance?.$options.name },
+        });
+      };
+
+      // Capture unhandled promise rejections
+      app.config.warnHandler = (msg, instance, trace) => {
+        console.warn('[Vue Warning]', msg);
+      };
+
+      app.mount('#app');
+
+    component_level: |
+      <!-- ErrorBoundary.vue - Reusable error boundary -->
+      <script setup lang="ts">
+      import { ref, onErrorCaptured } from 'vue';
+
+      const error = ref<Error | null>(null);
+      const emit = defineEmits<{ (e: 'error', err: Error): void }>();
+
+      // Capture errors from child components
+      onErrorCaptured((err: Error, instance, info) => {
+        error.value = err;
+        emit('error', err);
+        return false; // Stop propagation
+      });
+
+      function reset() {
+        error.value = null;
+      }
+      </script>
+
+      <template>
+        <slot v-if="!error" />
+        <slot v-else name="fallback" :error="error" :reset="reset">
+          <div class="error-fallback">
+            <p>Something went wrong</p>
+            <button @click="reset">Try again</button>
+          </div>
+        </slot>
+      </template>
+
+      <!-- Usage -->
+      <ErrorBoundary @error="logError">
+        <RiskyComponent />
+        <template #fallback="{ error, reset }">
+          <p>{{ error.message }}</p>
+          <button @click="reset">Retry</button>
+        </template>
+      </ErrorBoundary>
+
+    composable_pattern: |
+      // composables/useAsyncData.ts - Composable with error handling
+      import { ref, Ref } from 'vue';
+
+      interface UseAsyncResult<T> {
+        data: Ref<T | null>;
+        error: Ref<Error | null>;
+        loading: Ref<boolean>;
+        execute: () => Promise<void>;
+      }
+
+      export function useAsyncData<T>(
+        fetcher: () => Promise<T>
+      ): UseAsyncResult<T> {
+        const data = ref<T | null>(null) as Ref<T | null>;
+        const error = ref<Error | null>(null);
+        const loading = ref(false);
+
+        async function execute() {
+          loading.value = true;
+          error.value = null;
+          try {
+            data.value = await fetcher();
+          } catch (e) {
+            error.value = e instanceof Error ? e : new Error(String(e));
+          } finally {
+            loading.value = false;
+          }
+        }
+
+        return { data, error, loading, execute };
+      }
+
+      // Usage in component
+      const { data: user, error, loading, execute } = useAsyncData(() =>
+        fetchUser(userId)
+      );
+      onMounted(execute);
+
+  svelte:
+    component_error: |
+      <!-- +error.svelte - SvelteKit error page -->
+      <script lang="ts">
+        import { page } from '$app/stores';
+        import { captureException } from '@sentry/sveltekit';
+        import { onMount } from 'svelte';
+
+        // Log error on mount
+        onMount(() => {
+          if ($page.error) {
+            captureException($page.error, {
+              tags: { route: $page.url.pathname },
+            });
+          }
+        });
+      </script>
+
+      <div class="error-page">
+        <h1>{$page.status}</h1>
+        <p>{$page.error?.message ?? 'Something went wrong'}</p>
+        <a href="/">Go home</a>
+      </div>
+
+    hooks_pattern: |
+      // hooks.server.ts - SvelteKit server hooks
+      import { captureException } from '@sentry/sveltekit';
+      import type { HandleServerError } from '@sveltejs/kit';
+
+      export const handleError: HandleServerError = async ({ error, event }) => {
+        const errorId = crypto.randomUUID();
+
+        console.error('[Server Error]', {
+          errorId,
+          message: (error as Error).message,
+          url: event.url.pathname,
+          method: event.request.method,
+        });
+
+        captureException(error, {
+          extra: {
+            errorId,
+            url: event.url.href,
+          },
+        });
+
+        return {
+          message: 'An unexpected error occurred',
+          errorId,
+        };
+      };
+
+      // hooks.client.ts - Client hooks
+      import type { HandleClientError } from '@sveltejs/kit';
+
+      export const handleError: HandleClientError = async ({ error, event }) => {
+        console.error('[Client Error]', error);
+        captureException(error);
+
+        return {
+          message: 'Something went wrong',
+        };
+      };
+
+    store_pattern: |
+      // stores/asyncStore.ts - Svelte store with error handling
+      import { writable, derived } from 'svelte/store';
+
+      interface AsyncState<T> {
+        data: T | null;
+        error: Error | null;
+        loading: boolean;
+      }
+
+      export function createAsyncStore<T>(fetcher: () => Promise<T>) {
+        const state = writable<AsyncState<T>>({
+          data: null,
+          error: null,
+          loading: false,
+        });
+
+        async function load() {
+          state.update(s => ({ ...s, loading: true, error: null }));
+          try {
+            const data = await fetcher();
+            state.set({ data, error: null, loading: false });
+          } catch (e) {
+            state.set({
+              data: null,
+              error: e instanceof Error ? e : new Error(String(e)),
+              loading: false,
+            });
+          }
+        }
+
+        return {
+          subscribe: state.subscribe,
+          load,
+          reset: () => state.set({ data: null, error: null, loading: false }),
+        };
+      }
+
+  nodejs_express:
+    middleware_pattern: |
+      // middleware/errorHandler.ts - Express error handling
+      import { ErrorRequestHandler, Request, Response, NextFunction } from 'express';
+      import { captureException } from '@sentry/node';
+      import { AppError, OperationalError } from '../errors';
+
+      // Async wrapper - eliminates try-catch in every route
+      export const asyncHandler = (
+        fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+      ) => (req: Request, res: Response, next: NextFunction) => {
+        Promise.resolve(fn(req, res, next)).catch(next);
+      };
+
+      // Central error handler - MUST be registered last
+      export const errorHandler: ErrorRequestHandler = (
+        err: Error,
+        req: Request,
+        res: Response,
+        _next: NextFunction
+      ) => {
+        const requestId = req.headers['x-request-id'] as string || crypto.randomUUID();
+
+        // Log with context
+        req.log.error({
+          err,
+          requestId,
+          url: req.url,
+          method: req.method,
+          userId: req.user?.id,
+        });
+
+        // Operational error - safe to return details
+        if (err instanceof OperationalError) {
+          return res.status(err.statusCode).json({
+            code: err.code,
+            message: err.message,
+            requestId,
+            ...(err instanceof ValidationError && { fields: err.fields }),
+          });
+        }
+
+        // Programming error - hide details, alert
+        captureException(err, { tags: { requestId } });
+
+        return res.status(500).json({
+          code: 'INTERNAL_ERROR',
+          message: 'An unexpected error occurred',
+          requestId,
+        });
+      };
+
+      // Not found handler
+      export const notFoundHandler = (req: Request, res: Response) => {
+        res.status(404).json({
+          code: 'NOT_FOUND',
+          message: `Route ${req.method} ${req.url} not found`,
+        });
+      };
+
+      // Setup
+      // app.use(routes);
+      // app.use(notFoundHandler);  // After all routes
+      // app.use(errorHandler);     // Last middleware
+
+    graceful_shutdown: |
+      // gracefulShutdown.ts - Handle process errors
+      import { Server } from 'http';
+
+      export function setupGracefulShutdown(server: Server, cleanup: () => Promise<void>) {
+        let isShuttingDown = false;
+
+        async function shutdown(signal: string) {
+          if (isShuttingDown) return;
+          isShuttingDown = true;
+
+          console.log(`Received ${signal}, starting graceful shutdown...`);
+
+          // Stop accepting new connections
+          server.close(async () => {
+            try {
+              await cleanup(); // Close DB, flush logs, etc.
+              console.log('Graceful shutdown complete');
+              process.exit(0);
+            } catch (error) {
+              console.error('Error during cleanup:', error);
+              process.exit(1);
+            }
+          });
+
+          // Force exit after timeout
+          setTimeout(() => {
+            console.error('Forced shutdown after timeout');
+            process.exit(1);
+          }, 30000);
+        }
+
+        process.on('SIGTERM', () => shutdown('SIGTERM'));
+        process.on('SIGINT', () => shutdown('SIGINT'));
+
+        // Catch unhandled errors - these are bugs!
+        process.on('uncaughtException', (error) => {
+          console.error('UNCAUGHT EXCEPTION - shutting down', error);
+          captureException(error);
+          shutdown('uncaughtException');
+        });
+
+        process.on('unhandledRejection', (reason) => {
+          console.error('UNHANDLED REJECTION', reason);
+          captureException(reason as Error);
+          // Don't exit - but log prominently
+        });
+      }
+
+  nodejs_fastify:
+    error_handling: |
+      // Fastify error handling
+      import Fastify from 'fastify';
+      import { AppError, OperationalError } from './errors';
+
+      const fastify = Fastify({
+        logger: true,
+      });
+
+      // Custom error handler
+      fastify.setErrorHandler((error, request, reply) => {
+        request.log.error({ err: error }, 'Request error');
+
+        // Fastify validation errors
+        if (error.validation) {
+          return reply.status(400).send({
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            fields: error.validation,
+          });
+        }
+
+        // Our operational errors
+        if (error instanceof OperationalError) {
+          return reply.status(error.statusCode).send({
+            code: error.code,
+            message: error.message,
+          });
+        }
+
+        // Unknown errors
+        captureException(error);
+        return reply.status(500).send({
+          code: 'INTERNAL_ERROR',
+          message: 'Something went wrong',
+        });
+      });
+
+      // Not found handler
+      fastify.setNotFoundHandler((request, reply) => {
+        reply.status(404).send({
+          code: 'NOT_FOUND',
+          message: `Route ${request.method} ${request.url} not found`,
+        });
+      });
+
+      // Schemas provide automatic validation
+      fastify.post('/users', {
+        schema: {
+          body: {
+            type: 'object',
+            required: ['email'],
+            properties: {
+              email: { type: 'string', format: 'email' },
+              name: { type: 'string', minLength: 1 },
+            },
+          },
+        },
+      }, async (request, reply) => {
+        // Body is already validated by schema
+        const user = await createUser(request.body);
+        return user;
+      });
+
+  # HIGH PRIORITY: Error Boundary with Retry (3-model consensus)
+  error_boundary_with_retry:
+    description: "Error boundary that automatically retries failed operations with exponential backoff"
+    why_combine: "Users shouldn't manually retry - provide automatic recovery with visual feedback"
+    key_features:
+      - "Automatic retry with exponential backoff"
+      - "Visual retry countdown for user awareness"
+      - "Max retry limit before showing fallback"
+      - "Reset mechanism for user-initiated retry"
+      - "Telemetry for retry success/failure rates"
+    example: |
+      // RetryBoundary - combines error catching with automatic retry
+      import { Component, ReactNode, ErrorInfo } from 'react';
+
+      interface RetryBoundaryProps {
+        children: ReactNode;
+        maxRetries?: number;
+        baseDelay?: number;
+        onError?: (error: Error, retryCount: number) => void;
+        fallback: (props: { error: Error; retry: () => void; retryCount: number }) => ReactNode;
+      }
+
+      interface RetryBoundaryState {
+        hasError: boolean;
+        error: Error | null;
+        retryCount: number;
+        isRetrying: boolean;
+        retryIn: number;
+      }
+
+      class RetryBoundary extends Component<RetryBoundaryProps, RetryBoundaryState> {
+        static defaultProps = {
+          maxRetries: 3,
+          baseDelay: 1000,
+        };
+
+        private retryTimeout?: NodeJS.Timeout;
+        private countdownInterval?: NodeJS.Timeout;
+
+        state: RetryBoundaryState = {
+          hasError: false,
+          error: null,
+          retryCount: 0,
+          isRetrying: false,
+          retryIn: 0,
+        };
+
+        static getDerivedStateFromError(error: Error): Partial<RetryBoundaryState> {
+          return { hasError: true, error };
+        }
+
+        componentDidCatch(error: Error, info: ErrorInfo) {
+          this.props.onError?.(error, this.state.retryCount);
+          captureException(error, {
+            extra: { componentStack: info.componentStack, retryCount: this.state.retryCount },
+          });
+
+          // Auto-retry if under limit
+          if (this.state.retryCount < this.props.maxRetries!) {
+            this.scheduleRetry();
+          }
+        }
+
+        componentWillUnmount() {
+          clearTimeout(this.retryTimeout);
+          clearInterval(this.countdownInterval);
+        }
+
+        scheduleRetry = () => {
+          const delay = this.props.baseDelay! * Math.pow(2, this.state.retryCount);
+          const jitter = Math.random() * 500;
+          const totalDelay = delay + jitter;
+
+          this.setState({ isRetrying: true, retryIn: Math.ceil(totalDelay / 1000) });
+
+          // Countdown for user feedback
+          this.countdownInterval = setInterval(() => {
+            this.setState((prev) => {
+              const newRetryIn = prev.retryIn - 1;
+              if (newRetryIn <= 0) {
+                clearInterval(this.countdownInterval);
+              }
+              return { retryIn: newRetryIn };
+            });
+          }, 1000);
+
+          this.retryTimeout = setTimeout(() => {
+            this.setState((prev) => ({
+              hasError: false,
+              error: null,
+              retryCount: prev.retryCount + 1,
+              isRetrying: false,
+              retryIn: 0,
+            }));
+          }, totalDelay);
+        };
+
+        handleManualRetry = () => {
+          clearTimeout(this.retryTimeout);
+          clearInterval(this.countdownInterval);
+          this.setState({
+            hasError: false,
+            error: null,
+            retryCount: 0,
+            isRetrying: false,
+            retryIn: 0,
+          });
+        };
+
+        render() {
+          if (this.state.hasError) {
+            const { error, retryCount, isRetrying, retryIn } = this.state;
+            const { maxRetries, fallback } = this.props;
+
+            if (isRetrying) {
+              return (
+                <div className="p-4 text-center">
+                  <p>Retrying in {retryIn}s... (attempt {retryCount + 1}/{maxRetries})</p>
+                  <button onClick={this.handleManualRetry}>Retry now</button>
+                </div>
+              );
+            }
+
+            return fallback({ error: error!, retry: this.handleManualRetry, retryCount });
+          }
+          return this.props.children;
+        }
+      }
+
+      // Usage with async data fetching
+      function DataDashboard() {
+        return (
+          <RetryBoundary
+            maxRetries={3}
+            baseDelay={1000}
+            onError={(error, count) => {
+              trackEvent('error_boundary_retry', { error: error.message, attempt: count });
+            }}
+            fallback={({ error, retry, retryCount }) => (
+              <div className="error-state">
+                <p>Failed after {retryCount} attempts</p>
+                <p className="text-sm text-gray-500">{error.message}</p>
+                <button onClick={retry}>Try again</button>
+              </div>
+            )}
+          >
+            <Suspense fallback={<DashboardSkeleton />}>
+              <AsyncDashboard />
+            </Suspense>
+          </RetryBoundary>
+        );
+      }
+
+  # HIGH PRIORITY: Error Aggregation for Batch Operations (3-model consensus)
+  error_aggregation:
+    description: "Collect and handle errors from batch/parallel operations without failing on first error"
+    patterns:
+      settle_all: "Run all operations, collect successes and failures separately"
+      partial_success: "Return what succeeded, report what failed"
+      transaction_rollback: "All-or-nothing with compensation"
+    when_to_use:
+      settle_all: "Independent operations (send emails, fetch resources)"
+      partial_success: "User-facing bulk actions (delete 5 files, 3 succeeded)"
+      transaction_rollback: "Financial/critical operations (transfer funds)"
+    example: |
+      // SettleAll pattern - run all, collect results
+      interface SettledResult<T> {
+        succeeded: { item: T; result: unknown }[];
+        failed: { item: T; error: Error }[];
+      }
+
+      async function settleAll<T, R>(
+        items: T[],
+        operation: (item: T) => Promise<R>
+      ): Promise<SettledResult<T>> {
+        const results = await Promise.allSettled(
+          items.map(async (item) => ({
+            item,
+            result: await operation(item),
+          }))
+        );
+
+        const succeeded: SettledResult<T>['succeeded'] = [];
+        const failed: SettledResult<T>['failed'] = [];
+
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            succeeded.push(result.value);
+          } else {
+            failed.push({ item: items[index], error: result.reason });
+          }
+        });
+
+        return { succeeded, failed };
+      }
+
+      // Usage: Bulk email sending
+      const { succeeded, failed } = await settleAll(users, async (user) => {
+        await sendEmail(user.email, template);
+        return { userId: user.id, sentAt: new Date() };
+      });
+
+      // Report partial success
+      if (failed.length > 0) {
+        logger.warn({ failedCount: failed.length, errors: failed.map(f => f.error.message) },
+          'Some emails failed to send');
+        // Queue failed for retry
+        await retryQueue.addBatch(failed.map(f => f.item));
+      }
+
+      console.log(`Sent ${succeeded.length}/${users.length} emails`);
+
+      // AggregateError for multiple failures
+      class BatchOperationError extends Error {
+        constructor(
+          message: string,
+          public readonly errors: { item: unknown; error: Error }[],
+          public readonly succeeded: unknown[]
+        ) {
+          super(message);
+          this.name = 'BatchOperationError';
+        }
+
+        get summary() {
+          return {
+            total: this.succeeded.length + this.errors.length,
+            succeeded: this.succeeded.length,
+            failed: this.errors.length,
+            errorTypes: [...new Set(this.errors.map(e => e.error.name))],
+          };
+        }
+      }
+
+      // Threshold-based failure handling
+      async function batchWithThreshold<T, R>(
+        items: T[],
+        operation: (item: T) => Promise<R>,
+        options: { failureThreshold?: number; stopOnThreshold?: boolean } = {}
+      ): Promise<{ results: R[]; errors: Error[]; aborted: boolean }> {
+        const { failureThreshold = 0.5, stopOnThreshold = true } = options;
+        const results: R[] = [];
+        const errors: Error[] = [];
+        let aborted = false;
+
+        for (const item of items) {
+          if (aborted) break;
+
+          try {
+            results.push(await operation(item));
+          } catch (e) {
+            errors.push(e as Error);
+
+            const failureRate = errors.length / (results.length + errors.length);
+            if (failureRate > failureThreshold && stopOnThreshold) {
+              logger.error({ failureRate, threshold: failureThreshold },
+                'Aborting batch - failure threshold exceeded');
+              aborted = true;
+            }
+          }
+        }
+
+        return { results, errors, aborted };
+      }
+
+  # HIGH PRIORITY: Distributed Tracing Correlation (3-model consensus)
+  distributed_tracing:
+    description: "Propagate correlation IDs across services for end-to-end error tracking"
+    standards:
+      w3c_trace_context: "traceparent and tracestate headers (OpenTelemetry default)"
+      b3_propagation: "X-B3-TraceId, X-B3-SpanId (Zipkin)"
+      custom: "x-request-id, x-correlation-id (simple but effective)"
+    key_principles:
+      - "Generate correlation ID at ingress (API gateway, edge)"
+      - "Propagate through all internal calls"
+      - "Include in ALL log messages"
+      - "Include in error responses"
+      - "Persist through async operations (queues, events)"
+    example: |
+      // Correlation context using AsyncLocalStorage (Node.js)
+      import { AsyncLocalStorage } from 'async_hooks';
+
+      interface RequestContext {
+        traceId: string;
+        spanId: string;
+        requestId: string;
+        userId?: string;
+        startTime: number;
+      }
+
+      export const asyncContext = new AsyncLocalStorage<RequestContext>();
+
+      // Middleware to establish context
+      export function correlationMiddleware(req: Request, res: Response, next: NextFunction) {
+        // Extract or generate correlation IDs
+        const traceId = req.headers['x-trace-id'] as string || crypto.randomUUID();
+        const spanId = crypto.randomUUID().slice(0, 16);
+        const requestId = req.headers['x-request-id'] as string || crypto.randomUUID();
+
+        const context: RequestContext = {
+          traceId,
+          spanId,
+          requestId,
+          userId: req.user?.id,
+          startTime: Date.now(),
+        };
+
+        // Set response headers for client correlation
+        res.setHeader('x-trace-id', traceId);
+        res.setHeader('x-request-id', requestId);
+
+        // Run rest of request in context
+        asyncContext.run(context, () => next());
+      }
+
+      // Helper to get current context
+      export function getContext(): RequestContext | undefined {
+        return asyncContext.getStore();
+      }
+
+      // Logger that auto-includes correlation
+      export const logger = {
+        info: (message: string, data?: object) => log('info', message, data),
+        warn: (message: string, data?: object) => log('warn', message, data),
+        error: (message: string, data?: object) => log('error', message, data),
+      };
+
+      function log(level: string, message: string, data?: object) {
+        const ctx = getContext();
+        console.log(JSON.stringify({
+          level,
+          message,
+          ...data,
+          // Always include correlation IDs
+          traceId: ctx?.traceId,
+          spanId: ctx?.spanId,
+          requestId: ctx?.requestId,
+          userId: ctx?.userId,
+          timestamp: new Date().toISOString(),
+          durationMs: ctx ? Date.now() - ctx.startTime : undefined,
+        }));
+      }
+
+      // HTTP client that propagates context
+      async function fetchWithContext(url: string, options: RequestInit = {}): Promise<Response> {
+        const ctx = getContext();
+        return fetch(url, {
+          ...options,
+          headers: {
+            ...options.headers,
+            'x-trace-id': ctx?.traceId || crypto.randomUUID(),
+            'x-span-id': crypto.randomUUID().slice(0, 16),
+            'x-request-id': ctx?.requestId || crypto.randomUUID(),
+          },
+        });
+      }
+
+      // Queue producer that preserves context
+      async function publishToQueue(queue: string, message: object) {
+        const ctx = getContext();
+        await queueClient.publish(queue, {
+          ...message,
+          _metadata: {
+            traceId: ctx?.traceId,
+            requestId: ctx?.requestId,
+            publishedAt: Date.now(),
+          },
+        });
+      }
+
+      // Queue consumer that restores context
+      async function consumeFromQueue(handler: (msg: any) => Promise<void>) {
+        queueClient.consume(async (message) => {
+          const metadata = message._metadata || {};
+          const context: RequestContext = {
+            traceId: metadata.traceId || crypto.randomUUID(),
+            spanId: crypto.randomUUID().slice(0, 16),
+            requestId: metadata.requestId || crypto.randomUUID(),
+            startTime: Date.now(),
+          };
+
+          await asyncContext.run(context, () => handler(message));
+        });
+      }
+
+      // Error serialization with full context
+      function serializeError(error: Error): object {
+        const ctx = getContext();
+        return {
+          name: error.name,
+          message: error.message,
+          code: (error as any).code,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+          // Critical: include correlation for support debugging
+          traceId: ctx?.traceId,
+          requestId: ctx?.requestId,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+  # MEDIUM PRIORITY: Error Context Preservation Across Async (2-model consensus)
+  async_error_context:
+    description: "Preserve error context when crossing async boundaries (setTimeout, events, workers)"
+    problem: "AsyncLocalStorage context is lost in setTimeout, setInterval, event handlers, worker threads"
+    solutions:
+      wrap_timers: "Create context-aware timer wrappers"
+      event_emitter_patch: "Patch EventEmitter to preserve context"
+      worker_thread_bridge: "Pass context explicitly to workers"
+    example: |
+      import { AsyncLocalStorage } from 'async_hooks';
+
+      const asyncContext = new AsyncLocalStorage<RequestContext>();
+
+      // Problem: context lost in setTimeout
+      asyncContext.run({ requestId: '123' }, () => {
+        setTimeout(() => {
+          console.log(asyncContext.getStore()); // undefined! Context lost
+        }, 100);
+      });
+
+      // Solution 1: Context-aware timer wrappers
+      function setTimeoutWithContext<T extends (...args: any[]) => any>(
+        fn: T,
+        delay: number,
+        ...args: Parameters<T>
+      ): NodeJS.Timeout {
+        const ctx = asyncContext.getStore();
+        return setTimeout(() => {
+          if (ctx) {
+            asyncContext.run(ctx, () => fn(...args));
+          } else {
+            fn(...args);
+          }
+        }, delay);
+      }
+
+      // Solution 2: Promise wrapper for any async operation
+      function withContext<T>(fn: () => Promise<T>): Promise<T> {
+        const ctx = asyncContext.getStore();
+        if (!ctx) return fn();
+
+        return new Promise((resolve, reject) => {
+          fn()
+            .then((result) => asyncContext.run(ctx, () => resolve(result)))
+            .catch((error) => asyncContext.run(ctx, () => reject(error)));
+        });
+      }
+
+      // Solution 3: Event emitter context preservation
+      class ContextAwareEventEmitter extends EventEmitter {
+        emit(event: string | symbol, ...args: any[]): boolean {
+          const ctx = asyncContext.getStore();
+          if (ctx) {
+            return asyncContext.run(ctx, () => super.emit(event, ...args));
+          }
+          return super.emit(event, ...args);
+        }
+      }
+
+      // Solution 4: Worker thread context bridge
+      // main.ts
+      import { Worker } from 'worker_threads';
+
+      function runInWorkerWithContext<T>(workerPath: string, data: T) {
+        const ctx = asyncContext.getStore();
+        const worker = new Worker(workerPath, {
+          workerData: {
+            ...data,
+            _context: ctx ? { requestId: ctx.requestId, traceId: ctx.traceId } : null,
+          },
+        });
+        return worker;
+      }
+
+      // worker.ts
+      import { workerData } from 'worker_threads';
+
+      const inheritedContext = workerData._context;
+      // Use inheritedContext for error correlation in worker
+
+      // Solution 5: Error capture with context snapshot
+      class ContextualError extends Error {
+        readonly context: RequestContext | undefined;
+
+        constructor(message: string, cause?: Error) {
+          super(message);
+          this.context = asyncContext.getStore(); // Capture at creation time
+          this.cause = cause;
+        }
+      }
+
+      // Usage: error carries its original context even across async boundaries
+      try {
+        await riskyOperation();
+      } catch (e) {
+        const error = new ContextualError('Operation failed', e);
+        // Later, even if context is lost:
+        logger.error({ ...error.context, message: error.message });
+      }
+
+  # MEDIUM PRIORITY: Error Rate Limiting (2-model consensus)
+  error_rate_limiting:
+    description: "Prevent log flooding and alerting fatigue during error storms"
+    patterns:
+      sample_rate: "Log 1 in N errors of same type"
+      time_bucket: "Max N logs per time window"
+      exponential_backoff: "Increase sampling as frequency grows"
+    example: |
+      // Error rate limiter using token bucket
+      class ErrorRateLimiter {
+        private buckets = new Map<string, { count: number; lastReset: number; sampled: number }>();
+        private readonly maxPerWindow: number;
+        private readonly windowMs: number;
+
+        constructor(options: { maxPerWindow?: number; windowMs?: number } = {}) {
+          this.maxPerWindow = options.maxPerWindow || 100;
+          this.windowMs = options.windowMs || 60000; // 1 minute
+        }
+
+        shouldLog(errorKey: string): { allowed: boolean; totalCount: number; sampledCount: number } {
+          const now = Date.now();
+          let bucket = this.buckets.get(errorKey);
+
+          // Reset bucket if window expired
+          if (!bucket || now - bucket.lastReset > this.windowMs) {
+            bucket = { count: 0, lastReset: now, sampled: 0 };
+            this.buckets.set(errorKey, bucket);
+          }
+
+          bucket.count++;
+
+          // Always log up to max
+          if (bucket.sampled < this.maxPerWindow) {
+            bucket.sampled++;
+            return { allowed: true, totalCount: bucket.count, sampledCount: bucket.sampled };
+          }
+
+          // Sample with decreasing probability
+          const sampleRate = Math.max(0.01, this.maxPerWindow / bucket.count);
+          if (Math.random() < sampleRate) {
+            bucket.sampled++;
+            return { allowed: true, totalCount: bucket.count, sampledCount: bucket.sampled };
+          }
+
+          return { allowed: false, totalCount: bucket.count, sampledCount: bucket.sampled };
+        }
+      }
+
+      const errorRateLimiter = new ErrorRateLimiter({ maxPerWindow: 50, windowMs: 60000 });
+
+      // Usage in error handler
+      function handleError(error: Error) {
+        const errorKey = `${error.name}:${error.message.slice(0, 50)}`;
+        const { allowed, totalCount, sampledCount } = errorRateLimiter.shouldLog(errorKey);
+
+        if (allowed) {
+          logger.error({
+            error: error.message,
+            stack: error.stack,
+            rateLimit: { totalCount, sampledCount, suppressed: totalCount - sampledCount },
+          });
+        }
+
+        // Always track metrics (just suppress logs)
+        metrics.increment('errors', { type: error.name });
+      }
+
+  # MEDIUM PRIORITY: Event-Driven Error Handling (2-model consensus)
+  event_driven_errors:
+    description: "Error handling patterns for async, event-based architectures"
+    challenges:
+      - "No request/response cycle for immediate feedback"
+      - "Errors happen outside original context"
+      - "Dead letter queues need monitoring"
+      - "Partial processing is common"
+    patterns:
+      dead_letter_queue: "Route failed messages for manual review"
+      retry_with_backoff: "Automatic retries before DLQ"
+      poison_pill_detection: "Identify messages that always fail"
+      compensating_actions: "Undo partial work on failure"
+    example: |
+      // Event processor with comprehensive error handling
+      interface ProcessingResult {
+        success: boolean;
+        messageId: string;
+        attempts: number;
+        error?: { message: string; stack?: string };
+        dlqReason?: string;
+      }
+
+      async function processWithRetry(
+        message: QueueMessage,
+        processor: (msg: QueueMessage) => Promise<void>,
+        options: { maxRetries?: number; dlqQueue?: string } = {}
+      ): Promise<ProcessingResult> {
+        const { maxRetries = 3, dlqQueue = 'dead-letter' } = options;
+        const messageId = message.id;
+        let attempts = 0;
+
+        while (attempts < maxRetries) {
+          attempts++;
+          try {
+            await processor(message);
+            return { success: true, messageId, attempts };
+          } catch (error) {
+            const isRetryable = isTransientError(error as Error);
+            const isLastAttempt = attempts >= maxRetries;
+
+            logger.warn({
+              messageId,
+              attempt: attempts,
+              maxRetries,
+              error: (error as Error).message,
+              willRetry: isRetryable && !isLastAttempt,
+            }, 'Message processing failed');
+
+            if (!isRetryable) {
+              // Permanent failure - send to DLQ immediately
+              await sendToDLQ(dlqQueue, message, {
+                reason: 'non_retryable_error',
+                error: (error as Error).message,
+                attempts,
+              });
+              return {
+                success: false,
+                messageId,
+                attempts,
+                error: { message: (error as Error).message },
+                dlqReason: 'non_retryable_error',
+              };
+            }
+
+            if (!isLastAttempt) {
+              const delay = 1000 * Math.pow(2, attempts - 1) + Math.random() * 1000;
+              await sleep(delay);
+            }
+          }
+        }
+
+        // Max retries exceeded
+        await sendToDLQ(dlqQueue, message, {
+          reason: 'max_retries_exceeded',
+          attempts,
+        });
+
+        return {
+          success: false,
+          messageId,
+          attempts,
+          dlqReason: 'max_retries_exceeded',
+        };
+      }
+
+      // Poison pill detection
+      class PoisonPillDetector {
+        private failures = new Map<string, number>();
+        private readonly threshold: number;
+
+        constructor(threshold = 5) {
+          this.threshold = threshold;
+        }
+
+        recordFailure(messageFingerprint: string): boolean {
+          const count = (this.failures.get(messageFingerprint) || 0) + 1;
+          this.failures.set(messageFingerprint, count);
+          return count >= this.threshold;
+        }
+
+        isPoisonPill(messageFingerprint: string): boolean {
+          return (this.failures.get(messageFingerprint) || 0) >= this.threshold;
+        }
+      }
+
+  # MEDIUM PRIORITY: Error Serialization Across Services (2-model consensus)
+  error_serialization:
+    description: "Preserve error context when crossing service boundaries"
+    challenges:
+      - "Stack traces lost across network calls"
+      - "Error types not preserved (everything becomes generic Error)"
+      - "Cause chains lost"
+      - "Sensitive info exposure"
+    example: |
+      // Standardized error envelope for cross-service communication
+      interface SerializedError {
+        code: string;
+        message: string;
+        type: 'operational' | 'programming' | 'unknown';
+        details?: Record<string, unknown>;
+        // Preserve chain across services
+        cause?: SerializedError;
+        // Service identification
+        source: {
+          service: string;
+          version: string;
+          traceId?: string;
+        };
+        // Debugging (non-production only)
+        debug?: {
+          stack?: string;
+          timestamp: string;
+        };
+      }
+
+      function serializeError(error: Error, serviceName: string): SerializedError {
+        const ctx = getContext();
+
+        const serialized: SerializedError = {
+          code: (error as any).code || 'UNKNOWN_ERROR',
+          message: error.message,
+          type: error instanceof OperationalError ? 'operational' :
+                error instanceof ProgrammerError ? 'programming' : 'unknown',
+          source: {
+            service: serviceName,
+            version: process.env.SERVICE_VERSION || 'unknown',
+            traceId: ctx?.traceId,
+          },
+        };
+
+        // Include details for operational errors
+        if (error instanceof ValidationError) {
+          serialized.details = { fields: error.fields };
+        }
+
+        // Serialize cause chain
+        if (error.cause instanceof Error) {
+          serialized.cause = serializeError(error.cause, serviceName);
+        }
+
+        // Include debug info in development
+        if (process.env.NODE_ENV === 'development') {
+          serialized.debug = {
+            stack: error.stack,
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        return serialized;
+      }
+
+      // Deserialize and reconstruct error on receiving service
+      function deserializeError(serialized: SerializedError): AppError {
+        const ErrorClass = serialized.type === 'operational' ? OperationalError : ProgrammerError;
+
+        class RemoteError extends ErrorClass {
+          readonly code = serialized.code;
+          readonly statusCode = mapCodeToStatus(serialized.code);
+          readonly source = serialized.source;
+          readonly details = serialized.details;
+        }
+
+        const error = new RemoteError(
+          `[${serialized.source.service}] ${serialized.message}`
+        );
+
+        // Reconstruct cause chain
+        if (serialized.cause) {
+          (error as any).cause = deserializeError(serialized.cause);
+        }
+
+        return error;
+      }
+
+      // HTTP client that preserves error context
+      async function callService<T>(url: string, options?: RequestInit): Promise<T> {
+        const response = await fetchWithContext(url, options);
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+
+          if (body.code && body.source) {
+            // Structured error from another service
+            throw deserializeError(body as SerializedError);
+          }
+
+          // Generic HTTP error
+          throw new RemoteServiceError(
+            `${response.status} from ${new URL(url).hostname}`,
+            { status: response.status, body }
+          );
+        }
+
+        return response.json();
+      }
+
+  # React Query/SWR Error Handling Integration (jury request)
+  data_fetching_integration:
+    description: "Error handling patterns for React Query, SWR, and data fetching libraries"
+    key_insight: "Data fetching libraries have their own error states - integrate, don't fight them"
+    example: |
+      // React Query error handling integration
+      import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+      // Global error handler for React Query
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: (failureCount, error) => {
+              // Don't retry on 4xx errors
+              if (error instanceof OperationalError && error.statusCode < 500) {
+                return false;
+              }
+              return failureCount < 3;
+            },
+            onError: (error) => {
+              // Global error handling
+              if (error instanceof OperationalError) {
+                toast.error(error.message);
+              } else {
+                captureException(error);
+                toast.error('Something went wrong');
+              }
+            },
+          },
+          mutations: {
+            onError: (error) => {
+              captureException(error);
+            },
+          },
+        },
+      });
+
+      // Component-level error handling
+      function UserProfile({ userId }: { userId: string }) {
+        const { data, error, isError, refetch, isRefetching } = useQuery({
+          queryKey: ['user', userId],
+          queryFn: () => fetchUser(userId),
+          // Per-query error handling
+          onError: (err) => {
+            logger.error({ userId, error: err.message }, 'Failed to fetch user');
+          },
+        });
+
+        if (isError) {
+          return (
+            <ErrorState
+              error={error}
+              onRetry={refetch}
+              isRetrying={isRefetching}
+            />
+          );
+        }
+
+        return <UserCard user={data} />;
+      }
+
+      // SWR error handling
+      import useSWR from 'swr';
+
+      const fetcher = async (url: string) => {
+        const res = await fetch(url);
+        if (!res.ok) {
+          const error = new Error('Failed to fetch');
+          (error as any).status = res.status;
+          (error as any).info = await res.json();
+          throw error;
+        }
+        return res.json();
+      };
+
+      function Profile() {
+        const { data, error, mutate, isValidating } = useSWR('/api/user', fetcher, {
+          onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+            // Don't retry on 404
+            if (error.status === 404) return;
+            // Only retry up to 3 times
+            if (retryCount >= 3) return;
+            // Retry after 5 seconds with exponential backoff
+            setTimeout(() => revalidate({ retryCount }), 5000 * Math.pow(2, retryCount));
+          },
+        });
+
+        if (error) return <div>Error: {error.message}</div>;
+        if (!data) return <div>Loading...</div>;
+        return <div>Hello {data.name}!</div>;
+      }
+
+  # Error Metrics and Alerting (jury request)
+  error_metrics:
+    description: "Track error rates, patterns, and set up intelligent alerting"
+    key_metrics:
+      - "Error rate (errors per minute/hour)"
+      - "Error rate by type (ValidationError, NotFoundError, etc.)"
+      - "P50/P95/P99 error resolution time"
+      - "Error budget consumption"
+      - "Unique error fingerprints"
+    alerting_thresholds:
+      critical: "Error rate > 5% of requests"
+      warning: "Error rate > 1% of requests"
+      anomaly: "Error rate 3x higher than baseline"
+    example: |
+      // Error metrics collector
+      class ErrorMetrics {
+        private counters = new Map<string, number>();
+        private windowStart = Date.now();
+        private readonly windowMs = 60000; // 1 minute window
+
+        record(error: Error) {
+          const key = this.fingerprint(error);
+          this.counters.set(key, (this.counters.get(key) || 0) + 1);
+
+          // Check if window expired
+          if (Date.now() - this.windowStart > this.windowMs) {
+            this.flush();
+          }
+        }
+
+        private fingerprint(error: Error): string {
+          // Create stable fingerprint for deduplication
+          return `${error.name}:${error.message.slice(0, 50)}`;
+        }
+
+        private flush() {
+          // Send to metrics backend (Prometheus, DataDog, etc.)
+          for (const [key, count] of this.counters) {
+            metrics.increment('errors_total', { fingerprint: key }, count);
+          }
+
+          // Check alerting thresholds
+          const totalErrors = [...this.counters.values()].reduce((a, b) => a + b, 0);
+          const errorRate = totalErrors / this.windowMs * 60000; // per minute
+
+          if (errorRate > 100) {
+            alerting.trigger('critical', `High error rate: ${errorRate}/min`);
+          } else if (errorRate > 20) {
+            alerting.trigger('warning', `Elevated error rate: ${errorRate}/min`);
+          }
+
+          this.counters.clear();
+          this.windowStart = Date.now();
+        }
+      }
+
+      // Error budget tracking (SRE practice)
+      class ErrorBudget {
+        private totalRequests = 0;
+        private failedRequests = 0;
+        private readonly sloTarget = 0.995; // 99.5% success rate
+
+        record(success: boolean) {
+          this.totalRequests++;
+          if (!success) this.failedRequests++;
+        }
+
+        get currentSLI(): number {
+          if (this.totalRequests === 0) return 1;
+          return (this.totalRequests - this.failedRequests) / this.totalRequests;
+        }
+
+        get budgetRemaining(): number {
+          const allowedFailures = this.totalRequests * (1 - this.sloTarget);
+          return Math.max(0, allowedFailures - this.failedRequests);
+        }
+
+        get budgetConsumed(): number {
+          const allowedFailures = this.totalRequests * (1 - this.sloTarget);
+          if (allowedFailures === 0) return 0;
+          return this.failedRequests / allowedFailures;
+        }
+      }
+
+      // Usage in error handler
+      const errorMetrics = new ErrorMetrics();
+      const errorBudget = new ErrorBudget();
+
+      function globalErrorHandler(error: Error, req: Request) {
+        errorMetrics.record(error);
+        errorBudget.record(false);
+
+        if (errorBudget.budgetConsumed > 0.8) {
+          alerting.trigger('warning', 'Error budget 80% consumed');
+        }
+      }
+
+  # Testing Strategies for Error Scenarios (jury request - expanded)
+  error_testing:
+    description: "Comprehensive testing patterns for error handling code"
+    test_categories:
+      unit: "Test individual error classes and utilities"
+      integration: "Test error propagation through layers"
+      e2e: "Test user-facing error states"
+      chaos: "Test resilience under failure conditions"
+    example: |
+      // Unit tests for error classes
+      describe('AppError', () => {
+        it('should serialize to JSON correctly', () => {
+          const error = new NotFoundError('User', '123');
+          const json = error.toJSON();
+
+          expect(json.code).toBe('NOT_FOUND');
+          expect(json.message).toContain('User');
+          expect(json.message).toContain('123');
+        });
+
+        it('should preserve cause chain', () => {
+          const cause = new Error('DB connection failed');
+          const error = new DatabaseError('Query failed', cause);
+
+          expect(error.cause).toBe(cause);
+        });
+      });
+
+      // Integration tests for error propagation
+      describe('API Error Handling', () => {
+        it('should return 400 for validation errors', async () => {
+          const res = await request(app)
+            .post('/users')
+            .send({ email: 'invalid' });
+
+          expect(res.status).toBe(400);
+          expect(res.body.code).toBe('VALIDATION_ERROR');
+          expect(res.body.fields).toHaveProperty('email');
+        });
+
+        it('should not leak internal errors', async () => {
+          // Mock database to throw
+          jest.spyOn(db, 'query').mockRejectedValue(new Error('Connection refused'));
+
+          const res = await request(app).get('/users/123');
+
+          expect(res.status).toBe(500);
+          expect(res.body.code).toBe('INTERNAL_ERROR');
+          expect(res.body.message).not.toContain('Connection refused');
+        });
+      });
+
+      // Error boundary testing in React
+      describe('ErrorBoundary', () => {
+        it('should catch rendering errors', () => {
+          const ThrowingComponent = () => {
+            throw new Error('Test error');
+          };
+
+          render(
+            <ErrorBoundary fallback={<div>Error occurred</div>}>
+              <ThrowingComponent />
+            </ErrorBoundary>
+          );
+
+          expect(screen.getByText('Error occurred')).toBeInTheDocument();
+        });
+
+        it('should report errors to tracking', () => {
+          const captureException = jest.fn();
+          // ... test error is captured
+        });
+      });
+
+      // Chaos testing patterns
+      describe('Resilience', () => {
+        it('should handle circuit breaker open state', async () => {
+          const breaker = new CircuitBreaker({ failureThreshold: 2 });
+
+          // Trip the breaker
+          await expect(breaker.execute(() => Promise.reject(new Error()))).rejects.toThrow();
+          await expect(breaker.execute(() => Promise.reject(new Error()))).rejects.toThrow();
+
+          // Now it should fail fast
+          await expect(breaker.execute(() => Promise.resolve('ok'))).rejects.toThrow('Circuit breaker is OPEN');
+        });
+
+        it('should retry transient failures', async () => {
+          let attempts = 0;
+          const fn = jest.fn().mockImplementation(() => {
+            attempts++;
+            if (attempts < 3) throw new Error('Transient');
+            return 'success';
+          });
+
+          const result = await withRetry(fn, { maxAttempts: 3 });
+
+          expect(result).toBe('success');
+          expect(fn).toHaveBeenCalledTimes(3);
+        });
+      });
+
+  # Graceful Shutdown Error Handling
+  - id: graceful_shutdown
+    title: "Error Handling During Application Shutdown"
+    description: "Patterns for gracefully handling errors during shutdown sequences"
+    content: |
+      ## Why Shutdown Errors Matter
+
+      During shutdown, errors can:
+      - Leave resources in inconsistent state
+      - Lose in-flight requests
+      - Corrupt data mid-transaction
+      - Hang the process indefinitely
+
+      ## The Graceful Shutdown Pattern
+
+      ```typescript
+      // lib/shutdown.ts
+      class GracefulShutdown {
+        private isShuttingDown = false;
+        private cleanupTasks: Array<{
+          name: string;
+          fn: () => Promise<void>;
+          timeout: number;
+        }> = [];
+        private activeRequests = new Set<string>();
+
+        constructor(private logger = console) {
+          // Register signal handlers once
+          process.on('SIGTERM', () => this.shutdown('SIGTERM'));
+          process.on('SIGINT', () => this.shutdown('SIGINT'));
+          process.on('uncaughtException', (err) => this.emergencyShutdown(err));
+          process.on('unhandledRejection', (reason) => {
+            this.logger.error('Unhandled rejection', reason);
+            this.emergencyShutdown(reason as Error);
+          });
+        }
+
+        // Register cleanup tasks in reverse priority order
+        register(name: string, fn: () => Promise<void>, timeout = 5000) {
+          this.cleanupTasks.push({ name, fn, timeout });
+        }
+
+        // Track active requests to drain before shutdown
+        trackRequest(id: string) {
+          this.activeRequests.add(id);
+          return () => this.activeRequests.delete(id);
+        }
+
+        isTerminating() {
+          return this.isShuttingDown;
+        }
+
+        private async shutdown(signal: string) {
+          if (this.isShuttingDown) return;
+          this.isShuttingDown = true;
+
+          this.logger.info(`Shutdown initiated (${signal})`);
+
+          // 1. Stop accepting new requests
+          this.logger.info('Stopping new request intake...');
+
+          // 2. Wait for active requests to drain (with timeout)
+          await this.drainRequests(30000);
+
+          // 3. Run cleanup tasks in reverse order (LIFO)
+          const reversed = [...this.cleanupTasks].reverse();
+          const results: Array<{ name: string; success: boolean; error?: Error }> = [];
+
+          for (const task of reversed) {
+            this.logger.info(`Running cleanup: ${task.name}`);
+            try {
+              await Promise.race([
+                task.fn(),
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error('Cleanup timeout')), task.timeout)
+                ),
+              ]);
+              results.push({ name: task.name, success: true });
+            } catch (error) {
+              // Log but continue - don't let one failure block others
+              this.logger.error(`Cleanup failed: ${task.name}`, error);
+              results.push({ name: task.name, success: false, error: error as Error });
+            }
+          }
+
+          // 4. Log summary
+          const failed = results.filter(r => !r.success);
+          if (failed.length > 0) {
+            this.logger.warn(`Shutdown completed with ${failed.length} failures`, failed);
+          } else {
+            this.logger.info('Shutdown completed cleanly');
+          }
+
+          process.exit(failed.length > 0 ? 1 : 0);
+        }
+
+        private async drainRequests(timeout: number) {
+          const start = Date.now();
+          while (this.activeRequests.size > 0) {
+            if (Date.now() - start > timeout) {
+              this.logger.warn(`Drain timeout. ${this.activeRequests.size} requests abandoned`);
+              break;
+            }
+            this.logger.info(`Draining ${this.activeRequests.size} active requests...`);
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+
+        private emergencyShutdown(error: Error) {
+          this.logger.error('Emergency shutdown triggered', error);
+          // Try to run critical cleanups only
+          const criticalTasks = this.cleanupTasks.filter(t => t.name.includes('critical'));
+          Promise.allSettled(criticalTasks.map(t => t.fn()))
+            .finally(() => process.exit(1));
+        }
+      }
+
+      export const shutdown = new GracefulShutdown();
+      ```
+
+      ## Express/Fastify Integration
+
+      ```typescript
+      // server.ts
+      import { shutdown } from './lib/shutdown';
+
+      const server = app.listen(3000);
+
+      // Track active requests
+      app.use((req, res, next) => {
+        const requestId = req.headers['x-request-id'] as string || crypto.randomUUID();
+        const done = shutdown.trackRequest(requestId);
+
+        res.on('finish', done);
+        res.on('close', done);
+
+        // Reject new requests during shutdown
+        if (shutdown.isTerminating()) {
+          return res.status(503).json({
+            error: 'SERVICE_UNAVAILABLE',
+            message: 'Server is shutting down',
+          });
+        }
+
+        next();
+      });
+
+      // Register cleanup handlers
+      shutdown.register('database', async () => {
+        await db.$disconnect();
+      }, 10000);
+
+      shutdown.register('redis', async () => {
+        await redis.quit();
+      }, 5000);
+
+      shutdown.register('critical:pending-jobs', async () => {
+        await jobQueue.close();
+      }, 30000);
+
+      shutdown.register('http-server', async () => {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }, 15000);
+      ```
+
+      ## Error Categories During Shutdown
+
+      | Error Type | Action |
+      |------------|--------|
+      | Cleanup timeout | Log, continue to next task |
+      | Connection already closed | Ignore (idempotent) |
+      | In-flight request failed | Return 503, log |
+      | Database mid-transaction | Rollback if possible, log |
+      | Critical task failed | Mark exit code non-zero |
+      | Unhandled exception | Emergency shutdown path |
+
+      ## Kubernetes-Aware Shutdown
+
+      ```typescript
+      // Kubernetes sends SIGTERM, waits terminationGracePeriodSeconds, then SIGKILL
+      // Default is 30s - ensure cleanup completes within this window
+
+      shutdown.register('health-endpoint', async () => {
+        // Immediately fail health checks to stop new traffic
+        isHealthy = false;
+        // Wait for load balancer to notice (typically 5-15s)
+        await new Promise(r => setTimeout(r, 10000));
+      }, 15000);
+      ```
+
+      ## Anti-Pattern: process.exit() Without Cleanup
+
+      ```typescript
+      // BAD: Immediate exit loses data
+      process.on('SIGTERM', () => process.exit(0));
+
+      // BAD: Unhandled promise rejection crashes
+      somePromise.then(data => {
+        throw new Error('oops');
+      });
+
+      // GOOD: Graceful handling
+      process.on('SIGTERM', () => shutdown.shutdown('SIGTERM'));
+      process.on('unhandledRejection', (reason) => {
+        console.error('Unhandled rejection:', reason);
+        shutdown.emergencyShutdown(reason as Error);
+      });
+      ```
+
+handoffs:
+  - trigger: "API error responses"
+    to: api-design
+    context: "Error response format"
+  - trigger: "logging errors"
+    to: observability
+    context: "Error tracking setup"
+
+tags:
+  - error-handling
+  - typescript
+  - react
+  - resilience

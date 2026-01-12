@@ -1,0 +1,505 @@
+{
+  "skill_id": "error-handling",
+  "skill_name": "Error Handling Patterns",
+  "jury_panel": {
+    "total": 6,
+    "local_free": 3,
+    "api_paid": 3
+  },
+  "jury_models": {
+    "local": [
+      "claude-opus-4-5-20251101 (Local - Max Plan)",
+      "claude-sonnet-4-20250514 (Local - Max Plan)",
+      "claude-3-5-haiku-20241022 (Local - Max Plan)"
+    ],
+    "api": [
+      "gemini-2.0-flash-lite",
+      "gpt-4o-mini",
+      "deepseek-chat"
+    ]
+  },
+  "evaluated_at": "2026-01-02T00:03:10.153Z",
+  "results": [
+    {
+      "test_name": "result_type Implementation",
+      "test_type": "open-ended",
+      "vanilla_score": 63.166666666666664,
+      "skilled_score": 93.16666666666667,
+      "score_delta": 30.000000000000007,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 58,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a basic Result type implementation but lacks utilities like map/flatMap, async handling, and guidance on when NOT to use. Response B is comprehensive with comparison table, full utility functions, typed errors, API integration pattern, and explicit guidance on exceptions vs Result types."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 56,
+          "skilled_score": 94,
+          "reasoning": "Response A provides basic Result type but lacks utilities (map, flatMap, async handling). Response B is comprehensive with comparison table, composition utilities, typed errors, API integration, and when-not-to-use guidance."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 65,
+          "skilled_score": 90,
+          "reasoning": "Response A provides production-grade implementation with comparison table (visibility, composability, forgettability, performance), utility functions (map, flatMap, unwrap, unwrapOr), typed error patterns, API integration example, and explicit guidance on when NOT to use the pattern. Response B shows basic implementation with core pattern and simple usage example only."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 65,
+          "skilled_score": 90,
+          "reasoning": "Response A is significantly better because it provides a more complete and practical implementation of the Result type pattern. It includes utility functions, typed errors, API integration examples, and a clear explanation of when *not* to use the pattern. This demonstrates a strong understanding of the domain and anticipates potential pitfalls. Response B, while correct, is very basic and lacks the depth and practical application shown in Response A. It provides a simple example but doesn't explore the full potential or complexities of the pattern. Response A also uses the provided context and builds upon it, while Response B provides a simplified version of the context's example."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a comprehensive and well-structured implementation of the Result type pattern, including detailed explanations of its advantages over exceptions, typed error handling, and practical usage examples. It also anticipates common mistakes and provides guidance on when not to use Result types. Response B, while correct and demonstrating the basic implementation, lacks depth, detailed explanations, and does not cover advanced usage or error handling best practices, making it less complete and insightful."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 65,
+          "skilled_score": 95,
+          "reasoning": "Response A demonstrates high correctness, completeness, and expertise by providing a production-grade implementation with typed errors, API integration patterns, async handling, and clear guidance on when to use/not use the pattern. It shows deep domain knowledge and anticipates common pitfalls. Response B is correct but basic, lacking composition utilities, typed error examples, async patterns, and practical integration guidance, making it less complete and expert."
+        }
+      ]
+    },
+    {
+      "test_name": "typed_errors Implementation",
+      "test_type": "open-ended",
+      "vanilla_score": 53.166666666666664,
+      "skilled_score": 93,
+      "score_delta": 39.833333333333336,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 52,
+          "skilled_score": 94,
+          "reasoning": "Response A shows basic error classes but misses the operational vs programming distinction, toJSON serialization, and type guards. Response B implements the full hierarchy with cause chaining, structured serialization, and exhaustive handling patterns."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 54,
+          "skilled_score": 95,
+          "reasoning": "Response A shows basic error classes without operational vs programming distinction. Response B implements full hierarchy with toJSON, cause chaining, type guards, and exhaustive handling patterns."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 68,
+          "skilled_score": 89,
+          "reasoning": "Response A presents complete error system with abstract base class, operational vs programmer error distinction, concrete error types (NotFoundError, ValidationError, UnauthorizedError, ForbiddenError, ConflictError, RateLimitError), global error handler with logging, JSON serialization, and type guards for exhaustive handling. Response B shows basic error class hierarchy with simple usage and catching."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 45,
+          "skilled_score": 90,
+          "reasoning": "Response A is significantly better because it provides a complete and correct implementation of the typed error pattern as described in the prompt. It includes the base classes, concrete error types, a global error handler, and type guards, all of which are crucial for the pattern's functionality. The code is well-structured, and the explanation is clear. Response B, on the other hand, provides a simplified and incomplete solution. It lacks the distinction between operational and programming errors, the error serialization logic, and the comprehensive error handling strategy. While it demonstrates the creation of custom error classes, it doesn't fully address the prompt's requirements. Response A also demonstrates better understanding of the context provided in the prompt."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 60,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a comprehensive implementation of the typed error classes pattern, including a well-structured error hierarchy, concrete error types, a global error handler, and type guards for exhaustive error handling. It accurately distinguishes between operational and programming errors, demonstrating a deep understanding of error handling patterns. Response B, while correct in its basic implementation, lacks the depth and completeness of Response A. It does not include the operational vs programming distinction, a global error handler, or type guards, which are crucial for robust error management. Therefore, Response A scores significantly higher for its thoroughness and expertise."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 40,
+          "skilled_score": 95,
+          "reasoning": "Response A demonstrates a complete, expert implementation of the typed_errors pattern as requested, correctly extending the provided base code with proper operational/programming distinction, concrete error types, a global handler, and type guards. It shows deep understanding of the pattern's purpose and best practices. Response B presents a simplified, incomplete version that ignores the operational/programming distinction, lacks the abstract base structure, omits key features like error serialization and cause chaining, and fails to demonstrate the comprehensive system shown in the reference. While not incorrect, it's a basic implementation that misses the core architectural pattern requested."
+        }
+      ]
+    },
+    {
+      "test_name": "error_boundary Implementation",
+      "test_type": "open-ended",
+      "vanilla_score": 50,
+      "skilled_score": 92.83333333333333,
+      "score_delta": 42.83333333333333,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 48,
+          "skilled_score": 96,
+          "reasoning": "Response A gives minimal examples without explaining what boundaries catch/dont catch, strategic placement, or event handler handling. Response B provides complete Next.js patterns, global-error.tsx, reusable boundary component, granular placement examples, and the critical caught vs not-caught table."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 50,
+          "skilled_score": 95,
+          "reasoning": "Response A gives minimal skeleton examples. Response B provides Next.js patterns, global-error.tsx, reusable component, granular placement, and critical caught vs not-caught table."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 62,
+          "skilled_score": 91,
+          "reasoning": "Response A provides comprehensive Next.js patterns including route-level error.tsx with Sentry integration, global-error.tsx for root layout, reusable ErrorBoundary component with TypeScript types, strategic granular boundary placement, detailed table of what boundaries catch vs don't catch, and event handler try/catch fallback patterns. Response B shows minimal implementation with just basic error.tsx and class component skeleton."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 45,
+          "skilled_score": 90,
+          "reasoning": "Response A provides a basic implementation of an error boundary, but it's incomplete and lacks context. It doesn't demonstrate the full pattern, including route-level and global error handling, and it misses crucial considerations like error logging and strategic placement. Response B, on the other hand, offers a comprehensive and well-structured explanation of the error boundary pattern. It includes code examples for both Next.js App Router and reusable component boundaries, addresses granular boundary placement, and highlights what error boundaries do and do not catch. It also includes best practices and anticipates common mistakes, making it a much more complete and expert response."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 50,
+          "skilled_score": 90,
+          "reasoning": "Response A provides a basic implementation of an error boundary but lacks depth and context. It does not include error logging or a comprehensive explanation of the error boundary pattern, which are critical for production-grade applications. In contrast, Response B offers a thorough implementation with detailed explanations, including logging, a reusable component, and best practices for granular boundaries. It also addresses common pitfalls, such as what error boundaries do not catch, demonstrating a deeper understanding of the topic."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 45,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a minimal, technically correct but incomplete implementation. It lacks error logging, proper TypeScript, a reset mechanism, and any explanation of strategic placement or limitations. Response B demonstrates comprehensive expertise: it includes Next.js route/global boundaries, a reusable component with logging and reset, strategic granular usage, clear explanation of what boundaries do/don't catch, and event handler handling. It shows deep domain knowledge and gotcha awareness."
+        }
+      ]
+    },
+    {
+      "test_name": "Detect: Swallowing Errors",
+      "test_type": "trap",
+      "vanilla_score": 63,
+      "skilled_score": 93.66666666666667,
+      "score_delta": 30.66666666666667,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 55,
+          "skilled_score": 95,
+          "reasoning": "Response A identifies the anti-pattern with concrete examples, ESLint configuration, multiple fix options, and a decision framework. Response B correctly identifies the issue but lacks depth, examples, and actionable guidance."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 56,
+          "skilled_score": 94,
+          "reasoning": "Response A provides ESLint config, four fix options with code, and decision framework. Response B briefly mentions the issue without concrete examples or solutions."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 57,
+          "skilled_score": 88,
+          "reasoning": "Response A provides comprehensive anti-pattern detection with concrete problem example (silent email failure), explains four dangers (silent failures, debugging nightmare, user confusion, data inconsistency), shows ESLint detection rules, presents four fix options (log+continue, log+rethrow, result types, graceful degradation), and includes decision framework by operation type. Response B identifies the problem briefly but lacks depth, consequences, and actionable guidance."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 75,
+          "skilled_score": 95,
+          "reasoning": "Response A correctly identifies the core problem: potential error swallowing. It suggests logging, rethrowing, or using a Result type, which are all valid solutions. However, it's relatively brief and lacks concrete examples. Response B is much more comprehensive. It clearly labels the anti-pattern, explains the dangers with excellent clarity, provides detection patterns (ESLint example), and offers multiple practical solutions with code examples. The decision framework is a particularly strong addition, providing guidance on choosing the right approach. Response B demonstrates a deeper understanding of the topic and anticipates common mistakes more effectively."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A correctly identifies the issue of error swallowing but lacks depth and examples, making it less comprehensive. It mentions the need for logging and rethrowing but does not provide specific patterns or alternatives. Response B, on the other hand, thoroughly explains the dangers of silent failures, provides clear examples of the problem, and offers multiple well-defined solutions with a decision framework. This demonstrates a deeper understanding of error handling patterns and anticipates common mistakes effectively."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 65,
+          "skilled_score": 95,
+          "reasoning": "Response A correctly identifies the core issue (empty catch blocks swallowing errors) and mentions basic solutions, but it's generic, lacks concrete examples, and doesn't demonstrate deep expertise or gotcha awareness. Response B excels in all criteria: it provides accurate, specific code examples; comprehensively covers detection, multiple solutions, and a decision framework; shows deep domain knowledge with patterns like Result types and graceful degradation; and anticipates common pitfalls like silent failures and debugging nightmares."
+        }
+      ]
+    },
+    {
+      "test_name": "Detect: Generic Catch",
+      "test_type": "trap",
+      "vanilla_score": 61.833333333333336,
+      "skilled_score": 93.66666666666667,
+      "score_delta": 31.833333333333336,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 54,
+          "skilled_score": 96,
+          "reasoning": "Response A correctly identifies the issue but provides no code examples or solutions. Response B shows the exact problem with status code mismatches, provides typed error handling fix, centralized error handler pattern, and clear key principle."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 55,
+          "skilled_score": 95,
+          "reasoning": "Response A mentions the issue briefly. Response B shows status code problems, typed error handling, centralized handler pattern, and clear key principle."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 62,
+          "skilled_score": 86,
+          "reasoning": "Response A demonstrates the problem with concrete code example, explains what's wrong (validation→500 instead of 400, auth→500 instead of 401), shows proper typed error handling with instanceof checks for each error type, introduces centralized error handler pattern, and explains key principle of expected vs unexpected errors. Response B identifies the issue and suggests instanceof checks but lacks complete solution."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 65,
+          "skilled_score": 95,
+          "reasoning": "Response B is significantly better than Response A. Response A correctly identifies the issue of generic error handling but provides a very basic explanation. Response B provides a clear, detailed explanation of the problem with a concrete code example demonstrating the anti-pattern. It then provides a comprehensive solution with multiple levels of improvement, including typed error handling and a centralized error handler. The code examples are well-structured and easy to understand. Response B also highlights the key principle of distinguishing between expected and unexpected errors. Response A lacks the depth and practical solutions that Response B offers. Response B demonstrates a much higher level of expertise and gotcha awareness by addressing different error types and suggesting best practices for handling them effectively. Response A's explanation is correct but lacks the completeness and practical application of Response B."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A identifies a key issue with generic error handling and suggests using instanceof checks, which is a good start. However, it lacks specific examples and a structured approach to handling different error types, which limits its completeness and expertise. Response B, on the other hand, provides a detailed analysis of the problem, clearly outlines the issues with the catch-all approach, and offers a comprehensive solution with typed error handling and a centralized error handler. It demonstrates a deeper understanding of error handling patterns and anticipates common mistakes effectively, earning a higher score."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 65,
+          "skilled_score": 95,
+          "reasoning": "Response A correctly identifies the core issue of generic catch blocks and mentions the need for different handling based on error type, but it is brief, lacks concrete examples, and doesn't provide a clear fix. Response B demonstrates superior completeness and expertise by providing a detailed analysis, concrete code examples of both the anti-pattern and the fix, and even suggests a more advanced solution (centralized error handler). It shows strong gotcha awareness by explicitly listing the mapping of error types to HTTP status codes and distinguishing between expected and unexpected errors."
+        }
+      ]
+    },
+    {
+      "test_name": "Detect: Missing Error Boundaries",
+      "test_type": "trap",
+      "vanilla_score": 47.333333333333336,
+      "skilled_score": 94.5,
+      "score_delta": 47.166666666666664,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 52,
+          "skilled_score": 97,
+          "reasoning": "Response A provides comprehensive coverage with caught vs not-caught table, strategic placement, Next.js file structure, decision matrix, and performance notes. Response B is brief and misses implementation details."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 54,
+          "skilled_score": 96,
+          "reasoning": "Response A provides caught vs not-caught table, strategic placement, Next.js file structure, decision matrix, event handler handling, and performance notes. Response B is brief and generic."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 58,
+          "skilled_score": 89,
+          "reasoning": "Response A correctly identifies the need for error boundaries with brief explanation. Response B provides comprehensive analysis with problem scenario causing white screen of death (WSOD), explains real consequences (lost work), detailed table of what boundaries catch vs don't catch, strategic placement pattern with file structure, decision matrix for when to add boundaries, event handler try/catch explanation, performance note, and key insight on granular placement."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 40,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a very basic and incomplete answer. It correctly identifies the need for error boundaries but doesn't explain the problem in detail, provide code examples, or discuss different error handling scenarios. It's a high-level overview without practical application. Response B, on the other hand, is excellent. It thoroughly explains the problem of missing error boundaries, provides detailed code examples (including Next.js specific examples), discusses what error boundaries catch and don't catch, and offers a strategic decision matrix for boundary placement. It also includes important considerations like event handler error handling and performance implications. The response demonstrates a deep understanding of the topic and anticipates common mistakes."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 60,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a general overview of error boundaries but lacks depth and specific examples related to the provided code. It mentions the importance of error boundaries but does not address the specific issues or provide a comprehensive solution. In contrast, Response B thoroughly analyzes the potential pitfalls in the code, explains the consequences of not using error boundaries, and provides detailed examples of how to implement them effectively. It also addresses the limitations of error boundaries and offers a strategic placement decision matrix, demonstrating a deep understanding of the topic and anticipating common mistakes."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 20,
+          "skilled_score": 95,
+          "reasoning": "Response A is generic, shallow, and fails to analyze the provided code (which is just a placeholder comment). It states a correct but basic principle about React error boundaries without addressing the question's request to identify issues in the given code. Response B is excellent: it correctly interprets the placeholder code as a prompt for a pattern discussion, provides a comprehensive, expert-level analysis of the missing error boundary anti-pattern, and offers detailed fixes, distinctions (what boundaries do/don't catch), strategic placement guidance, and Next.js-specific implementation. It demonstrates high correctness, completeness, expertise, and gotcha awareness."
+        }
+      ]
+    },
+    {
+      "test_name": "Detect: No Retry Logic",
+      "test_type": "trap",
+      "vanilla_score": 54.166666666666664,
+      "skilled_score": 94.5,
+      "score_delta": 40.333333333333336,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 50,
+          "skilled_score": 97,
+          "reasoning": "Response A mentions the concept but provides no implementation. Response B delivers production-ready retry with exponential backoff, jitter explanation, transient error detection, usage examples for different scenarios, and when NOT to retry guidance."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 52,
+          "skilled_score": 96,
+          "reasoning": "Response A mentions concept with no implementation. Response B delivers production-ready retry with jitter, transient error detection, usage examples, and failure mode table."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 63,
+          "skilled_score": 89,
+          "reasoning": "Response A provides production-ready retry implementation with key principle table (429→retry, 400→don't, etc.), detailed withRetry function with exponential backoff and jitter, explains thundering herd problem and jitter solution, transient error detection with multiple categories, usage examples for API/database, and failure modes table with strategies. Response B identifies the issue and mentions exponential backoff but lacks implementation depth."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 60,
+          "skilled_score": 95,
+          "reasoning": "Response A is significantly better than Response B. Response A correctly identifies the issue (lack of retry logic) and provides a comprehensive, production-ready solution with detailed explanations, code examples, and considerations for various failure modes. It demonstrates a deep understanding of the problem domain, including exponential backoff, jitter, and transient error detection. Response B, while correct in identifying the problem, offers a very high-level and less helpful answer. It lacks the depth, code examples, and practical considerations of Response A. Response A also anticipates common mistakes (e.g., thundering herd) and provides solutions. The only reason it's not a perfect score is that it could be slightly more concise in its explanations, though the thoroughness is generally a strength."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 60,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a thorough analysis of the error handling patterns, identifying the lack of retry logic for transient failures and offering a detailed implementation of a retry mechanism with exponential backoff. It covers various aspects, including the importance of jitter to avoid thundering herd problems, and provides specific examples and failure modes to handle. Response B, while correct in noting the absence of retry logic, lacks depth and detail, failing to provide a comprehensive explanation or examples of how to implement such logic. It does not demonstrate the same level of expertise or awareness of potential pitfalls as Response A."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 40,
+          "skilled_score": 95,
+          "reasoning": "Response A demonstrates exceptional correctness, completeness, expertise, and gotcha awareness. It provides a detailed, production-ready implementation with nuanced error classification, exponential backoff with jitter, logging, and clear guidance on when to retry vs. not. Response B is factually correct but superficial—it identifies the core issue (missing retry logic) but lacks any implementation details, nuance, or awareness of common pitfalls like thundering herd or idempotency."
+        }
+      ]
+    },
+    {
+      "test_name": "Avoid: swallowing_errors",
+      "test_type": "trap",
+      "vanilla_score": 62.333333333333336,
+      "skilled_score": 94.33333333333333,
+      "score_delta": 31.999999999999993,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 56,
+          "skilled_score": 96,
+          "reasoning": "Response A correctly identifies the issue but is too brief. Response B provides real-world disaster scenarios (e-commerce, registration), progressive fix options, decision matrix by operation type, and ESLint protection."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 55,
+          "skilled_score": 95,
+          "reasoning": "Response A is brief. Response B provides real-world disaster scenarios, graduated fix levels, decision matrix, and ESLint protection."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 58,
+          "skilled_score": 90,
+          "reasoning": "Response A provides critical anti-pattern explanation with real-world disaster scenarios (e-commerce checkout with card charged but order lost, user registration with no welcome email), shows escalating fix options (minimum: log, better: log+track, best: log+fallback), decision matrix by operation type with minimum actions, and ESLint protection configuration. Response B is a basic warning that errors hide failures without examples or actionable guidance."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A is significantly better due to its completeness and practical advice. It correctly identifies the anti-pattern of swallowing errors and provides clear examples of the problems it causes. It offers a decision matrix for different error handling strategies based on operation type, which is excellent. The inclusion of ESLint configuration is a practical touch. Response B is correct but lacks the depth and actionable advice of Response A. It correctly identifies the problem but doesn't provide concrete solutions or examples, making it less helpful to a developer seeking guidance. Response A demonstrates a much higher level of expertise and gotcha awareness."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a thorough analysis of the issue with swallowing errors, including detailed examples and a structured approach to error handling. It emphasizes the importance of logging and offers a decision matrix for different operation types, demonstrating deep domain knowledge. Response B, while correct in its assertion that empty catch blocks are problematic, lacks depth and specific recommendations, making it less comprehensive and insightful."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 65,
+          "skilled_score": 95,
+          "reasoning": "Response A excels in all criteria: it is factually correct, provides comprehensive examples, fixes, and a decision matrix, demonstrates deep API/error-handling expertise, and anticipates real-world pitfalls with specific ESLint rules. Response B is correct and concise but lacks depth, examples, actionable guidance, and fails to demonstrate significant expertise or gotcha awareness beyond a basic warning."
+        }
+      ]
+    },
+    {
+      "test_name": "Choose Best Approach for Error Handling Patterns",
+      "test_type": "decision",
+      "vanilla_score": 68.83333333333333,
+      "skilled_score": 94.66666666666667,
+      "score_delta": 25.833333333333343,
+      "winner": "skilled",
+      "evaluations": [
+        {
+          "jury_model": "claude-opus-4-5-20251101 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 62,
+          "skilled_score": 97,
+          "reasoning": "Response A provides a complete comparison table, layered architecture recommendation with code examples for each layer, an ASCII stack diagram, and clear principles. Response B correctly identifies the layered approach but lacks depth and implementation examples."
+        },
+        {
+          "jury_model": "claude-sonnet-4-20250514 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 64,
+          "skilled_score": 96,
+          "reasoning": "Response A provides comparison table, layered approach with code, stack diagram, and key principles. Response B lists approaches briefly without structured guidance."
+        },
+        {
+          "jury_model": "claude-3-5-haiku-20241022 (Local - Max Plan)",
+          "jury_type": "local",
+          "vanilla_score": 72,
+          "skilled_score": 90,
+          "reasoning": "Response A acknowledges each approach has its place and suggests combining them (result types for business logic, typed errors for HTTP, boundaries for React, try-catch for async) but lacks depth. Response B provides detailed comparison table across dimensions (visibility, composability, type safety, forgettability, performance), explains layered approach with specific code examples for each layer, shows complete stack visualization, and articulates key principles for each pattern."
+        },
+        {
+          "jury_model": "gemini-2.0-flash-lite",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A is significantly better due to its detailed analysis, clear recommendations, and practical code examples. It provides a comprehensive understanding of the trade-offs and best practices for each approach, including a layered approach that addresses different parts of the application. The table comparing the approaches is particularly helpful. Response B, while correct, is much more superficial and lacks the depth and practical guidance of Response A. Response A also demonstrates a strong understanding of the domain and anticipates potential pitfalls. Response B is correct but lacks the same level of expertise and practical application. Response A's gotcha awareness is also higher, as it explicitly addresses logging and error propagation."
+        },
+        {
+          "jury_model": "gpt-4o-mini",
+          "jury_type": "api",
+          "vanilla_score": 75,
+          "skilled_score": 95,
+          "reasoning": "Response A provides a detailed analysis of each approach, clearly outlining their trade-offs and offering a layered strategy that integrates multiple error handling techniques effectively. It demonstrates deep domain knowledge by discussing specific implementation examples and principles, which enhances its completeness and correctness. Response B, while accurate and recommending a combination of approaches, lacks the depth of analysis and specific examples found in Response A, making it less comprehensive and expert in its presentation."
+        },
+        {
+          "jury_model": "deepseek-chat",
+          "jury_type": "api",
+          "vanilla_score": 70,
+          "skilled_score": 95,
+          "reasoning": "Response A demonstrates superior expertise and completeness with a detailed layered architecture, concrete code examples, a comparison table, and clear principles. It correctly maps each pattern to the appropriate layer and anticipates trade-offs. Response B is correct and concise but lacks depth, examples, and the nuanced analysis of trade-offs and best practices that Response A provides."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "average_vanilla": 58.203703703703695,
+    "average_skilled": 93.81481481481482,
+    "average_delta": 35.61111111111113,
+    "skilled_wins": 9,
+    "vanilla_wins": 0,
+    "ties": 0
+  },
+  "cost_breakdown": {
+    "local_jury": "$0.00 (Max Plan)",
+    "api_jury": "~$0.01 (3 models)",
+    "total_estimated": "~$0.01 (3 models)"
+  }
+}

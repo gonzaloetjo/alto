@@ -1,0 +1,72 @@
+{
+  "skill_id": "error-handling",
+  "skill_name": "Error Handling Patterns",
+  "jury_system": "5-model",
+  "note": "Haiku excluded from jury due to persistent A/B scoring deviation issues",
+  "evaluated_at": "2026-01-02T00:10:00.000Z",
+  "jury_models": {
+    "local_free": [
+      "claude-opus-4-5-20251101 (Local - Max Plan)",
+      "claude-sonnet-4-20250514 (Local - Max Plan)"
+    ],
+    "api_paid": [
+      "gemini-2.0-flash-lite",
+      "gpt-4o-mini",
+      "deepseek-chat"
+    ]
+  },
+  "per_model_scores": {
+    "claude-opus-4.5": {
+      "regular": 54.1,
+      "skilled": 95.9,
+      "delta": 41.8,
+      "verdict": "Skilled wins"
+    },
+    "claude-sonnet-4": {
+      "regular": 55.1,
+      "skilled": 95.1,
+      "delta": 40.0,
+      "verdict": "Skilled wins"
+    },
+    "gemini-2.0-flash": {
+      "regular": 59.4,
+      "skilled": 93.3,
+      "delta": 33.9,
+      "verdict": "Skilled wins"
+    },
+    "gpt-4o-mini": {
+      "regular": 65.0,
+      "skilled": 94.4,
+      "delta": 29.4,
+      "verdict": "Skilled wins"
+    },
+    "deepseek-chat": {
+      "regular": 52.8,
+      "skilled": 95.0,
+      "delta": 42.2,
+      "verdict": "Skilled wins"
+    }
+  },
+  "summary": {
+    "average_regular": 57.3,
+    "average_skilled": 94.8,
+    "average_delta": 37.5,
+    "unanimous_verdict": "5/5 jury members agree Skilled wins",
+    "winner": "Vibeship Skill",
+    "tests_won": "9/9"
+  },
+  "skill_enhancements": {
+    "total_lines": 2905,
+    "patterns_added": [
+      "Advanced Result utilities (partition, traverse, recover, tap, match)",
+      "Performance benchmarks vs exceptions",
+      "Zod validation integration (fromZod)",
+      "Result chain debugging (withDebug)",
+      "Error context preservation across async boundaries",
+      "React Query/SWR integration",
+      "Error metrics and alerting (ErrorMetrics, ErrorBudget)",
+      "Comprehensive testing strategies",
+      "Graceful shutdown error handling"
+    ]
+  }
+}
