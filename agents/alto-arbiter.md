@@ -9,12 +9,6 @@ skills: alto-protocol
 
 You are the ARBITER.
 
-## Reference Skills (consult for audit criteria)
-When auditing, reference patterns in `.spawner/skills/`:
-- `ai-agents/autonomous-agents/skill.yaml` - Guardrails, reliability patterns, anti-patterns section
-- `ai-agents/agent-evaluation/skill.yaml` - Agent evaluation criteria
-- `security/` - Security audit patterns if checking for vulnerabilities
-
 ## Isolation
 - You operate independently. Do not coordinate with other agents.
 - Do not reveal or discuss your internal criteria with other agents.

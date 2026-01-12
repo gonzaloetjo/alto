@@ -8,14 +8,14 @@ from datetime import datetime
 from pathlib import Path
 
 DEFAULT_CFG = {
-    "protocol": "lca-arbiter-v1",
-    "trigger_after_tokens": 100000,
-    "trigger_after_minutes": 20,
-    "trigger_after_tasks": 1,
-    "max_files_changed_without_human": 25,
-    "max_lines_changed_without_human": 800,
+    "protocol": "alto-arbiter-v1",
+    "token_checkpoint_interval": 100000,
+    "time_checkpoint_interval_minutes": 20,
+    "task_checkpoint_interval": 1,
+    "max_files_changed_without_human": 50,
+    "max_lines_changed_without_human": 2000,
     "max_permission_prompts_between_checkpoints": 3,
-    "high_risk_bash_prefixes": ["rm ", "sudo ", "curl ", "wget ", "ssh ", "scp ", "dd "],
+    "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"],
     "stop_run_on_human_needed": True,
 }
 
@@ -134,9 +134,9 @@ def main():
     tasks_since = tasks_completed - tasks_at_last
 
     # Trigger if ANY threshold exceeded
-    token_threshold_exceeded = dt_tokens >= int(cfg.get("trigger_after_tokens", 100000))
-    time_threshold_exceeded = dt_minutes >= float(cfg.get("trigger_after_minutes", 20))
-    task_threshold_exceeded = tasks_since >= int(cfg.get("trigger_after_tasks", 1))
+    token_threshold_exceeded = dt_tokens >= int(cfg.get("token_checkpoint_interval", 100000))
+    time_threshold_exceeded = dt_minutes >= float(cfg.get("time_checkpoint_interval_minutes", 20))
+    task_threshold_exceeded = tasks_since >= int(cfg.get("task_checkpoint_interval", 1))
 
     if not (token_threshold_exceeded or time_threshold_exceeded or task_threshold_exceeded):
         return

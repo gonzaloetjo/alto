@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 def load_state(project_dir: Path) -> dict:
-    """Load LCA state."""
+    """Load ALTO state."""
     p = project_dir / "runs" / "state.json"
     if not p.exists():
         return {}
@@ -74,7 +74,7 @@ def main():
         "tool_name": tool_name,
         "tool_use_id": hook.get("tool_use_id"),
         "session_id": hook.get("session_id"),
-        # LCA context
+        # ALTO context
         "task_id": state.get("current_task_id"),
         "role": state.get("current_role"),
         "phase": state.get("phase"),

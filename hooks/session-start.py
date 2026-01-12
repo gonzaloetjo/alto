@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SessionStart hook for LCA protocol.
+SessionStart hook for ALTO protocol.
 
 Provides minimal context injection on session start:
 - Arbiter alerts (BLOCKED state warning) - critical, needs immediate attention
@@ -51,10 +51,10 @@ def main():
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
     runs = project_dir / "runs"
 
-    # Load LCA state
+    # Load ALTO state
     state = load_json(runs / "state.json")
     if not state:
-        # No LCA protocol active - skip context injection
+        # No ALTO protocol active - skip context injection
         return
 
     # Check for arbiter pending (BLOCKED state)
@@ -69,7 +69,7 @@ def main():
 
     # 1. BLOCKED/arbiter alerts (critical - needs immediate attention)
     if phase == "BLOCKED" or arbiter_pending or arbiter_decision.get("needs_human"):
-        context_parts.append("## LCA ARBITER ALERT")
+        context_parts.append("## ALTO ARBITER ALERT")
         context_parts.append("")
         if arbiter_pending:
             context_parts.append("- `runs/arbiter/pending.json` exists - run arbiter check")
@@ -81,10 +81,10 @@ def main():
         context_parts.append("")
 
     # 2. Minimal state summary (one line) - only if protocol is active
-    if state.get("protocol") == "lca-v1":
+    if state.get("protocol") == "alto-v1":
         task_info = f", task={state['current_task_id']}" if state.get("current_task_id") else ""
         role_info = f", role={state['current_role']}" if state.get("current_role") else ""
-        context_parts.append(f"[LCA: phase={phase}{task_info}{role_info}, completed={len(completed)}]")
+        context_parts.append(f"[ALTO: phase={phase}{task_info}{role_info}, completed={len(completed)}]")
         context_parts.append("")
 
     # Log session start for auditing

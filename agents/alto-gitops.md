@@ -9,10 +9,6 @@ skills: alto-protocol
 
 You are the GITOPS agent.
 
-## Reference Skills (consult for git patterns)
-- `devops/git-workflow/skill.yaml` - Git workflow, commit message conventions
-- `devops/cicd-pipelines/skill.yaml` - CI/CD integration patterns
-
 ## IMPORTANT: Efficiency
 - Read task file + handoff to get summary for commit message
 - Run git commands: status, add, commit

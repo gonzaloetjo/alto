@@ -42,12 +42,15 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          HOOKS (out-of-band)                             │
 │                                                                          │
-│  PreToolUse ─────────▶ tool-use-record.py ─────▶ runs/tools/usage.jsonl  │
+│  PostToolUse ────────▶ tool-record.py ────────▶ runs/tools/usage.jsonl   │
 │                                                                          │
 │  Stop / SubagentStop┬▶ usage-record.py ───────▶ runs/usage/usage.jsonl   │
 │                     └▶ arbiter-scheduler.py ──▶ runs/arbiter/pending.json│
 │                                                                          │
 │  PermissionRequest ──▶ permission-record.py ───▶ runs/permissions/*.jsonl│
+│                                                                          │
+│  SessionStart ───────▶ session-start.py ──────▶ runs/sessions/starts.jsonl
+│  SessionEnd ─────────▶ session-summary.py ────▶ (summary generation)     │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -81,9 +84,18 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 │  │ frontmatter│   │   agent    │   │ until pass │   │  handoff   │       │
 │  └────────────┘   └────────────┘   └────────────┘   └─────┬──────┘       │
 │                                                           │              │
-│                                                           ▼              │
-│                                                   runs/handoffs/         │
-│                                                   task-XXX.md            │
+│         ┌─────────────────────────────────────────────────┘              │
+│         │                                                                │
+│         ▼                                                                │
+│  ┌────────────┐   ┌────────────┐   ┌────────────┐                        │
+│  │  reviewer  │──▶│  enforcer  │──▶│post agents │                        │
+│  │(code only) │   │(compliance)│   │(recorder,  │                        │
+│  │ can reject │   │ can reject │   │ gitops...) │                        │
+│  └────────────┘   └────────────┘   └─────┬──────┘                        │
+│         │                                │                               │
+│         │ REJECT                         ▼                               │
+│         └──────────▶ back to      runs/handoffs/                         │
+│                      role agent   task-XXX.md                            │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -93,9 +105,9 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 
 ALTO is built on Claude Code features:
 - **Memory file**: `CLAUDE.md` is automatically loaded as project memory at launch
-- **Project subagents**: `.claude/agents/*.md` define tool access, system prompts, and separate contexts
+- **Project subagents**: `agents/*.md` define tool access, system prompts, and separate contexts
 - **Hierarchical settings**: `.claude/settings.json` defines project-wide permissions
-- **Hooks**: `Stop` / `SubagentStop` hooks collect usage/telemetry without LLM tokens
+- **Hooks**: `Stop` / `SubagentStop` / `PostToolUse` hooks collect usage/telemetry without LLM tokens
 
 References:
 - Memory (`CLAUDE.md`): https://docs.anthropic.com/en/docs/claude-code/memory
@@ -113,27 +125,33 @@ ARCHITECTURE.md              # This file - AI agent architecture
 objective.md                 # Project goals and requirements
 docs/                        # Implementation docs (alto-docs writes here)
 
+agents/
+├── alto-planner.md          # Generates plan + tasks
+├── alto-backend.md          # Backend implementation
+├── alto-frontend.md         # Frontend implementation
+├── alto-recorder.md         # Records task changes in handoffs
+├── alto-docs.md             # Implementation documentation for readers
+├── alto-gitops.md           # Branch/commit/push hygiene
+├── alto-qa.md               # Check/fix loop
+├── alto-reviewer.md         # Code quality gate (automatic)
+├── alto-enforcer.md         # Protocol compliance gate (automatic)
+├── alto-arbiter.md          # Periodic checkpoint auditor
+└── code-simplifier.md       # Code clarity refinement (post-agent)
+
+hooks/
+├── usage-record.py          # Token tracking (Stop/SubagentStop)
+├── tool-record.py           # Tool invocation logging (PostToolUse)
+├── permission-record.py     # Permission request logging (PermissionRequest)
+├── arbiter-scheduler.py     # Triggers arbiter on thresholds (Stop/SubagentStop)
+├── session-start.py         # Session initialization (SessionStart)
+└── session-summary.py       # Session summary generation (SessionEnd)
+
+skills/
+└── alto-protocol/
+    └── SKILL.md             # Protocol definition (task/state/handoff formats)
+
 .claude/
-├── settings.json            # Project-wide permissions + hooks
-├── agents/
-│   ├── alto-planner.md      # Generates plan + tasks
-│   ├── alto-backend.md      # Backend implementation
-│   ├── alto-frontend.md     # Frontend implementation
-│   ├── alto-recorder.md     # Records task changes in handoffs
-│   ├── alto-docs.md         # Implementation documentation for readers
-│   ├── alto-gitops.md       # Branch/commit/push hygiene
-│   ├── alto-qa.md           # Check/fix loop
-│   ├── alto-reviewer.md     # Code quality gate (automatic)
-│   ├── alto-enforcer.md     # Protocol compliance gate (automatic)
-│   └── alto-arbiter.md      # Periodic checkpoint auditor
-├── hooks/
-│   ├── usage-record.py      # Token tracking (no LLM overhead)
-│   ├── tool-use-record.py   # Tool invocation logging (PreToolUse)
-│   ├── permission-record.py # Permission request logging
-│   └── arbiter-scheduler.py # Triggers arbiter on thresholds
-└── skills/
-    └── alto-protocol/
-        └── SKILL.md         # Protocol definition (task/state/handoff formats)
+└── settings.json            # Project-wide permissions + hooks config
 
 runs/
 ├── plan.md                  # Generated: architecture, task outline
@@ -215,6 +233,7 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `alto-reviewer` | Code quality gate (auto after role) | read-only; can reject |
 | `alto-enforcer` | Protocol compliance gate (auto after reviewer) | read-only; can reject |
 | `alto-arbiter` | Periodic checkpoint auditor | edits **runs/arbiter/** only |
+| `code-simplifier` | Refine code for clarity (post-agent) | edits files touched by role agent |
 
 ---
 
@@ -225,8 +244,9 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `alto-arbiter` | **opus** | Critical judgment - decides if run should stop |
 | `alto-planner` | **opus** | Architecture decisions, task decomposition |
 | `alto-reviewer` | **opus** | Quality judgment - validates code and tests |
+| `alto-frontend` | **opus** | Complex UI implementation requiring design judgment |
+| `code-simplifier` | **opus** | Code quality refinement requiring judgment |
 | `alto-backend` | sonnet | Complex implementation work |
-| `alto-frontend` | sonnet | Complex implementation work |
 | `alto-qa` | sonnet | Debugging and test fixes |
 | `alto-docs` | sonnet | Quality documentation for readers |
 | `alto-enforcer` | sonnet | Rule-based protocol checks |
@@ -290,10 +310,12 @@ The arbiter is an independent "blackhat" auditor that operates between tasks to 
 ```json
 {
   "token_checkpoint_interval": 100000,
+  "time_checkpoint_interval_minutes": 20,
   "task_checkpoint_interval": 3,
   "max_files_changed_without_human": 50,
   "max_lines_changed_without_human": 2000,
-  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs"]
+  "max_permission_prompts_between_checkpoints": 3,
+  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
 }
 ```
 

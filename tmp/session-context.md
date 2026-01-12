@@ -5,11 +5,11 @@
 ## What We Did This Session (2026-01-12)
 
 ### Background
-- Started in `challenge-001-plantops` project which had an LCA (Lifecycle Architecture) protocol for Claude Code autonomous agents
+- Started in `challenge-001-plantops` project which had an ALTO (Lifecycle Architecture) protocol for Claude Code autonomous agents
 - User wanted to extract the coding architecture into a reusable module
 
-### Analysis: LCA vs Claude Code Native
-We analyzed redundancy between LCA protocol and Claude Code's built-in features:
+### Analysis: ALTO vs Claude Code Native
+We analyzed redundancy between ALTO protocol and Claude Code's built-in features:
 
 **What's NOT redundant (unique value):**
 - Session persistence (`runs/state.json`, handoffs) - Claude loses context between sessions
@@ -18,7 +18,7 @@ We analyzed redundancy between LCA protocol and Claude Code's built-in features:
 - Structured handoffs for cross-session context
 
 **What IS redundant:**
-- `lca-planner` duplicates `EnterPlanMode`
+- `alto-planner` duplicates `EnterPlanMode`
 - Role agents duplicate `Task` tool with subagent_type
 - Task tracking duplicates `TodoWrite`
 
@@ -26,7 +26,7 @@ We analyzed redundancy between LCA protocol and Claude Code's built-in features:
 Inspired by https://devenv.sh/integrations/claude-code/ which uses declarative Nix config to generate `.claude/` structure.
 
 ### Naming Evolution
-1. `lca-protocol` → too generic, conflicts with other LCA meanings
+1. `alto-protocol` → too generic, conflicts with other ALTO meanings
 2. `agents-state-machine` (ASM) → okay but bland
 3. **ALTO** → Autonomous Lifecycle Task Orchestrator
    - Named after El Alto, Bolivia (Cholitas Valley theme)
@@ -46,12 +46,22 @@ alto/
 └── docs/                  # Redundancy analysis
 ```
 
+### Session 2 (2026-01-12 continued)
+
+**Identified missing items:**
+1. ~~**ARCHITECTURE.md template is too generic**~~ - Fixed in session 1
+2. **Missing `alto-feature-setup` skill** - Interactive skill for setting up new features (now added)
+3. **Missing `alto-recorder` in SKILL.md role list** - Fixed
+
+**Added:**
+- `skills/alto-feature-setup/SKILL.md` - Copied from plantops and renamed lca → alto
+- Fixed `skills/alto-protocol/SKILL.md` - Added missing `alto-recorder` to role list
+
 ### Pending Issues
-1. **ARCHITECTURE.md template is too generic** - Should be based on the actual architecture from plantops, not placeholder content
-2. **Cursor untitled file issue** - When opening folders, Cursor creates untitled file (Nix config issue, couldn't investigate due to permission blocks)
+1. **Cursor untitled file issue** - When opening folders, Cursor creates untitled file (Nix config issue, couldn't investigate due to permission blocks)
 
 ### Next Steps
-- Fix ARCHITECTURE.md template with real content
+- Review `devenv-module.nix` file by file (user requested)
 - Push to GitHub: `gh repo create alto --public --source=. --push`
 - Update plantops to use alto as a devenv module (dogfooding)
 

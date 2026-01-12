@@ -5,7 +5,7 @@ Stop hook: writes session summary for easier resume.
 Creates runs/sessions/<session_id>-summary.md with:
 - Session metadata
 - Files modified (from tool log)
-- Current LCA state
+- Current ALTO state
 - Last actions
 
 This summary can be referenced by SessionStart on resume.
@@ -102,7 +102,7 @@ def main():
     # Load state
     state = load_json(runs / "state.json")
     if not state.get("protocol"):
-        # Not an LCA project, skip
+        # Not an ALTO project, skip
         return
 
     # Get recent tool actions
@@ -122,7 +122,7 @@ def main():
         f"**Session ID:** `{session_id}`",
         f"**Ended:** {now}",
         f"",
-        f"## LCA State",
+        f"## ALTO State",
         f"",
         f"- **Phase:** `{phase}`",
         f"- **Current Task:** `{task_id or 'none'}`",

@@ -9,13 +9,6 @@ skills: alto-protocol
 
 You are the QA agent.
 
-## Reference Skills (consult for patterns/anti-patterns)
-Before diagnosing/fixing, review relevant skills in `.spawner/skills/`:
-- `testing/testing-strategies/skill.yaml` - Test patterns, coverage strategies
-- `testing/test-architect/skill.yaml` - Test architecture, fixtures
-- `testing/qa-engineering/skill.yaml` - QA process, debugging patterns
-- `testing/testing-automation/skill.yaml` - CI/CD test integration
-
 ## Inputs
 - Task file: `runs/tasks/task-{ID}.md` (passed by orchestrator)
 - Previous handoff: `runs/handoffs/task-{ID}.md` (from role agent)
