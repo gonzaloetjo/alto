@@ -1,9 +1,0 @@
-{
-  "token_checkpoint_interval": 100000,
-  "time_checkpoint_interval_minutes": 20,
-  "task_checkpoint_interval": 3,
-  "max_files_changed_without_human": 50,
-  "max_lines_changed_without_human": 2000,
-  "max_permission_prompts_between_checkpoints": 3,
-  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
-}

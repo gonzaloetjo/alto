@@ -2,204 +2,237 @@
 
 let
   cfg = config.alto;
-  altoRoot = ./.;
-
-  # Helper to read agent file content
-  readAgent = name: builtins.readFile (altoRoot + "/agents/${name}.md");
-
-  # Helper to read hook file content
-  readHook = name: builtins.readFile (altoRoot + "/hooks/${name}");
+  altoSrc = ./.;
 
 in
 {
   options.alto = {
     enable = lib.mkEnableOption "ALTO (Autonomous Lifecycle Task Orchestrator) for Claude Code";
 
-    # Arbiter configuration
+    # Arbiter thresholds
     arbiter = {
       enable = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable the arbiter agent for human review gates";
+        description = "Enable arbiter agent for human review gates";
       };
 
       maxLinesChanged = lib.mkOption {
         type = lib.types.int;
         default = 2000;
-        description = "Maximum lines changed before requiring human review";
+        description = "BLOCK if more lines changed without human review";
       };
 
       maxFilesChanged = lib.mkOption {
         type = lib.types.int;
         default = 50;
-        description = "Maximum files changed before requiring human review";
+        description = "BLOCK if more files changed without human review";
       };
 
       tokenCheckpointInterval = lib.mkOption {
         type = lib.types.int;
         default = 100000;
-        description = "Token usage threshold between arbiter checkpoints";
+        description = "Tokens between arbiter checkpoints";
       };
 
       taskCheckpointInterval = lib.mkOption {
         type = lib.types.int;
         default = 3;
-        description = "Number of tasks between arbiter checkpoints";
+        description = "Tasks between arbiter checkpoints";
       };
     };
 
-    # Agent selection
-    agents = {
-      backend = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-backend agent";
+    # Permission defaults
+    permissions = {
+      defaultMode = lib.mkOption {
+        type = lib.types.enum [ "bypassPermissions" "askEveryTime" "allowEdits" ];
+        default = "bypassPermissions";
+        description = "Default permission mode for Claude Code";
       };
 
-      frontend = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-frontend agent";
+      allowBash = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "git" "make" "npm" "pnpm" "yarn" "docker" "docker compose" "ls" "cat" "mkdir" "python" "python3" "node" ];
+        description = "Bash commands to allow without prompting";
       };
 
-      qa = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-qa agent";
+      askBash = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "git push" ];
+        description = "Bash commands that require confirmation";
       };
 
-      docs = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-docs agent";
+      denyRead = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "./.env" "./.env.*" "./secrets/**" "**/*.pem" "**/*id_rsa*" ];
+        description = "File patterns to deny reading";
       };
 
-      gitops = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-gitops agent";
-      };
-
-      planner = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-planner agent";
-      };
-
-      recorder = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-recorder agent";
-      };
-
-      reviewer = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-reviewer agent";
-      };
-
-      enforcer = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable alto-enforcer agent";
-      };
-
-      codeSimplifier = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable code-simplifier agent for code clarity refinement";
+      denyBash = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "rm -rf" "sudo" ];
+        description = "Bash commands to always deny";
       };
     };
 
-    # Hooks configuration
-    hooks = {
-      sessionStart = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable session-start hook (SessionStart event)";
-      };
-
-      sessionSummary = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable session-summary hook (SessionEnd event)";
-      };
-
-      toolRecord = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable tool-record hook (PostToolUse event)";
-      };
-
-      toolUseRecord = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable tool-use-record hook (PostToolUse event)";
-      };
-
-      usageRecord = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable usage-record hook (Stop/SubagentStop events)";
-      };
-
-      permissionRecord = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable permission-record hook (PermissionRequest event)";
-      };
-
-      arbiterScheduler = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable arbiter-scheduler hook (Stop/SubagentStop events)";
-      };
+    # Include spawner skills
+    includeSpawnerSkills = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Include domain skills from spawner (api-design, frontend, etc.)";
     };
 
-    # Runtime directories
+    # Runtime directory name
     runsDir = lib.mkOption {
       type = lib.types.str;
       default = "runs";
-      description = "Directory for ALTO runtime state (state.json, tasks/, handoffs/)";
-    };
-
-    # Custom role agents (project-specific)
-    extraAgents = lib.mkOption {
-      type = lib.types.attrsOf (lib.types.submodule {
-        options = {
-          description = lib.mkOption {
-            type = lib.types.str;
-            description = "Agent description";
-          };
-          tools = lib.mkOption {
-            type = lib.types.listOf lib.types.str;
-            default = [ "Read" "Grep" "Glob" "Edit" "Bash" ];
-            description = "Tools available to agent";
-          };
-          model = lib.mkOption {
-            type = lib.types.enum [ "opus" "sonnet" "haiku" ];
-            default = "sonnet";
-            description = "Model to use for agent";
-          };
-          prompt = lib.mkOption {
-            type = lib.types.str;
-            description = "Agent prompt/instructions";
-          };
-        };
-      });
-      default = {};
-      description = "Additional project-specific agents";
+      description = "Directory for ALTO runtime state";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Create runs directory structure on devenv activation
-    enterShell = ''
-      mkdir -p ${cfg.runsDir}/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools}
+    # Ensure python3 and jq are available for hooks
+    packages = [ pkgs.python3 pkgs.jq ];
 
-      # Initialize state.json if not exists
-      if [ ! -f ${cfg.runsDir}/state.json ]; then
-        cat > ${cfg.runsDir}/state.json << 'EOF'
+    # Deploy ALTO files on shell entry
+    enterShell = ''
+      _alto_deploy() {
+        local ALTO_SRC="${altoSrc}"
+        local RUNS_DIR="${cfg.runsDir}"
+
+        echo "ALTO: Deploying Claude Code configuration..."
+
+        # Create .claude directory structure
+        mkdir -p .claude/agents .claude/hooks .claude/skills
+
+        # Copy agents
+        cp -r "$ALTO_SRC"/agents/*.md .claude/agents/ 2>/dev/null || true
+
+        # Copy hooks
+        cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
+
+        # Copy ALTO protocol skills
+        cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
+        cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
+
+        # Optionally copy spawner skills
+        ${lib.optionalString cfg.includeSpawnerSkills ''
+          cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
+        ''}
+
+        # Generate settings.json
+        cat > .claude/settings.json << 'SETTINGS_EOF'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "defaultMode": "${cfg.permissions.defaultMode}",
+    "allow": [
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.allowBash}
+    ],
+    "ask": [
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.askBash}
+    ],
+    "deny": [
+      ${lib.concatMapStringsSep ",\n      " (pat: "\"Read(${pat})\"") cfg.permissions.denyRead},
+      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.denyBash}
+    ]
+  }
+}
+SETTINGS_EOF
+
+        # Create runs directory structure
+        mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools}
+
+        # Initialize state.json if not exists
+        if [ ! -f "$RUNS_DIR/state.json" ]; then
+          cat > "$RUNS_DIR/state.json" << 'STATE_EOF'
 {
   "protocol": "alto-v1",
   "run_branch": null,
@@ -210,12 +243,11 @@ in
   "last_handoff": null,
   "updated_at": null
 }
-EOF
-      fi
+STATE_EOF
+        fi
 
-      # Initialize arbiter config if not exists
-      if [ ! -f ${cfg.runsDir}/arbiter/config.json ]; then
-        cat > ${cfg.runsDir}/arbiter/config.json << 'EOF'
+        # Initialize arbiter config
+        cat > "$RUNS_DIR/arbiter/config.json" << 'ARBITER_EOF'
 {
   "max_lines_changed_without_human": ${toString cfg.arbiter.maxLinesChanged},
   "max_files_changed_without_human": ${toString cfg.arbiter.maxFilesChanged},
@@ -223,206 +255,30 @@ EOF
   "task_checkpoint_interval": ${toString cfg.arbiter.taskCheckpointInterval},
   "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
 }
-EOF
-      fi
+ARBITER_EOF
+
+        # Initialize arbiter state if not exists
+        if [ ! -f "$RUNS_DIR/arbiter/state.json" ]; then
+          cat > "$RUNS_DIR/arbiter/state.json" << 'ARBSTATE_EOF'
+{
+  "last_checkpoint_at": null,
+  "tokens_since_checkpoint": 0,
+  "tasks_since_checkpoint": 0,
+  "checkpoint_count": 0
+}
+ARBSTATE_EOF
+        fi
+
+        # Copy CLAUDE.md template if no CLAUDE.md exists
+        if [ ! -f "CLAUDE.md" ]; then
+          cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
+          echo "ALTO: Created CLAUDE.md from template"
+        fi
+
+        echo "ALTO: Ready. Start Claude Code and say 'continue' or '/alto-feature-setup' to begin."
+      }
+
+      _alto_deploy
     '';
-
-    # Configure Claude Code agents
-    claude.code.agents = lib.mkMerge [
-      # Core ALTO agents
-      (lib.mkIf cfg.agents.planner {
-        alto-planner = {
-          description = "Generates and maintains runs/plan.md and writes tasks under runs/tasks/";
-          tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-          model = "opus";
-          prompt = readAgent "alto-planner";
-        };
-      })
-
-      (lib.mkIf cfg.arbiter.enable {
-        alto-arbiter = {
-          description = "Periodic blackhat checkpoint auditor. Decides if human review is needed.";
-          tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
-          model = "opus";
-          prompt = readAgent "alto-arbiter";
-        };
-      })
-
-      (lib.mkIf cfg.agents.backend {
-        alto-backend = {
-          description = "Implements backend tasks. Use for API, DB, workers, server-side logic.";
-          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-          model = "sonnet";
-          prompt = readAgent "alto-backend";
-        };
-      })
-
-      (lib.mkIf cfg.agents.frontend {
-        alto-frontend = {
-          description = "Implements frontend tasks. Use for UI, components, client state.";
-          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-          model = "opus";
-          prompt = readAgent "alto-frontend";
-        };
-      })
-
-      (lib.mkIf cfg.agents.qa {
-        alto-qa = {
-          description = "Runs checks/tests, diagnoses failures, fixes with minimal diffs.";
-          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-          model = "sonnet";
-          prompt = readAgent "alto-qa";
-        };
-      })
-
-      (lib.mkIf cfg.agents.docs {
-        alto-docs = {
-          description = "Writes implementation documentation for readers.";
-          tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-          model = "sonnet";
-          prompt = readAgent "alto-docs";
-        };
-      })
-
-      (lib.mkIf cfg.agents.gitops {
-        alto-gitops = {
-          description = "Handles branch/commit/push hygiene after tasks pass checks.";
-          tools = [ "Read" "Edit" "Bash" ];
-          model = "haiku";
-          prompt = readAgent "alto-gitops";
-        };
-      })
-
-      (lib.mkIf cfg.agents.recorder {
-        alto-recorder = {
-          description = "Records task changes in handoffs for task-to-task context.";
-          tools = [ "Read" "Edit" ];
-          model = "haiku";
-          prompt = readAgent "alto-recorder";
-        };
-      })
-
-      (lib.mkIf cfg.agents.reviewer {
-        alto-reviewer = {
-          description = "Reviews code quality after role agent completes.";
-          tools = [ "Read" "Bash" ];
-          model = "opus";
-          prompt = readAgent "alto-reviewer";
-        };
-      })
-
-      (lib.mkIf cfg.agents.enforcer {
-        alto-enforcer = {
-          description = "Enforces ALTO protocol compliance.";
-          tools = [ "Read" ];
-          model = "sonnet";
-          prompt = readAgent "alto-enforcer";
-        };
-      })
-
-      (lib.mkIf cfg.agents.codeSimplifier {
-        code-simplifier = {
-          description = "Simplifies and refines code for clarity and maintainability.";
-          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-          model = "opus";
-          prompt = readAgent "code-simplifier";
-        };
-      })
-
-      # Extra project-specific agents
-      cfg.extraAgents
-    ];
-
-    # Configure Claude Code hooks
-    claude.code.hooks = lib.mkMerge [
-      (lib.mkIf cfg.hooks.sessionStart {
-        alto-session-start = {
-          enable = true;
-          name = "ALTO Session Start";
-          hookType = "SessionStart";
-          command = readHook "session-start.py";
-        };
-      })
-
-      (lib.mkIf cfg.hooks.sessionSummary {
-        alto-session-summary = {
-          enable = true;
-          name = "ALTO Session Summary";
-          hookType = "SessionEnd";
-          command = readHook "session-summary.py";
-        };
-      })
-
-      (lib.mkIf cfg.hooks.toolRecord {
-        alto-tool-record = {
-          enable = true;
-          name = "ALTO Tool Record";
-          hookType = "PostToolUse";
-          matcher = ".*";
-          command = readHook "tool-record.py";
-        };
-      })
-
-      (lib.mkIf cfg.hooks.toolUseRecord {
-        alto-tool-use-record = {
-          enable = true;
-          name = "ALTO Tool Use Record";
-          hookType = "PostToolUse";
-          matcher = ".*";
-          command = readHook "tool-use-record.py";
-        };
-      })
-
-      (lib.mkIf cfg.hooks.usageRecord {
-        alto-usage-record = {
-          enable = true;
-          name = "ALTO Usage Record";
-          hookType = "Stop";
-          command = readHook "usage-record.py";
-        };
-        alto-usage-record-subagent = {
-          enable = true;
-          name = "ALTO Usage Record (Subagent)";
-          hookType = "SubagentStop";
-          command = readHook "usage-record.py";
-        };
-      })
-
-      (lib.mkIf cfg.hooks.permissionRecord {
-        alto-permission-record = {
-          enable = true;
-          name = "ALTO Permission Record";
-          hookType = "PermissionRequest";
-          command = readHook "permission-record.py";
-        };
-      })
-
-      (lib.mkIf cfg.hooks.arbiterScheduler {
-        alto-arbiter-scheduler = {
-          enable = true;
-          name = "ALTO Arbiter Scheduler";
-          hookType = "Stop";
-          command = readHook "arbiter-scheduler.py";
-        };
-        alto-arbiter-scheduler-subagent = {
-          enable = true;
-          name = "ALTO Arbiter Scheduler (Subagent)";
-          hookType = "SubagentStop";
-          command = readHook "arbiter-scheduler.py";
-        };
-      })
-    ];
-
-    # Add ALTO skills
-    claude.code.skills = {
-      alto-protocol = {
-        description = "ALTO task/state/handoff protocol for Claude Code subagents";
-        content = builtins.readFile (altoRoot + "/skills/alto-protocol/SKILL.md");
-      };
-      alto-feature-setup = {
-        description = "Interactive checklist for setting up new features with ALTO";
-        content = builtins.readFile (altoRoot + "/skills/alto-feature-setup/SKILL.md");
-      };
-    };
   };
 }
