@@ -4,6 +4,9 @@ let
   cfg = config.alto;
   altoSrc = ./.;
 
+  # Helper to read agent file and extract frontmatter
+  readAgentFile = name: builtins.readFile "${altoSrc}/agents/${name}.md";
+
 in
 {
   options.alto = {
@@ -94,26 +97,164 @@ in
     # Ensure python3 and jq are available for hooks
     packages = [ pkgs.python3 pkgs.jq ];
 
-    # Note on native devenv claude.code.* options:
-    # - claude.code.agents: missing 'model' option (PR needed)
-    # - claude.code.hooks: missing SessionStart, PermissionRequest hookTypes
-    # Until devenv adds these, we use file-based deployment via enterShell
+    # Enable Claude Code integration
+    claude.code.enable = true;
 
-    # Deploy ALTO files on shell entry
+    # Permissions via native devenv options
+    claude.code.permissions = {
+      allow =
+        (map (cmd: "Bash(${cmd}:*)") cfg.permissions.allowBash);
+      deny =
+        (map (pat: "Read(${pat})") cfg.permissions.denyRead) ++
+        (map (cmd: "Bash(${cmd}:*)") cfg.permissions.denyBash);
+    };
+
+    # MCP servers via native devenv options
+    claude.code.mcpServers = {
+      devenv = {
+        type = "stdio";
+        command = "devenv";
+        args = [ "mcp" ];
+        env = { DEVENV_ROOT = "."; };
+      };
+    };
+
+    # Hooks via native devenv options (now supports all hookTypes as strings)
+    claude.code.hooks = {
+      # SessionStart hook
+      session-start = {
+        hookType = "SessionStart";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py";
+      };
+
+      # PostToolUse hooks for different tools
+      tool-record-bash = {
+        hookType = "PostToolUse";
+        matcher = "Bash";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+      };
+      tool-record-edit = {
+        hookType = "PostToolUse";
+        matcher = "Edit";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+      };
+      tool-record-write = {
+        hookType = "PostToolUse";
+        matcher = "Write";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+      };
+
+      # PermissionRequest hook
+      permission-record = {
+        hookType = "PermissionRequest";
+        matcher = "*";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py";
+      };
+
+      # Stop hooks
+      usage-record-stop = {
+        hookType = "Stop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
+      };
+      arbiter-scheduler-stop = {
+        hookType = "Stop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
+      };
+      session-summary-stop = {
+        hookType = "Stop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
+      };
+
+      # SubagentStop hooks
+      usage-record-subagent = {
+        hookType = "SubagentStop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
+      };
+      arbiter-scheduler-subagent = {
+        hookType = "SubagentStop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
+      };
+      session-summary-subagent = {
+        hookType = "SubagentStop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
+      };
+    };
+
+    # Agents via native devenv options (now supports model)
+    claude.code.agents = {
+      alto-planner = {
+        description = "Generates and maintains runs/plan.md and writes the next tasks under runs/tasks/. Use proactively at session start and whenever tasks are missing or need replanning.";
+        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
+        model = "opus";
+        prompt = readAgentFile "alto-planner";
+      };
+      alto-backend = {
+        description = "Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.";
+        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+        model = "opus";
+        prompt = readAgentFile "alto-backend";
+      };
+      alto-frontend = {
+        description = "Implements frontend tasks only. Use for UI, charts, client state, and frontend build tooling.";
+        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+        model = "opus";
+        prompt = readAgentFile "alto-frontend";
+      };
+      alto-qa = {
+        description = "Runs checks/tests, diagnoses failures, and fixes them with minimal diffs. Use when check_command fails or to stabilize before commit.";
+        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+        model = "opus";
+        prompt = readAgentFile "alto-qa";
+      };
+      alto-docs = {
+        description = "Writes implementation documentation for readers. Updates docs/ based on plan structure.";
+        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
+        model = "opus";
+        prompt = readAgentFile "alto-docs";
+      };
+      alto-gitops = {
+        description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
+        tools = [ "Read" "Edit" "Bash" ];
+        model = "opus";
+        prompt = readAgentFile "alto-gitops";
+      };
+      alto-recorder = {
+        description = "Records task changes in handoffs. Internal coordination for task-to-task context.";
+        tools = [ "Read" "Edit" ];
+        model = "opus";
+        prompt = readAgentFile "alto-recorder";
+      };
+      alto-reviewer = {
+        description = "Reviews code quality after role agent completes. Can reject back to role agent.";
+        tools = [ "Read" "Bash" ];
+        model = "opus";
+        prompt = readAgentFile "alto-reviewer";
+      };
+      alto-enforcer = {
+        description = "Enforces ALTO protocol compliance. Checks handoffs, file locations, state updates.";
+        tools = [ "Read" ];
+        model = "opus";
+        prompt = readAgentFile "alto-enforcer";
+      };
+      alto-arbiter = {
+        description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";
+        tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
+        model = "opus";
+        prompt = readAgentFile "alto-arbiter";
+      };
+    };
+
+    # Deploy remaining ALTO files (skills, runs structure, CLAUDE.md)
+    # These don't have native devenv equivalents yet
     enterShell = ''
       _alto_deploy() {
         local ALTO_SRC="${altoSrc}"
         local RUNS_DIR="${cfg.runsDir}"
 
-        echo "ALTO: Deploying Claude Code configuration..."
+        # Create .claude directory for hooks and skills
+        mkdir -p .claude/hooks .claude/skills
 
-        # Create .claude directory structure
-        mkdir -p .claude/agents .claude/hooks .claude/skills
-
-        # Copy agents (with model info in YAML frontmatter)
-        cp -r "$ALTO_SRC"/agents/*.md .claude/agents/ 2>/dev/null || true
-
-        # Copy hooks
+        # Copy hook scripts (referenced by native hook commands)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
         # Copy ALTO protocol skills
@@ -124,129 +265,6 @@ in
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
         ''}
-
-        # Generate settings.json with hooks and permissions
-        cat > .claude/settings.json << 'SETTINGS_EOF'
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py"
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py"
-          }
-        ]
-      }
-    ]
-  },
-  "permissions": {
-    "defaultMode": "${cfg.permissions.defaultMode}",
-    "allow": [
-      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.allowBash}
-    ],
-    "ask": [
-      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.askBash}
-    ],
-    "deny": [
-      ${lib.concatMapStringsSep ",\n      " (pat: "\"Read(${pat})\"") cfg.permissions.denyRead},
-      ${lib.concatMapStringsSep ",\n      " (cmd: "\"Bash(${cmd}:*)\"") cfg.permissions.denyBash}
-    ]
-  }
-}
-SETTINGS_EOF
-
-        # Generate .mcp.json with devenv MCP server for config assistance
-        cat > .mcp.json << 'MCP_EOF'
-{
-  "mcpServers": {
-    "devenv": {
-      "type": "stdio",
-      "command": "devenv",
-      "args": ["mcp"],
-      "env": {
-        "DEVENV_ROOT": "."
-      }
-    }
-  }
-}
-MCP_EOF
 
         # Create runs directory structure
         mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools}
@@ -292,8 +310,6 @@ ARBSTATE_EOF
 
         # Copy CLAUDE.md (always overwrite to keep protocol in sync)
         cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
-
-        echo "ALTO: Ready. Start Claude Code and say 'continue' or '/alto-feature-setup' to begin."
       }
 
       _alto_deploy
