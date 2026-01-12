@@ -11,85 +11,32 @@
 
 ## Quick Start
 
-### Option A: Using with Flakes (Plain)
+### 1. Create devenv.yaml
+
+```yaml
+inputs:
+  alto:
+    url: github:gonzaloetjo/alto
+```
+
+### 2. Create devenv.nix
 
 ```nix
-# flake.nix
+{ inputs, pkgs, ... }:
 {
-  inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
-    devenv.url = "github:cachix/devenv";
-    alto.url = "github:gonzaloetjo/alto";
-  };
+  imports = [ inputs.alto.devenvModules.default ];
 
-  nixConfig = {
-    extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
-    extra-substituters = "https://devenv.cachix.org";
-  };
+  alto.enable = true;
 
-  outputs = { self, nixpkgs, devenv, alto, ... }@inputs:
-    let
-      system = "x86_64-linux";  # or "aarch64-linux", "x86_64-darwin", "aarch64-darwin"
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
-      devShells.${system}.default = devenv.lib.mkShell {
-        inherit inputs pkgs;
-        modules = [
-          # Import ALTO module
-          alto.devenvModules.default
-
-          # Enable and configure ALTO
-          {
-            alto.enable = true;
-
-            # Optional: customize thresholds
-            alto.arbiter.maxLinesChanged = 1500;
-
-            # Optional: include domain skills
-            alto.includeSpawnerSkills = true;
-          }
-        ];
-      };
-    };
+  # Optional: include domain skills (api-design, frontend, etc.)
+  alto.includeSpawnerSkills = true;
 }
 ```
 
-### Option B: Using with flake-parts
-
-```nix
-# flake.nix
-{
-  inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
-    devenv.url = "github:cachix/devenv";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    alto.url = "github:gonzaloetjo/alto";
-  };
-
-  outputs = inputs@{ flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ inputs.devenv.flakeModule ];
-      systems = [ "x86_64-linux" "aarch64-darwin" ];
-
-      perSystem = { config, pkgs, ... }: {
-        devenv.shells.default = {
-          # Import ALTO module
-          imports = [ inputs.alto.devenvModules.default ];
-
-          # Enable and configure
-          alto.enable = true;
-          alto.includeSpawnerSkills = true;
-        };
-      };
-    };
-}
-```
-
-### Enter Shell
+### 3. Enter shell
 
 ```bash
-nix develop --no-pure-eval
+devenv shell
 
 # ALTO: Deploying Claude Code configuration...
 # ALTO: Ready. Start Claude Code and say 'continue' or '/alto-feature-setup' to begin.
@@ -97,8 +44,6 @@ nix develop --no-pure-eval
 claude
 > continue
 ```
-
-**Note:** `--no-pure-eval` is required because devenv needs to determine the environment dynamically.
 
 ## What Gets Deployed
 
@@ -116,15 +61,18 @@ your-project/
 │   ├── tasks/           # Task definitions
 │   ├── handoffs/        # Task outputs + context
 │   └── arbiter/         # Human review checkpoints
-└── CLAUDE.md            # Orchestrator protocol (if not exists)
+└── CLAUDE.md            # Orchestrator protocol
 ```
 
 ## Configuration Options
 
 ```nix
+{ inputs, pkgs, ... }:
 {
+  imports = [ inputs.alto.devenvModules.default ];
+
   alto = {
-    enable = true;  # Required to activate
+    enable = true;
 
     # Arbiter thresholds (human review gates)
     arbiter = {
@@ -188,6 +136,73 @@ PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 5. **Post agents** (recorder, gitops) finalize
 6. **Arbiter** runs between tasks if thresholds hit → may BLOCK
 
+## Using with Flakes (Alternative)
+
+If you prefer flakes over the devenv CLI:
+
+<details>
+<summary>Plain Flakes</summary>
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    devenv.url = "github:cachix/devenv";
+    alto.url = "github:gonzaloetjo/alto";
+  };
+
+  outputs = { self, nixpkgs, devenv, alto, ... }@inputs:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+    in
+    {
+      devShells.${system}.default = devenv.lib.mkShell {
+        inherit inputs pkgs;
+        modules = [
+          alto.devenvModules.default
+          { alto.enable = true; }
+        ];
+      };
+    };
+}
+```
+
+Run: `nix develop --no-pure-eval`
+
+</details>
+
+<details>
+<summary>flake-parts</summary>
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    devenv.url = "github:cachix/devenv";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    alto.url = "github:gonzaloetjo/alto";
+  };
+
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ inputs.devenv.flakeModule ];
+      systems = [ "x86_64-linux" "aarch64-darwin" ];
+
+      perSystem = { pkgs, ... }: {
+        devenv.shells.default = {
+          imports = [ inputs.alto.devenvModules.default ];
+          alto.enable = true;
+        };
+      };
+    };
+}
+```
+
+Run: `nix develop --no-pure-eval`
+
+</details>
+
 ## Skills
 
 **Protocol skills** (always included):
@@ -200,7 +215,7 @@ PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 - docker, logging-strategies, security, testing-strategies, error-handling
 - embedded-systems, sensor-fusion, state-management
 
-## Manual Installation (without devenv/Nix)
+## Manual Installation (without Nix)
 
 If not using Nix:
 
@@ -210,13 +225,6 @@ If not using Nix:
 4. Copy `templates/CLAUDE.md.template` to `CLAUDE.md`
 5. Create `runs/` directory structure manually
 6. Create `.claude/settings.json` based on the template in `devenv-module.nix`
-
-## Sources
-
-- [devenv.sh](https://devenv.sh/) - Fast, declarative developer environments
-- [Using devenv with Flakes](https://devenv.sh/guides/using-with-flakes/)
-- [Using devenv with flake-parts](https://devenv.sh/guides/using-with-flake-parts/)
-- [devenv Inputs](https://devenv.sh/inputs/)
 
 ## License
 
