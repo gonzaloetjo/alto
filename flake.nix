@@ -16,6 +16,13 @@
       devenvModules.default = ./devenv-module.nix;
       devenvModules.alto = ./devenv-module.nix;
 
+      # Flake template for quick project setup
+      # Usage: nix flake init -t github:gonzaloetjo/alto
+      templates.default = {
+        path = ./templates/default;
+        description = "ALTO - Claude Code multi-agent orchestration with human review gates";
+      };
+
       # Dev shell for working on ALTO itself (not for consumers)
       devShells = forAllSystems (system: {
         default = nixpkgs.legacyPackages.${system}.mkShell {

@@ -11,31 +11,11 @@
 
 ## Quick Start
 
-### 1. Create devenv.yaml
-
-```yaml
-inputs:
-  alto:
-    url: github:gonzaloetjo/alto
-```
-
-### 2. Create devenv.nix
-
-```nix
-{ inputs, pkgs, ... }:
-{
-  imports = [ inputs.alto.devenvModules.default ];
-
-  alto.enable = true;
-
-  # Optional: include domain skills (api-design, frontend, etc.)
-  alto.includeSpawnerSkills = true;
-}
-```
-
-### 3. Enter shell
-
 ```bash
+# Initialize ALTO in your project
+nix flake init -t github:gonzaloetjo/alto
+
+# Enter the dev shell
 devenv shell
 
 # ALTO: Deploying Claude Code configuration...
@@ -44,6 +24,8 @@ devenv shell
 claude
 > continue
 ```
+
+That's it. Two commands.
 
 ## What Gets Deployed
 

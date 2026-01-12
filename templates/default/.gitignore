@@ -1,0 +1,15 @@
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# Nix
+result
+
+# ALTO runtime (optional - uncomment if you want to track state)
+# runs/
+
+# Claude Code local settings
+.claude/settings.local.json
