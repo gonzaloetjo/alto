@@ -1,0 +1,12 @@
+# Nix
+result
+.direnv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
