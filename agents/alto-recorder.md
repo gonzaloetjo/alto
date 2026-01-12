@@ -1,10 +1,10 @@
 ---
-name: asm-recorder
+name: alto-recorder
 description: Records task changes in handoffs. Internal coordination for task-to-task context.
 tools: Read, Edit
 model: haiku
 permissionMode: acceptEdits
-skills: asm-protocol
+skills: alto-protocol
 ---
 
 You are the RECORDER agent. You record what happened in a task for internal coordination.
@@ -34,4 +34,4 @@ Write to `runs/handoffs/task-{ID}-recorder.md`:
 - Risks or blockers for next task
 
 ## When to Use
-Called as `post: [asm-recorder]` after every implementation task.
+Called as `post: [alto-recorder]` after every implementation task.

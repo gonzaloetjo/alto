@@ -1,9 +1,9 @@
 ---
-name: asm-protocol
-description: Defines the ASM task/state/handoff protocol and role handoffs for Claude Code subagents.
+name: alto-protocol
+description: Defines the ALTO task/state/handoff protocol and role handoffs for Claude Code subagents.
 ---
 
-# ASM Protocol
+# ALTO Protocol
 
 ## Required folders
 - `runs/plan.md`
@@ -14,11 +14,11 @@ description: Defines the ASM task/state/handoff protocol and role handoffs for C
 ## runs/state.json schema
 ```json
 {
-  "protocol": "asm-v1",
+  "protocol": "alto-v1",
   "run_branch": "run/001",
   "phase": "PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
   "current_task_id": "task-001",
-  "current_role": "asm-backend",
+  "current_role": "alto-backend",
   "completed_task_ids": [],
   "last_handoff": null,
   "updated_at": "ISO-8601"
@@ -45,7 +45,7 @@ Each task starts with YAML frontmatter:
 ```yaml
 task_id: task-001
 title: Short human title
-role: asm-backend | asm-frontend | asm-recorder | asm-docs | asm-gitops | asm-qa
+role: alto-backend | alto-frontend | alto-recorder | alto-docs | alto-gitops | alto-qa
 follow_roles: []            # optional: list of agent names to additionally obey
 post: []                    # optional: list of agent names to run after role succeeds
 depends_on: []              # optional

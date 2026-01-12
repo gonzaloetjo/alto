@@ -1,10 +1,10 @@
-# ASM - Agents State Machine
+# ALTO - Autonomous Lifecycle Task Orchestrator
 
 **A protocol for autonomous AI agents with human review gates** - Built for Claude Code.
 
-## What is ASM?
+## What is ALTO?
 
-ASM provides:
+ALTO provides:
 - **Session persistence** - State survives across Claude Code sessions
 - **Human review gates** - Arbiter system blocks when thresholds exceeded
 - **Structured handoffs** - Context preserved between tasks
@@ -18,7 +18,7 @@ Add to your `flake.nix`:
 
 ```nix
 {
-  inputs.asm.url = "github:YOUR_USERNAME/agents-state-machine";
+  inputs.alto.url = "github:YOUR_USERNAME/alto";
 }
 ```
 
@@ -27,9 +27,9 @@ Then in `devenv.nix`:
 ```nix
 { inputs, ... }:
 {
-  imports = [ inputs.asm.devenvModules.default ];
+  imports = [ inputs.alto.devenvModules.default ];
 
-  asm.enable = true;
+  alto.enable = true;
 }
 ```
 
@@ -39,7 +39,7 @@ Run `devenv shell` and you're ready.
 
 ```nix
 {
-  asm = {
+  alto = {
     enable = true;
 
     # Arbiter thresholds (human review gates)
@@ -102,7 +102,7 @@ PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 ```
 project/
 ├── ARCHITECTURE.md      # System architecture
-├── CLAUDE.md            # ASM protocol instructions
+├── CLAUDE.md            # ALTO protocol instructions
 ├── objective.md         # Project goals
 ├── runs/
 │   ├── state.json       # Current state (phase, task, etc.)
@@ -129,16 +129,16 @@ project/
 
 | Agent | Role | Model |
 |-------|------|-------|
-| `asm-planner` | Generate plan and tasks | opus |
-| `asm-arbiter` | Human review gates | opus |
-| `asm-backend` | Backend implementation | sonnet |
-| `asm-frontend` | Frontend implementation | sonnet |
-| `asm-qa` | Testing and fixes | sonnet |
-| `asm-docs` | Documentation | haiku |
-| `asm-gitops` | Git commits | haiku |
-| `asm-recorder` | Handoff summaries | haiku |
-| `asm-reviewer` | Code review | sonnet |
-| `asm-enforcer` | Protocol compliance | sonnet |
+| `alto-planner` | Generate plan and tasks | opus |
+| `alto-arbiter` | Human review gates | opus |
+| `alto-backend` | Backend implementation | sonnet |
+| `alto-frontend` | Frontend implementation | sonnet |
+| `alto-qa` | Testing and fixes | sonnet |
+| `alto-docs` | Documentation | haiku |
+| `alto-gitops` | Git commits | haiku |
+| `alto-recorder` | Handoff summaries | haiku |
+| `alto-reviewer` | Code review | sonnet |
+| `alto-enforcer` | Protocol compliance | sonnet |
 
 ### Task Flow
 
@@ -149,11 +149,11 @@ project/
 5. **Post agents** (recorder, gitops) finalize
 6. **Arbiter** runs between tasks if thresholds hit
 
-## Why ASM?
+## Why ALTO?
 
-Claude Code loses context between sessions. ASM solves this with:
+Claude Code loses context between sessions. ALTO solves this with:
 
-| Problem | ASM Solution |
+| Problem | ALTO Solution |
 |---------|--------------|
 | Session amnesia | `runs/state.json` + handoffs |
 | Runaway autonomous agents | Arbiter with BLOCK severity |

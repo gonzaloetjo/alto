@@ -1,5 +1,5 @@
 {
-  description = "ASM - Agents State Machine for Claude Code autonomous agents";
+  description = "ALTO - Autonomous Lifecycle Task Orchestrator for Claude Code";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,7 +14,7 @@
     {
       # Devenv module for importing into projects
       devenvModules.default = ./devenv-module.nix;
-      devenvModules.asm = ./devenv-module.nix;
+      devenvModules.alto = ./devenv-module.nix;
 
       # Expose the module's source files for reference
       lib = {
@@ -25,7 +25,7 @@
         runs = ./runs;
       };
 
-      # Development shell for working on ASM itself
+      # Development shell for working on ALTO itself
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};

@@ -1,19 +1,19 @@
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.asm;
-  asmRoot = ./.;
+  cfg = config.alto;
+  altoRoot = ./.;
 
   # Helper to read agent file content
-  readAgent = name: builtins.readFile (asmRoot + "/agents/${name}.md");
+  readAgent = name: builtins.readFile (altoRoot + "/agents/${name}.md");
 
   # Helper to read hook file content
-  readHook = name: builtins.readFile (asmRoot + "/hooks/${name}");
+  readHook = name: builtins.readFile (altoRoot + "/hooks/${name}");
 
 in
 {
-  options.asm = {
-    enable = lib.mkEnableOption "ASM (Agents State Machine) for Claude Code";
+  options.alto = {
+    enable = lib.mkEnableOption "ALTO (Agents State Machine) for Claude Code";
 
     # Arbiter configuration
     arbiter = {
@@ -53,55 +53,55 @@ in
       backend = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-backend agent";
+        description = "Enable alto-backend agent";
       };
 
       frontend = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-frontend agent";
+        description = "Enable alto-frontend agent";
       };
 
       qa = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-qa agent";
+        description = "Enable alto-qa agent";
       };
 
       docs = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-docs agent";
+        description = "Enable alto-docs agent";
       };
 
       gitops = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-gitops agent";
+        description = "Enable alto-gitops agent";
       };
 
       planner = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-planner agent";
+        description = "Enable alto-planner agent";
       };
 
       recorder = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-recorder agent";
+        description = "Enable alto-recorder agent";
       };
 
       reviewer = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-reviewer agent";
+        description = "Enable alto-reviewer agent";
       };
 
       enforcer = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable asm-enforcer agent";
+        description = "Enable alto-enforcer agent";
       };
     };
 
@@ -130,7 +130,7 @@ in
     runsDir = lib.mkOption {
       type = lib.types.str;
       default = "runs";
-      description = "Directory for ASM runtime state (state.json, tasks/, handoffs/)";
+      description = "Directory for ALTO runtime state (state.json, tasks/, handoffs/)";
     };
 
     # Custom role agents (project-specific)
@@ -171,7 +171,7 @@ in
       if [ ! -f ${cfg.runsDir}/state.json ]; then
         cat > ${cfg.runsDir}/state.json << 'EOF'
 {
-  "protocol": "asm-v1",
+  "protocol": "alto-v1",
   "run_branch": null,
   "phase": "PLANNING",
   "current_task_id": null,
@@ -199,94 +199,94 @@ EOF
 
     # Configure Claude Code agents
     claude.code.agents = lib.mkMerge [
-      # Core ASM agents
+      # Core ALTO agents
       (lib.mkIf cfg.agents.planner {
-        asm-planner = {
+        alto-planner = {
           description = "Generates and maintains runs/plan.md and writes tasks under runs/tasks/";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
           model = "opus";
-          prompt = readAgent "asm-planner";
+          prompt = readAgent "alto-planner";
         };
       })
 
       (lib.mkIf cfg.arbiter.enable {
-        asm-arbiter = {
+        alto-arbiter = {
           description = "Periodic blackhat checkpoint auditor. Decides if human review is needed.";
           tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
           model = "opus";
-          prompt = readAgent "asm-arbiter";
+          prompt = readAgent "alto-arbiter";
         };
       })
 
       (lib.mkIf cfg.agents.backend {
-        asm-backend = {
+        alto-backend = {
           description = "Implements backend tasks. Use for API, DB, workers, server-side logic.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "asm-backend";
+          prompt = readAgent "alto-backend";
         };
       })
 
       (lib.mkIf cfg.agents.frontend {
-        asm-frontend = {
+        alto-frontend = {
           description = "Implements frontend tasks. Use for UI, components, client state.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "asm-frontend";
+          prompt = readAgent "alto-frontend";
         };
       })
 
       (lib.mkIf cfg.agents.qa {
-        asm-qa = {
+        alto-qa = {
           description = "Runs checks/tests, diagnoses failures, fixes with minimal diffs.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "asm-qa";
+          prompt = readAgent "alto-qa";
         };
       })
 
       (lib.mkIf cfg.agents.docs {
-        asm-docs = {
+        alto-docs = {
           description = "Writes implementation documentation for readers.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
           model = "haiku";
-          prompt = readAgent "asm-docs";
+          prompt = readAgent "alto-docs";
         };
       })
 
       (lib.mkIf cfg.agents.gitops {
-        asm-gitops = {
+        alto-gitops = {
           description = "Handles branch/commit/push hygiene after tasks pass checks.";
           tools = [ "Read" "Edit" "Bash" ];
           model = "haiku";
-          prompt = readAgent "asm-gitops";
+          prompt = readAgent "alto-gitops";
         };
       })
 
       (lib.mkIf cfg.agents.recorder {
-        asm-recorder = {
+        alto-recorder = {
           description = "Records task changes in handoffs for task-to-task context.";
           tools = [ "Read" "Edit" ];
           model = "haiku";
-          prompt = readAgent "asm-recorder";
+          prompt = readAgent "alto-recorder";
         };
       })
 
       (lib.mkIf cfg.agents.reviewer {
-        asm-reviewer = {
+        alto-reviewer = {
           description = "Reviews code quality after role agent completes.";
           tools = [ "Read" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "asm-reviewer";
+          prompt = readAgent "alto-reviewer";
         };
       })
 
       (lib.mkIf cfg.agents.enforcer {
-        asm-enforcer = {
-          description = "Enforces ASM protocol compliance.";
+        alto-enforcer = {
+          description = "Enforces ALTO protocol compliance.";
           tools = [ "Read" ];
           model = "sonnet";
-          prompt = readAgent "asm-enforcer";
+          prompt = readAgent "alto-enforcer";
         };
       })
 
@@ -297,9 +297,9 @@ EOF
     # Configure Claude Code hooks
     claude.code.hooks = lib.mkMerge [
       (lib.mkIf cfg.hooks.sessionStart {
-        asm-session-start = {
+        alto-session-start = {
           enable = true;
-          name = "ASM Session Start";
+          name = "ALTO Session Start";
           hookType = "PostToolUse";
           matcher = ".*";
           command = readHook "session-start.py";
@@ -307,9 +307,9 @@ EOF
       })
 
       (lib.mkIf cfg.hooks.toolRecord {
-        asm-tool-record = {
+        alto-tool-record = {
           enable = true;
-          name = "ASM Tool Record";
+          name = "ALTO Tool Record";
           hookType = "PostToolUse";
           matcher = ".*";
           command = readHook "tool-record.py";
@@ -317,10 +317,10 @@ EOF
       })
     ];
 
-    # Add ASM protocol skill
-    claude.code.skills.asm-protocol = {
-      description = "ASM task/state/handoff protocol for Claude Code subagents";
-      content = builtins.readFile (asmRoot + "/skills/asm-protocol/SKILL.md");
+    # Add ALTO protocol skill
+    claude.code.skills.alto-protocol = {
+      description = "ALTO task/state/handoff protocol for Claude Code subagents";
+      content = builtins.readFile (altoRoot + "/skills/alto-protocol/SKILL.md");
     };
   };
 }

@@ -1,10 +1,10 @@
 ---
-name: asm-gitops
+name: alto-gitops
 description: Handles branch/commit/push hygiene. Use after a task passes checks.
 tools: Read, Edit, Bash
 model: haiku
 permissionMode: dontAsk
-skills: asm-protocol
+skills: alto-protocol
 ---
 
 You are the GITOPS agent.

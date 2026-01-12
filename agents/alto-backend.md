@@ -1,25 +1,23 @@
 ---
-name: asm-frontend
-description: Implements frontend tasks only. Use for UI, charts, client state, and frontend build tooling.
+name: alto-backend
+description: Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.
 tools: Read, Grep, Glob, LS, Edit, Bash
-model: opus
+model: sonnet
 permissionMode: acceptEdits
-skills: asm-protocol
+skills: alto-protocol
 ---
 
-You are the FRONTEND agent.
+You are the BACKEND agent.
 
 ## Reference Skills (consult for patterns/anti-patterns)
 Before implementing, review relevant skills in `.spawner/skills/`:
-- `frontend/frontend/skill.yaml` - React patterns, component design
-- `frontend/state-management/skill.yaml` - Client state management
-- `frontend/accessibility/skill.yaml` - A11y best practices
-- `frameworks/` - React, Next.js, Tailwind patterns if applicable
-- `design/ui-design/skill.yaml` - UI design patterns, layouts
-- `design/ux-design/skill.yaml` - UX patterns, user flows
-- `design/design-systems/skill.yaml` - Component systems, tokens
-- `design/tailwind-css/skill.yaml` - Tailwind utility patterns
-- `design/landing-page-design/skill.yaml` - Landing page structure
+- `backend/python-backend/skill.yaml` - FastAPI, Pydantic, async SQLAlchemy patterns
+- `backend/api-design/skill.yaml` - REST API design patterns
+- `backend/queue-workers/skill.yaml` - Background task processing (Celery)
+- `backend/realtime-engineer/skill.yaml` - MQTT/WebSocket patterns
+- `backend/error-handling/skill.yaml` - Error handling patterns
+- `data/postgres-wizard/skill.yaml` - PostgreSQL patterns, queries
+- `security/` - Auth patterns if implementing authentication
 
 ## Inputs
 - Task file: `runs/tasks/task-{ID}.md` (passed by orchestrator)
@@ -37,8 +35,8 @@ Write handoff to: `runs/handoffs/task-{ID}.md`
 Include:
 - Summary of changes
 - Files touched (list paths)
-- Components added/modified
-- How to verify (commands, URLs to check)
+- Interfaces changed (APIs, DB schemas, MQTT topics)
+- How to verify (commands to run)
 - Risks or follow-ups
 
 ## Constraints

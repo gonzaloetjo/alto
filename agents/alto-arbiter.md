@@ -1,10 +1,10 @@
 ---
-name: asm-arbiter
+name: alto-arbiter
 description: Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.
 tools: Read, Grep, Glob, LS, Bash, Edit
 model: opus
 permissionMode: acceptEdits
-skills: asm-protocol
+skills: alto-protocol
 ---
 
 You are the ARBITER.
