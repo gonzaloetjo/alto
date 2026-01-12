@@ -100,13 +100,15 @@ in
     # Enable Claude Code integration
     claude.code.enable = true;
 
-    # Permissions via native devenv options
+    # Permissions via native devenv options (per-tool structure)
     claude.code.permissions = {
-      allow =
-        (map (cmd: "Bash(${cmd}:*)") cfg.permissions.allowBash);
-      deny =
-        (map (pat: "Read(${pat})") cfg.permissions.denyRead) ++
-        (map (cmd: "Bash(${cmd}:*)") cfg.permissions.denyBash);
+      Bash = {
+        allow = map (cmd: "${cmd}:*") cfg.permissions.allowBash;
+        deny = map (cmd: "${cmd}:*") cfg.permissions.denyBash;
+      };
+      Read = {
+        deny = cfg.permissions.denyRead;
+      };
     };
 
     # MCP servers via native devenv options
