@@ -4,9 +4,6 @@ let
   cfg = config.alto;
   altoSrc = ./.;
 
-  # Extract prompt body from agent .md file (everything after the YAML frontmatter)
-  readAgentPrompt = file: builtins.readFile file;
-
 in
 {
   options.alto = {
@@ -121,7 +118,7 @@ in
       };
     };
 
-    # Configure hooks
+    # Configure hooks using native devenv format
     claude.code.hooks = {
       SessionStart = [
         {
@@ -205,88 +202,11 @@ in
       ];
     };
 
-    # Configure agents - using native devenv agent format
-    claude.code.agents = {
-      alto-planner = {
-        description = "Generates and maintains runs/plan.md and writes tasks under runs/tasks/. Use at session start.";
-        model = "opus";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-planner.md";
-      };
-
-      alto-arbiter = {
-        description = "Periodic blackhat checkpoint auditor. Runs when runs/arbiter/pending.json exists.";
-        model = "opus";
-        tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-arbiter.md";
-      };
-
-      alto-backend = {
-        description = "Implements backend tasks. Use for API, DB, workers, server-side logic.";
-        model = "sonnet";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-backend.md";
-      };
-
-      alto-frontend = {
-        description = "Implements frontend tasks. Use for UI, charts, client state, build tooling.";
-        model = "opus";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-frontend.md";
-      };
-
-      alto-qa = {
-        description = "Runs checks/tests, diagnoses failures, fixes with minimal diffs.";
-        model = "sonnet";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-qa.md";
-      };
-
-      alto-docs = {
-        description = "Writes implementation documentation. Updates docs/ based on plan structure.";
-        model = "sonnet";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-docs.md";
-      };
-
-      alto-gitops = {
-        description = "Handles branch/commit/push hygiene. Use after task passes checks.";
-        model = "haiku";
-        tools = [ "Read" "Edit" "Bash" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-gitops.md";
-      };
-
-      alto-recorder = {
-        description = "Records task changes in handoffs for task-to-task context.";
-        model = "haiku";
-        tools = [ "Read" "Edit" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-recorder.md";
-      };
-
-      alto-reviewer = {
-        description = "Reviews code quality after role agent completes. Can reject back to role.";
-        model = "opus";
-        tools = [ "Read" "Bash" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-reviewer.md";
-      };
-
-      alto-enforcer = {
-        description = "Enforces ALTO protocol compliance. Checks handoffs, file locations, state.";
-        model = "sonnet";
-        tools = [ "Read" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/alto-enforcer.md";
-      };
-
-      code-simplifier = {
-        description = "Simplifies code for clarity and maintainability. Preserves functionality.";
-        model = "opus";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
-        prompt = readAgentPrompt "${altoSrc}/agents/code-simplifier.md";
-      };
-    };
+    # Note: We don't use claude.code.agents because it doesn't support 'model' option
+    # ALTO agents need different models (haiku, sonnet, opus) for cost/quality optimization
+    # Instead, we copy agent .md files directly which include model in YAML frontmatter
 
     # Deploy ALTO runtime files on shell entry
-    # (hooks scripts, skills, runs/ structure, CLAUDE.md, arbiter config)
     enterShell = ''
       _alto_deploy() {
         local ALTO_SRC="${altoSrc}"
@@ -295,7 +215,10 @@ in
         echo "ALTO: Deploying runtime files..."
 
         # Create directories
-        mkdir -p .claude/hooks .claude/skills
+        mkdir -p .claude/agents .claude/hooks .claude/skills
+
+        # Copy agents (with model info in YAML frontmatter)
+        cp -r "$ALTO_SRC"/agents/*.md .claude/agents/ 2>/dev/null || true
 
         # Copy hook scripts (referenced by claude.code.hooks)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
