@@ -8,5 +8,9 @@ result
 *.swp
 *.swo
 
+# Accidental default filenames created by editors/file explorers
+Untitled
+Untitled-*
+
 # OS
 .DS_Store
