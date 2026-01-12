@@ -3,41 +3,27 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    devenv.url = "github:cachix/devenv";
   };
 
-  outputs = { self, nixpkgs, devenv, ... }:
+  outputs = { self, nixpkgs, ... }:
     let
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
     {
-      # Devenv module for importing into projects
+      # Main export: devenv module for consumer projects
+      # Usage: imports = [ inputs.alto.devenvModules.default ];
       devenvModules.default = ./devenv-module.nix;
       devenvModules.alto = ./devenv-module.nix;
 
-      # Expose the module's source files for reference
-      lib = {
-        agents = ./agents;
-        hooks = ./hooks;
-        skills = ./skills;
-        templates = ./templates;
-        runs = ./runs;
-      };
-
-      # Development shell for working on ALTO itself
-      devShells = forAllSystems (system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              python3
-              jq
-            ];
-          };
-        }
-      );
+      # Dev shell for working on ALTO itself (not for consumers)
+      devShells = forAllSystems (system: {
+        default = nixpkgs.legacyPackages.${system}.mkShell {
+          buildInputs = with nixpkgs.legacyPackages.${system}; [
+            python3
+            jq
+          ];
+        };
+      });
     };
 }
