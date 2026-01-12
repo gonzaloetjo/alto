@@ -4,8 +4,18 @@ let
   cfg = config.alto;
   altoSrc = ./.;
 
-  # Helper to read agent file and extract frontmatter
-  readAgentFile = name: builtins.readFile "${altoSrc}/agents/${name}.md";
+  # Helper to read agent file and strip YAML frontmatter
+  # Agent files have format: ---\nfrontmatter\n---\ncontent
+  # We want just the content after the second ---
+  readAgentPrompt = name:
+    let
+      content = builtins.readFile "${altoSrc}/agents/${name}.md";
+      # Split by "---" and take everything after the second occurrence
+      parts = lib.splitString "---" content;
+      # parts[0] is empty (before first ---), parts[1] is frontmatter, parts[2+] is content
+      promptParts = lib.drop 2 parts;
+    in
+      lib.concatStringsSep "---" promptParts;
 
 in
 {
@@ -188,61 +198,61 @@ in
         description = "Generates and maintains runs/plan.md and writes the next tasks under runs/tasks/. Use proactively at session start and whenever tasks are missing or need replanning.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
         model = "opus";
-        prompt = readAgentFile "alto-planner";
+        prompt = readAgentPrompt "alto-planner";
       };
       alto-backend = {
         description = "Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
         model = "opus";
-        prompt = readAgentFile "alto-backend";
+        prompt = readAgentPrompt "alto-backend";
       };
       alto-frontend = {
         description = "Implements frontend tasks only. Use for UI, charts, client state, and frontend build tooling.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
         model = "opus";
-        prompt = readAgentFile "alto-frontend";
+        prompt = readAgentPrompt "alto-frontend";
       };
       alto-qa = {
         description = "Runs checks/tests, diagnoses failures, and fixes them with minimal diffs. Use when check_command fails or to stabilize before commit.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
         model = "opus";
-        prompt = readAgentFile "alto-qa";
+        prompt = readAgentPrompt "alto-qa";
       };
       alto-docs = {
         description = "Writes implementation documentation for readers. Updates docs/ based on plan structure.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
         model = "opus";
-        prompt = readAgentFile "alto-docs";
+        prompt = readAgentPrompt "alto-docs";
       };
       alto-gitops = {
         description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
         tools = [ "Read" "Edit" "Bash" ];
         model = "opus";
-        prompt = readAgentFile "alto-gitops";
+        prompt = readAgentPrompt "alto-gitops";
       };
       alto-recorder = {
         description = "Records task changes in handoffs. Internal coordination for task-to-task context.";
         tools = [ "Read" "Edit" ];
         model = "opus";
-        prompt = readAgentFile "alto-recorder";
+        prompt = readAgentPrompt "alto-recorder";
       };
       alto-reviewer = {
         description = "Reviews code quality after role agent completes. Can reject back to role agent.";
         tools = [ "Read" "Bash" ];
         model = "opus";
-        prompt = readAgentFile "alto-reviewer";
+        prompt = readAgentPrompt "alto-reviewer";
       };
       alto-enforcer = {
         description = "Enforces ALTO protocol compliance. Checks handoffs, file locations, state updates.";
         tools = [ "Read" ];
         model = "opus";
-        prompt = readAgentFile "alto-enforcer";
+        prompt = readAgentPrompt "alto-enforcer";
       };
       alto-arbiter = {
         description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";
         tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
         model = "opus";
-        prompt = readAgentFile "alto-arbiter";
+        prompt = readAgentPrompt "alto-arbiter";
       };
     };
 
