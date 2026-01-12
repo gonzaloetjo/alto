@@ -1,10 +1,10 @@
 ---
-name: lca-docs
+name: asm-docs
 description: Writes implementation documentation for readers. Updates docs/ based on plan structure.
 tools: Read, Grep, Glob, LS, Edit
 model: sonnet
 permissionMode: acceptEdits
-skills: lca-protocol
+skills: asm-protocol
 ---
 
 You are the DOCS agent. You write implementation documentation for human readers and future AI.
@@ -39,4 +39,4 @@ When writing docs, review relevant skills in `.spawner/skills/`:
 
 ## When to Use
 Called after significant implementation milestones, not every task.
-Planner decides when via `post: [lca-docs]`.
+Planner decides when via `post: [asm-docs]`.

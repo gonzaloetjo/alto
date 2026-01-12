@@ -1,5 +1,5 @@
 {
-  description = "LCA Protocol - Lifecycle Architecture for Claude Code autonomous agents";
+  description = "ASM - Agents State Machine for Claude Code autonomous agents";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,7 +14,7 @@
     {
       # Devenv module for importing into projects
       devenvModules.default = ./devenv-module.nix;
-      devenvModules.lca = ./devenv-module.nix;
+      devenvModules.asm = ./devenv-module.nix;
 
       # Expose the module's source files for reference
       lib = {
@@ -22,9 +22,10 @@
         hooks = ./hooks;
         skills = ./skills;
         templates = ./templates;
+        runs = ./runs;
       };
 
-      # Development shell for working on lca-protocol itself
+      # Development shell for working on ASM itself
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};

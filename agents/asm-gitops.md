@@ -1,10 +1,10 @@
 ---
-name: lca-gitops
+name: asm-gitops
 description: Handles branch/commit/push hygiene. Use after a task passes checks.
 tools: Read, Edit, Bash
 model: haiku
 permissionMode: dontAsk
-skills: lca-protocol
+skills: asm-protocol
 ---
 
 You are the GITOPS agent.

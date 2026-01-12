@@ -1,6 +1,6 @@
-# LCA Protocol Redundancy Analysis
+# ASM Protocol Redundancy Analysis
 
-> Analysis of LCA state machine vs Claude Code native capabilities (post Feature-6)
+> Analysis of ASM state machine vs Claude Code native capabilities (post Feature-6)
 
 ## What Claude Code Already Provides
 
@@ -12,7 +12,7 @@
 | Conversation summarization | Context preserved within a session |
 | Built-in agents | Role-based delegation (already in the system) |
 
-## What LCA Adds That's NOT Redundant
+## What ASM Adds That's NOT Redundant
 
 ### 1. Session Persistence (CRITICAL)
 
@@ -38,13 +38,13 @@
 
 ## What's GENUINELY REDUNDANT
 
-| LCA Component | Claude Native Equivalent |
+| ASM Component | Claude Native Equivalent |
 |---------------|--------------------------|
-| `lca-planner` "PLANNING" phase | `EnterPlanMode` + `TodoWrite` |
-| Role agents (`lca-backend`, `lca-frontend`) | `Task` tool with subagent_type already does this |
-| `lca-qa` running tests | Claude can just run tests directly |
+| `asm-planner` "PLANNING" phase | `EnterPlanMode` + `TodoWrite` |
+| Role agents (`asm-backend`, `asm-frontend`) | `Task` tool with subagent_type already does this |
+| `asm-qa` running tests | Claude can just run tests directly |
 | Task status tracking | `TodoWrite` does this |
-| `lca-recorder` (within session) | Conversation context already preserved |
+| `asm-recorder` (within session) | Conversation context already preserved |
 
 ## Simplification Recommendations
 
@@ -58,15 +58,15 @@
 
 ### Could Remove/Simplify
 
-1. **Replace `lca-planner` with `EnterPlanMode`** - Claude's native planning is sufficient
-2. **Merge role agents into Task prompts** - Instead of `lca-backend.md`, just use Task with a backend prompt
+1. **Replace `asm-planner` with `EnterPlanMode`** - Claude's native planning is sufficient
+2. **Merge role agents into Task prompts** - Instead of `asm-backend.md`, just use Task with a backend prompt
 3. **Use TodoWrite for in-session tracking** - Only use task files for cross-session persistence
-4. **Remove `lca-enforcer`** - Claude Code already has sandboxing and permission controls
-5. **Simplify `lca-recorder`** - Within a session, conversation context suffices; only write handoffs at session end
+4. **Remove `asm-enforcer`** - Claude Code already has sandboxing and permission controls
+5. **Simplify `asm-recorder`** - Within a session, conversation context suffices; only write handoffs at session end
 
 ## Core Value Proposition
 
-The LCA protocol's **irreplaceable value** is:
+The ASM protocol's **irreplaceable value** is:
 
 1. **Cross-session state** - Claude forgets everything between sessions
 2. **Human escalation gates** - Autonomous operation limits
@@ -88,7 +88,7 @@ Human Gates (KEEP):
 Could Use Native:
   EnterPlanMode      → instead of "PLANNING" phase
   TodoWrite          → instead of task-*.md files
-  Task subagents     → instead of separate lca-* agent files
+  Task subagents     → instead of separate asm-* agent files
 ```
 
 ## Decision Matrix
@@ -97,12 +97,12 @@ Could Use Native:
 |-----------|------|----------|--------|-----------|
 | `runs/state.json` | ✓ | | | Cross-session persistence |
 | `runs/handoffs/` | ✓ | | | Context for resumed sessions |
-| `lca-arbiter` | ✓ | | | Human review gates |
-| `lca-gitops` | | ✓ | | Useful but could be simpler |
-| `lca-planner` | | | ✓ | Use EnterPlanMode |
-| `lca-enforcer` | | | ✓ | Claude has native safeguards |
-| `lca-recorder` | | ✓ | | Only at session boundaries |
-| `lca-reviewer` | | ✓ | | Inline with task execution |
+| `asm-arbiter` | ✓ | | | Human review gates |
+| `asm-gitops` | | ✓ | | Useful but could be simpler |
+| `asm-planner` | | | ✓ | Use EnterPlanMode |
+| `asm-enforcer` | | | ✓ | Claude has native safeguards |
+| `asm-recorder` | | ✓ | | Only at session boundaries |
+| `asm-reviewer` | | ✓ | | Inline with task execution |
 | Role agents | | ✓ | | Merge into Task prompts |
 | Task files | | ✓ | | Use for persistence only |
 

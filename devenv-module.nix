@@ -1,19 +1,19 @@
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.lca;
-  lcaRoot = ./.;
+  cfg = config.asm;
+  asmRoot = ./.;
 
   # Helper to read agent file content
-  readAgent = name: builtins.readFile (lcaRoot + "/agents/${name}.md");
+  readAgent = name: builtins.readFile (asmRoot + "/agents/${name}.md");
 
   # Helper to read hook file content
-  readHook = name: builtins.readFile (lcaRoot + "/hooks/${name}");
+  readHook = name: builtins.readFile (asmRoot + "/hooks/${name}");
 
 in
 {
-  options.lca = {
-    enable = lib.mkEnableOption "LCA Protocol for Claude Code";
+  options.asm = {
+    enable = lib.mkEnableOption "ASM (Agents State Machine) for Claude Code";
 
     # Arbiter configuration
     arbiter = {
@@ -53,55 +53,55 @@ in
       backend = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-backend agent";
+        description = "Enable asm-backend agent";
       };
 
       frontend = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-frontend agent";
+        description = "Enable asm-frontend agent";
       };
 
       qa = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-qa agent";
+        description = "Enable asm-qa agent";
       };
 
       docs = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-docs agent";
+        description = "Enable asm-docs agent";
       };
 
       gitops = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-gitops agent";
+        description = "Enable asm-gitops agent";
       };
 
       planner = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-planner agent";
+        description = "Enable asm-planner agent";
       };
 
       recorder = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-recorder agent";
+        description = "Enable asm-recorder agent";
       };
 
       reviewer = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-reviewer agent";
+        description = "Enable asm-reviewer agent";
       };
 
       enforcer = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Enable lca-enforcer agent";
+        description = "Enable asm-enforcer agent";
       };
     };
 
@@ -130,7 +130,7 @@ in
     runsDir = lib.mkOption {
       type = lib.types.str;
       default = "runs";
-      description = "Directory for LCA runtime state (state.json, tasks/, handoffs/)";
+      description = "Directory for ASM runtime state (state.json, tasks/, handoffs/)";
     };
 
     # Custom role agents (project-specific)
@@ -171,7 +171,7 @@ in
       if [ ! -f ${cfg.runsDir}/state.json ]; then
         cat > ${cfg.runsDir}/state.json << 'EOF'
 {
-  "protocol": "lca-v1",
+  "protocol": "asm-v1",
   "run_branch": null,
   "phase": "PLANNING",
   "current_task_id": null,
@@ -199,94 +199,94 @@ EOF
 
     # Configure Claude Code agents
     claude.code.agents = lib.mkMerge [
-      # Core LCA agents
+      # Core ASM agents
       (lib.mkIf cfg.agents.planner {
-        lca-planner = {
+        asm-planner = {
           description = "Generates and maintains runs/plan.md and writes tasks under runs/tasks/";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
           model = "opus";
-          prompt = readAgent "lca-planner";
+          prompt = readAgent "asm-planner";
         };
       })
 
       (lib.mkIf cfg.arbiter.enable {
-        lca-arbiter = {
+        asm-arbiter = {
           description = "Periodic blackhat checkpoint auditor. Decides if human review is needed.";
           tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
           model = "opus";
-          prompt = readAgent "lca-arbiter";
+          prompt = readAgent "asm-arbiter";
         };
       })
 
       (lib.mkIf cfg.agents.backend {
-        lca-backend = {
+        asm-backend = {
           description = "Implements backend tasks. Use for API, DB, workers, server-side logic.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "lca-backend";
+          prompt = readAgent "asm-backend";
         };
       })
 
       (lib.mkIf cfg.agents.frontend {
-        lca-frontend = {
+        asm-frontend = {
           description = "Implements frontend tasks. Use for UI, components, client state.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "lca-frontend";
+          prompt = readAgent "asm-frontend";
         };
       })
 
       (lib.mkIf cfg.agents.qa {
-        lca-qa = {
+        asm-qa = {
           description = "Runs checks/tests, diagnoses failures, fixes with minimal diffs.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "lca-qa";
+          prompt = readAgent "asm-qa";
         };
       })
 
       (lib.mkIf cfg.agents.docs {
-        lca-docs = {
+        asm-docs = {
           description = "Writes implementation documentation for readers.";
           tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
           model = "haiku";
-          prompt = readAgent "lca-docs";
+          prompt = readAgent "asm-docs";
         };
       })
 
       (lib.mkIf cfg.agents.gitops {
-        lca-gitops = {
+        asm-gitops = {
           description = "Handles branch/commit/push hygiene after tasks pass checks.";
           tools = [ "Read" "Edit" "Bash" ];
           model = "haiku";
-          prompt = readAgent "lca-gitops";
+          prompt = readAgent "asm-gitops";
         };
       })
 
       (lib.mkIf cfg.agents.recorder {
-        lca-recorder = {
+        asm-recorder = {
           description = "Records task changes in handoffs for task-to-task context.";
           tools = [ "Read" "Edit" ];
           model = "haiku";
-          prompt = readAgent "lca-recorder";
+          prompt = readAgent "asm-recorder";
         };
       })
 
       (lib.mkIf cfg.agents.reviewer {
-        lca-reviewer = {
+        asm-reviewer = {
           description = "Reviews code quality after role agent completes.";
           tools = [ "Read" "Bash" ];
           model = "sonnet";
-          prompt = readAgent "lca-reviewer";
+          prompt = readAgent "asm-reviewer";
         };
       })
 
       (lib.mkIf cfg.agents.enforcer {
-        lca-enforcer = {
-          description = "Enforces LCA protocol compliance.";
+        asm-enforcer = {
+          description = "Enforces ASM protocol compliance.";
           tools = [ "Read" ];
           model = "sonnet";
-          prompt = readAgent "lca-enforcer";
+          prompt = readAgent "asm-enforcer";
         };
       })
 
@@ -297,9 +297,9 @@ EOF
     # Configure Claude Code hooks
     claude.code.hooks = lib.mkMerge [
       (lib.mkIf cfg.hooks.sessionStart {
-        lca-session-start = {
+        asm-session-start = {
           enable = true;
-          name = "LCA Session Start";
+          name = "ASM Session Start";
           hookType = "PostToolUse";
           matcher = ".*";
           command = readHook "session-start.py";
@@ -307,9 +307,9 @@ EOF
       })
 
       (lib.mkIf cfg.hooks.toolRecord {
-        lca-tool-record = {
+        asm-tool-record = {
           enable = true;
-          name = "LCA Tool Record";
+          name = "ASM Tool Record";
           hookType = "PostToolUse";
           matcher = ".*";
           command = readHook "tool-record.py";
@@ -317,10 +317,10 @@ EOF
       })
     ];
 
-    # Add LCA protocol skill
-    claude.code.skills.lca-protocol = {
-      description = "LCA task/state/handoff protocol for Claude Code subagents";
-      content = builtins.readFile (lcaRoot + "/skills/lca-protocol/SKILL.md");
+    # Add ASM protocol skill
+    claude.code.skills.asm-protocol = {
+      description = "ASM task/state/handoff protocol for Claude Code subagents";
+      content = builtins.readFile (asmRoot + "/skills/asm-protocol/SKILL.md");
     };
   };
 }

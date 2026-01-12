@@ -1,0 +1,7 @@
+{
+  "max_lines_changed_without_human": 2000,
+  "max_files_changed_without_human": 50,
+  "token_checkpoint_interval": 100000,
+  "task_checkpoint_interval": 3,
+  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
+}

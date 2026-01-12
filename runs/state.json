@@ -1,0 +1,10 @@
+{
+  "protocol": "asm-v1",
+  "run_branch": null,
+  "phase": "PLANNING",
+  "current_task_id": null,
+  "current_role": null,
+  "completed_task_ids": [],
+  "last_handoff": null,
+  "updated_at": null
+}

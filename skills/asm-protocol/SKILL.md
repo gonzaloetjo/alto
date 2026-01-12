@@ -1,9 +1,9 @@
 ---
-name: lca-protocol
-description: Defines the LCA task/state/handoff protocol and role handoffs for Claude Code subagents.
+name: asm-protocol
+description: Defines the ASM task/state/handoff protocol and role handoffs for Claude Code subagents.
 ---
 
-# LCA Protocol
+# ASM Protocol
 
 ## Required folders
 - `runs/plan.md`
@@ -14,11 +14,11 @@ description: Defines the LCA task/state/handoff protocol and role handoffs for C
 ## runs/state.json schema
 ```json
 {
-  "protocol": "lca-v1",
+  "protocol": "asm-v1",
   "run_branch": "run/001",
   "phase": "PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
   "current_task_id": "task-001",
-  "current_role": "lca-backend",
+  "current_role": "asm-backend",
   "completed_task_ids": [],
   "last_handoff": null,
   "updated_at": "ISO-8601"
@@ -45,7 +45,7 @@ Each task starts with YAML frontmatter:
 ```yaml
 task_id: task-001
 title: Short human title
-role: lca-backend | lca-frontend | lca-recorder | lca-docs | lca-gitops | lca-qa
+role: asm-backend | asm-frontend | asm-recorder | asm-docs | asm-gitops | asm-qa
 follow_roles: []            # optional: list of agent names to additionally obey
 post: []                    # optional: list of agent names to run after role succeeds
 depends_on: []              # optional

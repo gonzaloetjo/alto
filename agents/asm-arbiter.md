@@ -1,10 +1,10 @@
 ---
-name: lca-arbiter
+name: asm-arbiter
 description: Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.
 tools: Read, Grep, Glob, LS, Bash, Edit
 model: opus
 permissionMode: acceptEdits
-skills: lca-protocol
+skills: asm-protocol
 ---
 
 You are the ARBITER.

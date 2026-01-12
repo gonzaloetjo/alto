@@ -1,10 +1,10 @@
 ---
-name: lca-reviewer
+name: asm-reviewer
 description: Reviews code quality after role agent completes. Can reject back to role agent.
 tools: Read, Bash
 model: opus
 permissionMode: acceptEdits
-skills: lca-protocol
+skills: asm-protocol
 ---
 
 You are the REVIEWER agent. You validate that the role agent did quality work.
@@ -23,8 +23,8 @@ You are the REVIEWER agent. You validate that the role agent did quality work.
 ## When You Run
 Automatically after **code roles** complete, before post agents.
 
-**Runs for:** `lca-backend`, `lca-frontend`, `lca-qa`
-**Skipped for:** `lca-docs`, `lca-recorder`, `lca-gitops`, `lca-planner`
+**Runs for:** `asm-backend`, `asm-frontend`, `asm-qa`
+**Skipped for:** `asm-docs`, `asm-recorder`, `asm-gitops`, `asm-planner`
 
 ## What You Check
 

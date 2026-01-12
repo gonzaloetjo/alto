@@ -1,0 +1,89 @@
+# Architecture
+
+> Project architecture overview for AI agents and developers
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         YOUR SYSTEM                              │
+└─────────────────────────────────────────────────────────────────┘
+
+  [Component 1]  ──────►  [Component 2]  ──────►  [Component 3]
+       │                       │                       │
+       ▼                       ▼                       ▼
+  [Database]              [Cache]                [External API]
+```
+
+## Components
+
+### Component 1
+- **Purpose:**
+- **Technology:**
+- **Key files:**
+
+### Component 2
+- **Purpose:**
+- **Technology:**
+- **Key files:**
+
+## Data Flow
+
+1. **Input:** How data enters the system
+2. **Processing:** How data is transformed
+3. **Output:** How results are delivered
+
+## Database Schema
+
+```sql
+-- Key tables
+CREATE TABLE example (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+## API Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/health` | Health check |
+| POST | `/api/resource` | Create resource |
+
+## Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | Database connection | Required |
+| `API_KEY` | External API key | Required |
+
+## Directory Structure
+
+```
+project/
+├── src/           # Source code
+├── tests/         # Test files
+├── docs/          # Documentation
+├── runs/          # ASM runtime state
+└── .claude/       # Claude Code configuration
+```
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Backend | |
+| Frontend | |
+| Database | |
+| Cache | |
+
+## Constraints
+
+- List any architectural constraints
+- Performance requirements
+- Security requirements
+
+## Out of Scope
+
+- Features explicitly not included
+- Future considerations
