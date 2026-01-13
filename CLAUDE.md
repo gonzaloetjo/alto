@@ -43,10 +43,6 @@ The **devenv MCP** is available for package search and config help.
 mkdir /tmp/test && cd /tmp/test
 nix flake init -t github:gonzaloetjo/alto --refresh
 devenv shell
-
-# Local changes (in test project's devenv.yaml)
-imports:
-  - /path/to/local/alto
 ```
 
 ## Open Issues
