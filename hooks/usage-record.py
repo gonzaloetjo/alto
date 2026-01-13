@@ -5,6 +5,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from hook_utils import safe_hook
+
+
 def read_jsonl_last_usage(transcript_path: str):
     p = Path(os.path.expanduser(transcript_path))
     if not p.exists():
@@ -31,6 +34,7 @@ def safe_int(x):
     except Exception:
         return 0
 
+@safe_hook("usage-record")
 def main():
     hook = json.load(sys.stdin)
 

@@ -5,6 +5,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from hook_utils import safe_hook
+
+
 def load_state(project_dir: Path):
     p = project_dir / "runs" / "state.json"
     if not p.exists():
@@ -14,6 +17,7 @@ def load_state(project_dir: Path):
     except Exception:
         return {}
 
+@safe_hook("permission-record")
 def main():
     hook = json.load(sys.stdin)
 

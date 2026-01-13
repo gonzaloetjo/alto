@@ -16,6 +16,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from hook_utils import safe_hook
+
 
 def load_state(project_dir: Path) -> dict:
     """Load ALTO state."""
@@ -51,6 +53,7 @@ def is_check_command(tool_input: dict) -> bool:
     return any(p in cmd for p in check_patterns)
 
 
+@safe_hook("tool-record")
 def main():
     hook = json.load(sys.stdin)
 

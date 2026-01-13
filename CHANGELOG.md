@@ -5,6 +5,12 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- `hook_utils.py` module with shared utilities for all hooks (Issue #5):
+  - `@safe_hook` decorator for graceful error handling
+  - Errors logged to `runs/errors.jsonl` instead of crashing
+  - `health_check()` function for ALTO setup validation
+  - Common JSON/state utilities
+- Health check warnings on session start (detects setup issues)
 - `handoff-validate.py` hook for deterministic handoff validation
 - `alto.verification` options for automated quality hooks:
   - `typecheck` - Run type checker after editing TS/TSX files

@@ -454,6 +454,37 @@ alto.verification = {
 
 ---
 
+## Hook Error Handling
+
+All hooks use `hook_utils.py` for consistent error handling:
+
+```python
+from hook_utils import safe_hook
+
+@safe_hook("my-hook")
+def main():
+    # Hook logic - errors are caught and logged
+    pass
+```
+
+**Behavior:**
+- Errors logged to `runs/errors.jsonl` (not silent failures)
+- Hook fails gracefully (returns exit 0, doesn't crash Claude Code)
+- User-friendly message to stderr
+
+**Health Check:**
+`session-start` runs health checks on startup:
+- Detects missing `objective.md` or unfilled template
+- Reports recent errors in `runs/errors.jsonl`
+- Validates state.json structure
+
+**Error Log Format:**
+```jsonl
+{"timestamp":"2026-01-13T10:00:00","hook":"tool-record","error_type":"KeyError","error_message":"missing key","traceback":"..."}
+```
+
+---
+
 ## Communication Model
 
 All agent communication is **centralized through the orchestrator**:

@@ -15,6 +15,8 @@ import os
 import sys
 from pathlib import Path
 
+from hook_utils import safe_hook
+
 
 def load_state(project_dir: Path) -> dict:
     """Load ALTO state."""
@@ -146,6 +148,7 @@ def validate_state_consistency(project_dir: Path, state: dict, task_id: str) -> 
     return errors
 
 
+@safe_hook("handoff-validate")
 def main():
     hook_input = json.load(sys.stdin)
 

@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from hook_utils import safe_hook
+
 DEFAULT_CFG = {
     "protocol": "alto-arbiter-v1",
     "token_checkpoint_interval": 100000,
@@ -100,6 +102,7 @@ def count_since(jsonl_file: Path, since_epoch: int) -> int:
                 n += 1
     return n
 
+@safe_hook("arbiter-scheduler")
 def main():
     hook = json.load(sys.stdin)
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))

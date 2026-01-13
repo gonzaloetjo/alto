@@ -17,6 +17,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from hook_utils import safe_hook
+
 
 def load_json(p: Path, default=None):
     """Load JSON file with fallback."""
@@ -166,6 +168,7 @@ def format_handoff_section(summaries: list[dict]) -> list[str]:
     return lines
 
 
+@safe_hook("session-summary")
 def main():
     hook = json.load(sys.stdin)
 

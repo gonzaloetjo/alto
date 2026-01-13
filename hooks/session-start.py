@@ -20,6 +20,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from hook_utils import health_check, safe_hook
+
 
 def load_json(p: Path, default=None):
     """Load JSON file with fallback."""
@@ -84,6 +86,7 @@ OBJECTIVE_TEMPLATE = """# Project Objective
 """
 
 
+@safe_hook("session-start")
 def main():
     hook = json.load(sys.stdin)
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
@@ -128,7 +131,16 @@ def main():
             context_parts.append("- Phase is BLOCKED - see `runs/notes.md` for details")
         context_parts.append("")
 
-    # 2. Minimal state summary (one line)
+    # 2. Health check warnings
+    health = health_check(project_dir)
+    if not health["healthy"] and health["issues"]:
+        context_parts.append("## ALTO Health Issues")
+        context_parts.append("")
+        for issue in health["issues"]:
+            context_parts.append(f"- {issue}")
+        context_parts.append("")
+
+    # 3. Minimal state summary (one line)
     if objective_is_template:
         context_parts.append("[ALTO: NEW_PROJECT - objective.md needs setup]")
         context_parts.append("")
