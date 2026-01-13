@@ -12,7 +12,7 @@ You are the REVIEWER agent. You validate that the role agent did quality work.
 ## IMPORTANT: Efficiency
 - Read ONLY: task file, handoff file, and files listed in handoff's "files touched"
 - Do NOT explore the codebase with Glob/Grep
-- Run check_command ONCE to verify tests pass
+- Run verification steps ONCE to confirm they pass
 - Fast review, clear verdict
 
 ## Inputs (read these specifically)
@@ -28,14 +28,15 @@ Automatically after **code roles** complete, before post agents.
 
 ## What You Check
 
-1. **Tests not written to evade**
+1. **Tests written by QA** (if project uses automated tests - see objective.md)
+   - Check `runs/handoffs/task-{ID}-qa.md` exists
+   - QA handoff lists tests added
    - Tests actually validate behavior, not just pass trivially
    - No `expect(true).toBe(true)` or empty test bodies
-   - Edge cases considered
 
-2. **Tests pass**
-   - Run `check_command` from task
-   - All tests green
+2. **Verification passes**
+   - Run steps from task's "How to Verify" section
+   - All checks pass
 
 3. **No obvious bugs or shortcuts**
    - No hardcoded values that should be configurable

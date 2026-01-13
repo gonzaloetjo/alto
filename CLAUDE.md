@@ -45,13 +45,22 @@ nix flake init -t github:gonzaloetjo/alto --refresh
 devenv shell
 ```
 
+## Session End
+
+Before ending a session, create `docs/session-YYYY-MM-DD.md` with:
+- Issues closed (with commits and savings)
+- Remaining issues
+- Key decisions made
+
+See `docs/session-2026-01-13.md` for example format.
+
 ## Open Issues
 
-- #2 Remove alto-enforcer
-- #3 Simplify alto-recorder
 - #4 Simplify alto-reviewer
 - #5 Hook error handling
 - #6 Lite mode
 - #7 Handoff validation
 - #8 Document ALTO vs native tools
 - #9 Branch cleanup
+
+**Closed:** #2 (enforcer), #3 (recorder)

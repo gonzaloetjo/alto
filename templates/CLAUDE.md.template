@@ -174,7 +174,7 @@ If `replan_every` is set and `len(completed_task_ids) % replan_every == 0` and t
 
 ### 4) Execute Role
 - Invoke role subagent (e.g., `alto-backend`)
-- Agent runs `check_command` and writes handoff
+- Agent runs verification steps and writes handoff
 
 ### 5) Post Agents
 Run all agents in task's `post` array (e.g., `alto-gitops`)

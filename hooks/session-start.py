@@ -51,6 +51,24 @@ OBJECTIVE_TEMPLATE = """# Project Objective
 ## Overview
 <!-- Describe what this project does -->
 
+## Testing & Verification
+
+<!-- How should work be verified in this project? Examples: -->
+<!-- - "Run `npm test` for unit tests" -->
+<!-- - "Run `terraform plan` to verify infra changes" -->
+<!-- - "Manual: verify UI renders correctly at /dashboard" -->
+<!-- - "No automated tests - verify via code review" -->
+
+### Test Commands
+<!-- List commands that verify work is correct -->
+- [ ] [Command or manual check]
+
+### Acceptance Criteria Patterns
+<!-- What makes a task "done" in this project? -->
+- [ ] [Pattern, e.g., "All new functions have tests"]
+- [ ] [Pattern, e.g., "No TypeScript errors"]
+- [ ] [Pattern, e.g., "Documented in README"]
+
 ## Feature 1: [Feature Name]
 
 ### Goal
@@ -61,9 +79,8 @@ OBJECTIVE_TEMPLATE = """# Project Objective
 - 1.2 [Requirement]
 
 ### Definition of Done
-- [ ] [Criteria]
-- [ ] [Criteria]
-- [ ] `make check` passes (or equivalent)
+- [ ] [Specific criteria for this feature]
+- [ ] [Specific criteria for this feature]
 """
 
 

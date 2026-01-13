@@ -89,6 +89,16 @@ your-project/
       allowBash = [ "git" "make" "npm" "docker" ];
       denyBash = [ "rm -rf" "sudo" ];
     };
+
+    # Auto-run verification after file edits
+    verification = {
+      typecheck.enable = true;
+      typecheck.command = "pnpm type:check";
+      lint.enable = true;
+      lint.command = "pnpm lint";
+      test.enable = true;
+      test.command = "npm test -- --related";
+    };
   };
 }
 ```
@@ -112,6 +122,13 @@ your-project/
 | `permissions.denyRead` | `[]` | Blocked file patterns |
 | `includeSpawnerSkills` | `false` | Include domain skills |
 | `runsDir` | `"runs"` | Runtime directory name |
+| `verification.typecheck.enable` | `false` | Auto-run typecheck after TS edits |
+| `verification.typecheck.command` | `"pnpm type:check"` | Typecheck command |
+| `verification.lint.enable` | `false` | Auto-run linter after edits |
+| `verification.lint.command` | `"pnpm lint"` | Lint command |
+| `verification.test.enable` | `false` | Auto-run tests after test file edits |
+| `verification.test.command` | `"npm test -- --related"` | Test command |
+| `verification.custom` | `[]` | Custom verification hooks |
 
 </details>
 

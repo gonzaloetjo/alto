@@ -18,7 +18,7 @@ Your job is to create **task files** from the milestones defined by the orchestr
 - `runs/planning-config.json` — batch size strategy
 - `runs/state.json` — current state, completed tasks
 - `runs/handoffs/` — recent handoffs for context
-- `objective.md` — feature requirements and DoD
+- `objective.md` — feature requirements, DoD, and **Testing & Verification** patterns
 
 ## Outputs You Write
 
@@ -62,7 +62,6 @@ inputs:
   - runs/handoffs/task-000.md
 allowed_paths:
   - backend/**
-check_command: make check
 handoff: runs/handoffs/task-001.md
 ---
 
@@ -74,13 +73,20 @@ Any limitations or requirements.
 
 ## Definition of Done
 - Concrete, verifiable criteria
-- Must be achievable in one check_command cycle
+
+## How to Verify
+<!-- Use patterns from objective.md's Testing & Verification section -->
+- Tests to run (if applicable)
+- Commands to execute
+- Manual checks if needed
 ```
 
 ### Post Agents by Role
 
-- `alto-backend` / `alto-frontend` tasks: `post: [code-simplifier, alto-gitops]`
-- `alto-qa` / `alto-docs` tasks: `post: [alto-gitops]`
+- `alto-backend` / `alto-frontend` tasks: `post: [alto-qa, code-simplifier, alto-gitops]`
+- `alto-docs` tasks: `post: [alto-gitops]`
+
+**Note:** `alto-qa` writes tests for new implementations, runs after role agent completes.
 
 ### Rolling Planning
 

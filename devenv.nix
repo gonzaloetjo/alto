@@ -102,6 +102,95 @@ in
       description = "Directory for ALTO runtime state";
     };
 
+    # Verification hooks - auto-run after file edits
+    verification = {
+      typecheck = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Run typecheck after editing source files";
+        };
+        command = lib.mkOption {
+          type = lib.types.str;
+          default = "pnpm type:check";
+          description = "Typecheck command to run";
+        };
+        matcher = lib.mkOption {
+          type = lib.types.str;
+          default = "Edit:*.ts|Edit:*.tsx|Write:*.ts|Write:*.tsx";
+          description = "File patterns to trigger typecheck (PostToolUse matcher)";
+        };
+      };
+
+      lint = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Run linter after editing source files";
+        };
+        command = lib.mkOption {
+          type = lib.types.str;
+          default = "pnpm lint";
+          description = "Lint command to run";
+        };
+        matcher = lib.mkOption {
+          type = lib.types.str;
+          default = "Edit:*.ts|Edit:*.tsx|Edit:*.js|Edit:*.jsx|Write:*.ts|Write:*.tsx|Write:*.js|Write:*.jsx";
+          description = "File patterns to trigger lint (PostToolUse matcher)";
+        };
+      };
+
+      test = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Run tests after editing test files";
+        };
+        command = lib.mkOption {
+          type = lib.types.str;
+          default = "npm test -- --related";
+          description = "Test command to run";
+        };
+        matcher = lib.mkOption {
+          type = lib.types.str;
+          default = "Edit:*.test.*|Edit:*.spec.*|Write:*.test.*|Write:*.spec.*";
+          description = "File patterns to trigger tests (PostToolUse matcher)";
+        };
+      };
+
+      custom = lib.mkOption {
+        type = lib.types.listOf (lib.types.submodule {
+          options = {
+            name = lib.mkOption {
+              type = lib.types.str;
+              description = "Hook name identifier";
+            };
+            command = lib.mkOption {
+              type = lib.types.str;
+              description = "Command to run";
+            };
+            matcher = lib.mkOption {
+              type = lib.types.str;
+              description = "PostToolUse matcher pattern";
+            };
+            timeout = lib.mkOption {
+              type = lib.types.int;
+              default = 30000;
+              description = "Timeout in milliseconds";
+            };
+          };
+        });
+        default = [];
+        description = "Custom verification hooks";
+        example = lib.literalExpression ''
+          [
+            { name = "security-check"; command = "./scripts/security.sh"; matcher = "Edit:src/auth/*"; }
+            { name = "format"; command = "prettier --write"; matcher = "Write:*.json"; }
+          ]
+        '';
+      };
+    };
+
     # Planning configuration
     planning = {
       requireApproval = lib.mkOption {
@@ -304,6 +393,35 @@ STATE_EOF
         command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
       };
 
+      # Verification hooks (user-configured)
+    } // lib.optionalAttrs cfg.verification.typecheck.enable {
+      verify-typecheck = {
+        hookType = "PostToolUse";
+        matcher = cfg.verification.typecheck.matcher;
+        command = cfg.verification.typecheck.command;
+      };
+    } // lib.optionalAttrs cfg.verification.lint.enable {
+      verify-lint = {
+        hookType = "PostToolUse";
+        matcher = cfg.verification.lint.matcher;
+        command = cfg.verification.lint.command;
+      };
+    } // lib.optionalAttrs cfg.verification.test.enable {
+      verify-test = {
+        hookType = "PostToolUse";
+        matcher = cfg.verification.test.matcher;
+        command = cfg.verification.test.command;
+      };
+    } // lib.listToAttrs (map (hook: {
+      name = "verify-custom-${hook.name}";
+      value = {
+        hookType = "PostToolUse";
+        matcher = hook.matcher;
+        command = hook.command;
+        timeout = hook.timeout;
+      };
+    }) cfg.verification.custom) // {
+
       # PermissionRequest hook
       permission-record = {
         hookType = "PermissionRequest";
@@ -371,7 +489,7 @@ STATE_EOF
         prompt = readAgentPrompt "alto-frontend";
       };
       alto-qa = {
-        description = "Runs checks/tests, diagnoses failures, and fixes them with minimal diffs. Use when check_command fails or to stabilize before commit.";
+        description = "Writes tests for implementations and fixes failures. Runs after role agents to ensure test coverage.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
         model = "opus";
         prompt = readAgentPrompt "alto-qa";

@@ -6,6 +6,11 @@ All notable changes to ALTO.
 
 ### Added
 - `handoff-validate.py` hook for deterministic handoff validation
+- `alto.verification` options for automated quality hooks:
+  - `typecheck` - Run type checker after editing TS/TSX files
+  - `lint` - Run linter after editing source files
+  - `test` - Run tests after editing test files
+  - `custom` - Define custom verification hooks
 - `alto-dev` agent for ALTO development with Write, Edit, Bash, WebFetch
 - `alto-dev-guide` skill with comprehensive documentation references
 - `alto-feature-finder` agent for codebase analysis when starting features
@@ -16,6 +21,18 @@ All notable changes to ALTO.
 - Devenv MCP server configured for package search and config generation
 
 ### Changed
+- Remove `check_command` from task format - replaced with "How to Verify" section
+  - More flexible: supports tests, manual checks, project-specific validation
+  - Role agents decide how to verify based on task context
+- `objective.md` template now has "Testing & Verification" section
+  - Guides users to define project-specific test commands
+  - Includes acceptance criteria patterns
+  - Examples for different project types (npm, terraform, manual)
+- `alto-qa` redesigned as **test writer** (not just fixer)
+  - Runs after role agents via `post:` array
+  - Writes tests following objective.md patterns
+  - Fixes failures as secondary responsibility
+  - Pipeline: role → alto-qa → code-simplifier → gitops
 - `alto-recorder` no longer runs per-task; handoffs aggregated at session end (Issue #3)
   - Removed from `post:` arrays in task definitions
   - `session-summary.py` now extracts handoff summaries for cross-session context

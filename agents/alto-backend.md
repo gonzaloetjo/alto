@@ -25,8 +25,10 @@ Before implementing, review relevant skills in `skills/spawner/`:
 ## Process
 1. Read the task file completely
 2. Implement according to Definition of Done
-3. Run `check_command` from task until it passes
+3. Run verification steps from task's "How to Verify" section (existing tests should pass)
 4. Write handoff file
+
+**Note:** Tests for new code are written by `alto-qa` after your implementation.
 
 ## Output
 Write handoff to: `runs/handoffs/task-{ID}.md`
@@ -42,4 +44,4 @@ Include:
 - ONLY edit files listed in task's `allowed_paths`
 - Do NOT refactor unrelated code
 - Do NOT add features beyond task scope
-- If `check_command` fails 5+ times, write current state to handoff and stop
+- If verification fails 5+ times, write current state to handoff and stop

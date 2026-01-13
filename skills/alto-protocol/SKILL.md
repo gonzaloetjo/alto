@@ -121,7 +121,6 @@ inputs:
   - runs/handoffs/task-000.md
 allowed_paths:
   - backend/**
-check_command: make check
 handoff: runs/handoffs/task-001.md
 ---
 ```
@@ -131,6 +130,7 @@ Then Markdown body with:
 * Goal
 * Constraints (if any)
 * Definition of Done (must be concrete)
+* How to verify (tests to run, commands, manual checks)
 
 ## Handoff Format (runs/handoffs/<task_id>.md)
 
