@@ -5,44 +5,111 @@ description: Defines the ALTO task/state/handoff protocol and role handoffs for 
 
 # ALTO Protocol
 
-## Required folders
-- `runs/plan.md`
-- `runs/state.json`
-- `runs/tasks/`
-- `runs/handoffs/`
+## Required Folders
+- `runs/milestones.md` — high-level architecture (orchestrator output)
+- `runs/decisions.md` — architectural decisions (orchestrator output)
+- `runs/plan.md` — detailed batch plan (planner output)
+- `runs/planning-config.json` — planning configuration
+- `runs/state.json` — protocol state
+- `runs/tasks/` — task files
+- `runs/handoffs/` — task completion handoffs
 
-## runs/state.json schema
+## runs/state.json Schema
+
 ```json
 {
   "protocol": "alto-v1",
   "run_branch": "run/001",
-  "phase": "PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
+  "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
   "current_task_id": "task-001",
   "current_role": "alto-backend",
   "completed_task_ids": [],
   "last_handoff": null,
+  "estimated_tasks": 12,
+  "replan_every": 4,
+  "needs_architect": false,
   "updated_at": "ISO-8601"
 }
 ```
 
-### Phase values
-- `PLANNING` – planner is generating/updating tasks
-- `IN_TASK` – a role agent is executing a task
-- `BETWEEN_TASKS` – task completed, arbiter may run
-- `BLOCKED` – human review required
+### Phase Values
+- `ARCHITECTURE` — orchestrator exploring codebase, designing milestones
+- `PLANNING` — planner creating task files from milestones
+- `IN_TASK` — role agent executing a task
+- `BETWEEN_TASKS` — task complete, checking for replan or next task
+- `BLOCKED` — human review required
 
-## Arbiter checkpoint folders
-- `runs/arbiter/config.json` – thresholds
-- `runs/arbiter/state.json` – last checkpoint metadata
-- `runs/arbiter/pending.json` – snapshot triggering arbiter
-- `runs/arbiter/decision.json` – arbiter output
-- `runs/arbiter/checkpoints/` – historical reports
+## runs/planning-config.json Schema
+
+```json
+{
+  "require_approval": true,
+  "replan_strategy": "auto",
+  "fixed_batch_size": 5,
+  "architect_model": "opus",
+  "planner_model": "opus"
+}
+```
+
+## runs/milestones.md Format (Orchestrator Output)
+
+```markdown
+# Milestones
+
+## Summary
+Brief description of the feature and overall approach.
+
+## Estimated Scope
+- **Estimated tasks:** 12
+- **Replan every:** 4 tasks
+- **Complexity:** low | medium | high
+
+## Milestones
+
+### Milestone 1: <name>
+- Description of what this milestone achieves
+- Objective items addressed: 6.1, 6.2
+- Estimated tasks: 3
+
+### Milestone 2: <name>
+- Description
+- Objective items addressed: 6.3
+- Estimated tasks: 4
+
+## Key Decisions
+See `runs/decisions.md` for detailed trade-offs.
+```
+
+## runs/decisions.md Format (Orchestrator Output)
+
+```markdown
+# Architectural Decisions
+
+## Decision 1: <title>
+**Context:** Why this decision was needed
+**Options considered:**
+1. Option A - pros/cons
+2. Option B - pros/cons
+**Decision:** Which option and why
+**Consequences:** What this means for implementation
+
+## Decision 2: <title>
+...
+```
+
+## Arbiter Checkpoint Folders
+- `runs/arbiter/config.json` — thresholds
+- `runs/arbiter/state.json` — last checkpoint metadata
+- `runs/arbiter/pending.json` — snapshot triggering arbiter
+- `runs/arbiter/decision.json` — arbiter output
+- `runs/arbiter/checkpoints/` — historical reports
 
 ## Task File Format (runs/tasks/task-XXX.md)
 
 Each task starts with YAML frontmatter:
 
 ```yaml
+---
 task_id: task-001
 title: Short human title
 role: alto-backend | alto-frontend | alto-recorder | alto-docs | alto-gitops | alto-qa
@@ -50,13 +117,13 @@ follow_roles: []            # optional: list of agent names to additionally obey
 post: []                    # optional: list of agent names to run after role succeeds
 depends_on: []              # optional
 inputs:
-  - objective.md
-  - runs/plan.md
+  - runs/milestones.md
   - runs/handoffs/task-000.md
 allowed_paths:
   - backend/**
 check_command: make check
 handoff: runs/handoffs/task-001.md
+---
 ```
 
 Then Markdown body with:
@@ -74,3 +141,27 @@ Must include:
 * Interfaces/contracts changed
 * How to verify (commands)
 * Next steps / risks
+
+## plan.md Format (Planner Output)
+
+```markdown
+# Plan: <Feature Name> - Batch N
+
+## Current Milestone
+<Which milestone this batch addresses>
+
+## Tasks in This Batch
+
+| ID | Title | Role | Depends On |
+|----|-------|------|------------|
+| task-001 | ... | alto-backend | - |
+| task-002 | ... | alto-frontend | task-001 |
+
+## Implementation Notes
+<Detailed implementation notes for this batch>
+
+## Progress
+- Milestones completed: 1/4
+- Tasks completed: 3/12
+- Objective items done: 2/8
+```

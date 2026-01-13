@@ -1,3 +1,13 @@
+# yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
+
+# ALTO - Native devenv pattern (recommended)
+# This uses devenv's native import system, no flake.nix needed
 inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
   alto:
     url: github:gonzaloetjo/alto
+    flake: false  # Critical: use native devenv imports, not flake modules
+
+imports:
+  - alto  # This imports alto's devenv.nix directly

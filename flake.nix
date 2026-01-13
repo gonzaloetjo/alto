@@ -12,15 +12,15 @@
     in
     {
       # Main export: devenv module for consumer projects
-      # Usage: imports = [ inputs.alto.devenvModules.default ];
-      devenvModules.default = ./devenv-module.nix;
-      devenvModules.alto = ./devenv-module.nix;
+      # Usage: devenv.yaml with flake: false + imports: [alto]
+      devenvModules.default = ./devenv.nix;
+      devenvModules.alto = ./devenv.nix;
 
-      # Flake template for quick project setup
+      # Template for quick project setup
       # Usage: nix flake init -t github:gonzaloetjo/alto
       templates.default = {
         path = ./templates/default;
-        description = "ALTO - Claude Code multi-agent orchestration with human review gates";
+        description = "ALTO - Claude Code multi-agent orchestration";
       };
 
       # Dev shell for working on ALTO itself (not for consumers)
