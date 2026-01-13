@@ -289,12 +289,11 @@ in
       };
     };
 
-    # Deploy remaining ALTO files (skills, runs structure, CLAUDE.md)
-    # These don't have native devenv equivalents yet
-    enterShell = ''
-      _alto_deploy() {
-        local ALTO_SRC="${altoSrc}"
-        local RUNS_DIR="${cfg.runsDir}"
+    # Deploy ALTO files using tasks (runs before shell entry, skips if up-to-date)
+    tasks."alto:deploy" = {
+      exec = ''
+        ALTO_SRC="${altoSrc}"
+        RUNS_DIR="${cfg.runsDir}"
 
         # Create .claude directory for hooks and skills
         mkdir -p .claude/hooks .claude/skills
@@ -306,7 +305,6 @@ in
         cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
         cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
 
-        # Optionally copy spawner skills
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
         ''}
@@ -333,7 +331,7 @@ in
 STATE_EOF
         fi
 
-        # Initialize arbiter config
+        # Initialize arbiter config (always overwrite to keep in sync)
         cat > "$RUNS_DIR/arbiter/config.json" << 'ARBITER_EOF'
 {
   "max_lines_changed_without_human": ${toString cfg.arbiter.maxLinesChanged},
@@ -369,9 +367,11 @@ PLANNING_EOF
 
         # Copy CLAUDE.md (always overwrite to keep protocol in sync)
         cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
-      }
 
-      _alto_deploy
-    '';
+        echo "ALTO deployed"
+      '';
+      # Run before shell entry
+      before = [ "devenv:enterShell" ];
+    };
   };
 }

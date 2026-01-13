@@ -35,16 +35,6 @@ The template creates:
 - `devenv.yaml` with `flake: false` import
 - `devenv.nix` with `alto.enable = true`
 
-### Alternative: Flakes or Flake-parts
-
-```bash
-# Flakes pattern (for existing flake projects)
-nix flake init -t github:gonzaloetjo/alto#flakes
-
-# Flake-parts pattern
-nix flake init -t github:gonzaloetjo/alto#flake-parts
-```
-
 ## What Gets Deployed
 
 When you enter the shell, ALTO automatically creates:
@@ -140,21 +130,12 @@ PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 5. **Post agents** (recorder, gitops) finalize
 6. **Arbiter** runs between tasks if thresholds hit → may BLOCK
 
-## Using with Flakes (Alternative)
+## Using with Flakes (Advanced)
 
-Use the provided templates or import `alto.devenvModules.default` into your flake:
-
-<details>
-<summary>Plain Flakes</summary>
-
-```bash
-nix flake init -t github:gonzaloetjo/alto#flakes
-nix develop --no-pure-eval
-```
-
-Or manually import the module:
+For existing flake projects, import `alto.devenvModules.default`:
 
 ```nix
+# In flake.nix
 devShells.${system}.default = devenv.lib.mkShell {
   inherit inputs pkgs;
   modules = [
@@ -164,26 +145,7 @@ devShells.${system}.default = devenv.lib.mkShell {
 };
 ```
 
-</details>
-
-<details>
-<summary>flake-parts</summary>
-
-```bash
-nix flake init -t github:gonzaloetjo/alto#flake-parts
-nix develop --no-pure-eval
-```
-
-Or manually import the module:
-
-```nix
-devenv.shells.default = {
-  imports = [ inputs.alto.devenvModules.default ];
-  alto.enable = true;
-};
-```
-
-</details>
+Note: Native devenv (above) is recommended over flakes for better performance and caching.
 
 ## Skills
 
