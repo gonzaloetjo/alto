@@ -72,29 +72,61 @@ Hook scripts receive JSON on stdin, print to stdout (for SessionStart context).
 
 ## Testing Changes
 
-### Fresh Install Test
+**WARNING:** Do NOT run `devenv shell` in the ALTO repo itself. It creates consumer agents in `.claude/` that conflict with tracked dev agents.
+
+### Quick Syntax Checks
 
 ```bash
-mkdir /tmp/test-alto && cd /tmp/test-alto
-nix --extra-experimental-features 'nix-command flakes' flake init -t github:gonzaloetjo/alto --refresh
+# Nix syntax
+nix-instantiate --parse devenv.nix > /dev/null && echo "OK"
+
+# Python syntax
+python3 -m py_compile hooks/*.py && echo "OK"
+```
+
+### Local Integration Test
+
+Create a **separate directory** to test local changes:
+
+```bash
+mkdir -p /tmp/alto-test && cd /tmp/alto-test
+git init
+
+# Point to local ALTO
+cat > devenv.yaml << 'EOF'
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  alto:
+    url: path:/path/to/your/alto
+    flake: false
+EOF
+
+cat > devenv.nix << 'EOF'
+{ pkgs, lib, inputs, ... }:
+{
+  imports = [ "${inputs.alto}/devenv.nix" ];
+  alto.enable = true;
+}
+EOF
+
+# Test
+devenv shell -- alto-status
+```
+
+### Fresh Install Test (from GitHub)
+
+```bash
+mkdir -p /tmp/alto-fresh && cd /tmp/alto-fresh
+nix flake init -t github:gonzaloetjo/alto --refresh
 devenv shell
 
 # Verify
-ls -la .claude/agents/   # Should have symlinks
+ls -la .claude/agents/   # Should have agent files
 ls -la .claude/hooks/    # Should have .py files
 ls -la runs/             # Should have state.json
 cat CLAUDE.md            # Should have protocol
 ```
-
-### Local Changes Test
-
-In test project's `devenv.yaml`:
-```yaml
-imports:
-  - /absolute/path/to/local/alto
-```
-
-Then `devenv shell` to rebuild with local changes.
 
 ### Verify Hooks
 
@@ -124,18 +156,8 @@ In `''` strings:
 
 See [GitHub Issues](https://github.com/gonzaloetjo/alto/issues):
 
-**Simplification:**
-- #2 Remove alto-enforcer (redundant with native sandboxing)
-- #3 Simplify alto-recorder (run at session boundary only)
-- #4 Simplify alto-reviewer (consider Sonnet model)
+**Open:**
+- #6 Lite mode for simple projects
+- #8 Document ALTO vs native Claude Code tools
 
-**New Features:**
-- #5 Add hook error handling and health checks
-- #6 Add lite mode for simple projects
-- #7 Add handoff schema validation
-
-**Documentation:**
-- #8 Document when to use ALTO vs native Claude Code tools
-
-**Maintenance:**
-- #9 Add run branch cleanup strategy
+**Closed:** #2, #3, #4, #5, #7, #9
