@@ -11,6 +11,8 @@
 
 ## Quick Start
 
+### New Project
+
 ```bash
 # Initialize ALTO in your project
 nix flake init -t github:gonzaloetjo/alto
@@ -18,10 +20,34 @@ nix flake init -t github:gonzaloetjo/alto
 # Enter the dev shell
 devenv shell
 
-# Start Claude Code
+# First-time setup (creates objective.md)
+alto-setup
+
+# Start Claude Code and describe what you want to build
 claude
-> continue
 ```
+
+### New Feature (existing project)
+
+```bash
+devenv shell
+
+# Check current status
+alto-status
+
+# Start feature setup (interactive)
+claude
+> /alto-feature-setup
+```
+
+### Available Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `alto-setup` | First-time project initialization |
+| `alto-status` | Show current ALTO status |
+| `alto-new-run` | Create new run branch |
+| `alto-clean` | Clean previous run artifacts |
 
 ## What Gets Deployed
 

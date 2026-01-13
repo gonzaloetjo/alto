@@ -140,6 +140,153 @@ in
     # Ensure python3 and jq are available for hooks
     packages = [ pkgs.python3 pkgs.jq ];
 
+    # ALTO scripts
+    scripts = {
+      # First-time project setup
+      alto-setup = {
+        exec = ''
+          echo "ALTO Setup"
+          echo "=========="
+          echo ""
+
+          # Check if already initialized
+          if [ -f objective.md ]; then
+            echo "Project already initialized (objective.md exists)."
+            echo "Use 'alto-feature' to start a new feature."
+            exit 0
+          fi
+
+          # Create objective.md template
+          cat > objective.md << 'OBJECTIVE_EOF'
+# Project Objective
+
+## Overview
+<!-- Describe what this project does -->
+
+## Feature 1: [Feature Name]
+
+### Goal
+<!-- What should this feature accomplish? -->
+
+### Requirements
+- 1.1 [Requirement]
+- 1.2 [Requirement]
+
+### Definition of Done
+- [ ] [Criteria]
+- [ ] [Criteria]
+- [ ] `make check` passes (or equivalent)
+
+OBJECTIVE_EOF
+
+          echo "Created objective.md"
+          echo ""
+          echo "Next steps:"
+          echo "1. Edit objective.md to describe your project"
+          echo "2. Run 'claude' and describe what you want to build"
+          echo "3. ALTO will handle architecture, planning, and execution"
+        '';
+        description = "Initialize ALTO for a new project";
+      };
+
+      # Start a new feature (interactive, runs in Claude)
+      alto-feature = {
+        exec = ''
+          echo "Starting new feature setup..."
+          echo ""
+          echo "This will:"
+          echo "1. Mark previous feature complete (if any)"
+          echo "2. Create a new run branch"
+          echo "3. Guide you through feature definition"
+          echo ""
+          echo "Run 'claude' and say: /alto-feature-setup"
+        '';
+        description = "Start a new feature (interactive)";
+      };
+
+      # Create new run branch (mechanical)
+      alto-new-run = {
+        exec = ''
+          RUNS_DIR="${cfg.runsDir}"
+
+          # Get next run number
+          LAST_RUN=$(git branch -l 'run/*' 2>/dev/null | sed 's/.*run\///' | sort -n | tail -1)
+          if [ -z "$LAST_RUN" ]; then
+            RUN_NUM=1
+          else
+            RUN_NUM=$((LAST_RUN + 1))
+          fi
+
+          BRANCH_NAME="run/$(printf '%03d' $RUN_NUM)"
+
+          # Create branch
+          git checkout -b "$BRANCH_NAME"
+
+          # Reset state
+          cat > "$RUNS_DIR/state.json" << STATE_EOF
+{
+  "protocol": "alto-v1",
+  "run_branch": "$BRANCH_NAME",
+  "phase": "ARCHITECTURE",
+  "current_task_id": null,
+  "current_role": null,
+  "completed_task_ids": [],
+  "last_handoff": null,
+  "estimated_tasks": null,
+  "replan_every": null,
+  "needs_architect": false,
+  "updated_at": "$(date -Iseconds)"
+}
+STATE_EOF
+
+          echo "Created branch: $BRANCH_NAME"
+          echo "State reset to ARCHITECTURE phase"
+        '';
+        description = "Create new run branch and reset state";
+      };
+
+      # Clean previous run artifacts (mechanical)
+      alto-clean = {
+        exec = ''
+          RUNS_DIR="${cfg.runsDir}"
+
+          # Remove stale arbiter trigger
+          rm -f "$RUNS_DIR/arbiter/pending.json"
+
+          # Clear tasks (but keep handoffs for context)
+          rm -f "$RUNS_DIR/tasks/"*.md 2>/dev/null
+
+          # Clear milestones/decisions (regenerated each run)
+          rm -f "$RUNS_DIR/milestones.md" "$RUNS_DIR/decisions.md" 2>/dev/null
+
+          echo "Cleaned previous run artifacts"
+          echo "Handoffs preserved in $RUNS_DIR/handoffs/"
+        '';
+        description = "Clean previous run artifacts";
+      };
+
+      # Show ALTO status
+      alto-status = {
+        exec = ''
+          RUNS_DIR="${cfg.runsDir}"
+
+          if [ ! -f "$RUNS_DIR/state.json" ]; then
+            echo "ALTO not initialized. Run 'alto-setup' first."
+            exit 1
+          fi
+
+          echo "ALTO Status"
+          echo "==========="
+          jq -r '"Branch: \(.run_branch // \"none\")\nPhase: \(.phase // \"none\")\nCurrent Task: \(.current_task_id // \"none\")\nCompleted: \(.completed_task_ids | length) tasks"' "$RUNS_DIR/state.json"
+
+          echo ""
+          echo "Recent handoffs:"
+          ls -t "$RUNS_DIR/handoffs/" 2>/dev/null | head -5 || echo "  (none)"
+        '';
+        description = "Show ALTO status";
+      };
+    };
+
     # Enable Claude Code integration
     claude.code.enable = true;
 
@@ -232,6 +379,12 @@ in
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
         model = cfg.planning.plannerModel;
         prompt = readAgentPrompt "alto-planner";
+      };
+      alto-feature-finder = {
+        description = "Analyzes codebase and objective.md to identify features and suggest next steps. Use when starting a new feature.";
+        tools = [ "Read" "Grep" "Glob" "LS" ];
+        model = "opus";
+        prompt = readAgentPrompt "alto-feature-finder";
       };
       alto-backend = {
         description = "Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.";
