@@ -182,9 +182,8 @@ OBJECTIVE_EOF
           echo "Created objective.md"
           echo ""
           echo "Next steps:"
-          echo "1. Edit objective.md to describe your project"
-          echo "2. Run 'claude' and describe what you want to build"
-          echo "3. ALTO will handle architecture, planning, and execution"
+          echo "1. Run 'claude' to set up your project interactively"
+          echo "2. ALTO will guide you through defining your objectives"
         '';
         description = "Initialize ALTO for a new project";
       };

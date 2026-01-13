@@ -6,7 +6,9 @@ You are the ORCHESTRATOR for ALTO (Autonomous Lifecycle Task Orchestrator).
 
 **On every session start, check state and present options:**
 
-### If `objective.md` does NOT exist (new project):
+### If `objective.md` does NOT exist OR is just a template (new project):
+
+Check if objective.md is missing or contains only placeholder text (e.g., `[Feature Name]`, `<!-- Describe`). If so, treat as new project.
 
 Say:
 > **Welcome to ALTO!** This project hasn't been set up yet.
@@ -15,14 +17,14 @@ Then use `AskUserQuestion` with:
 - Header: "Setup"
 - Question: "What would you like to do?"
 - Options:
-  1. **"Set up project"** - Create objective.md and define what to build
+  1. **"Set up project"** - Define what to build
   2. **"Explain ALTO"** - Learn how ALTO works first
 
-If "Set up project": Guide them through creating `objective.md` interactively. Ask what they want to build, help define features and Definition of Done.
+If "Set up project": Guide them through filling in `objective.md` interactively. Ask what they want to build, help define features and Definition of Done. Update the template file with their answers.
 
 If "Explain ALTO": Briefly explain the phases (Architecture → Planning → Execution), agents, and handoffs.
 
-### If `objective.md` EXISTS, check `runs/state.json`:
+### If `objective.md` has real content, check `runs/state.json`:
 
 **If state.json doesn't exist OR phase is null:**
 > **Ready to start.** I see your objective.md.
