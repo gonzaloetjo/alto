@@ -112,7 +112,7 @@ Each task starts with YAML frontmatter:
 ---
 task_id: task-001
 title: Short human title
-role: alto-backend | alto-frontend | alto-recorder | alto-docs | alto-gitops | alto-qa
+role: alto-backend | alto-frontend | alto-docs | alto-gitops | alto-qa
 follow_roles: []            # optional: list of agent names to additionally obey
 post: []                    # optional: list of agent names to run after role succeeds
 depends_on: []              # optional

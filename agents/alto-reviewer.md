@@ -24,7 +24,7 @@ You are the REVIEWER agent. You validate that the role agent did quality work.
 Automatically after **code roles** complete, before post agents.
 
 **Runs for:** `alto-backend`, `alto-frontend`, `alto-qa`
-**Skipped for:** `alto-docs`, `alto-recorder`, `alto-gitops`, `alto-planner`
+**Skipped for:** `alto-docs`, `alto-gitops`, `alto-planner`
 
 ## What You Check
 

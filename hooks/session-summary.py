@@ -7,6 +7,7 @@ Creates runs/sessions/<session_id>-summary.md with:
 - Files modified (from tool log)
 - Current ALTO state
 - Last actions
+- Handoff summaries (for cross-session context)
 
 This summary can be referenced by SessionStart on resume.
 """
@@ -92,6 +93,79 @@ def format_actions_summary(actions: list[dict]) -> str:
     return "\n".join(lines) if lines else "  (no recent actions)"
 
 
+def get_handoff_summaries(handoffs_dir: Path, completed_tasks: list[str]) -> list[dict]:
+    """Extract summaries from handoff files for completed tasks.
+
+    Aggregates handoffs at session end for cross-session context.
+    """
+    summaries = []
+
+    for task_id in completed_tasks[-10:]:  # Last 10 tasks max
+        handoff_path = handoffs_dir / f"{task_id}.md"
+        if not handoff_path.exists():
+            continue
+
+        try:
+            content = handoff_path.read_text(encoding="utf-8")
+
+            # Extract summary section (between ## Summary and next ##)
+            summary_text = ""
+            in_summary = False
+            for line in content.splitlines():
+                if line.lower().startswith("## summary"):
+                    in_summary = True
+                    continue
+                elif line.startswith("## ") and in_summary:
+                    break
+                elif in_summary:
+                    summary_text += line + "\n"
+
+            # Extract files section
+            files = []
+            in_files = False
+            for line in content.splitlines():
+                if "## files" in line.lower():
+                    in_files = True
+                    continue
+                elif line.startswith("## ") and in_files:
+                    break
+                elif in_files and line.strip().startswith("- "):
+                    files.append(line.strip()[2:].strip("`"))
+
+            summaries.append({
+                "task_id": task_id,
+                "summary": summary_text.strip()[:200],  # Truncate
+                "files": files[:5],  # Max 5 files
+            })
+        except Exception:
+            continue
+
+    return summaries
+
+
+def format_handoff_section(summaries: list[dict]) -> list[str]:
+    """Format handoff summaries for the session summary."""
+    if not summaries:
+        return []
+
+    lines = [
+        "## Task Handoffs",
+        "",
+        "Summary of completed tasks (for cross-session context):",
+        "",
+    ]
+
+    for s in summaries:
+        lines.append(f"### {s['task_id']}")
+        if s["summary"]:
+            lines.append(f"{s['summary'][:150]}...")
+        if s["files"]:
+            lines.append(f"Files: {', '.join(f'`{f}`' for f in s['files'][:3])}")
+        lines.append("")
+
+    return lines
+
+
 def main():
     hook = json.load(sys.stdin)
 
@@ -148,6 +222,11 @@ def main():
         format_actions_summary(actions),
         f"",
     ])
+
+    # Add handoff summaries for cross-session context
+    if completed:
+        handoff_summaries = get_handoff_summaries(runs / "handoffs", completed)
+        summary_lines.extend(format_handoff_section(handoff_summaries))
 
     # Check for any failures
     failures = [a for a in actions if not a.get("success", True)]

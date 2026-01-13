@@ -177,7 +177,7 @@ If `replan_every` is set and `len(completed_task_ids) % replan_every == 0` and t
 - Agent runs `check_command` and writes handoff
 
 ### 5) Post Agents
-Run all agents in task's `post` array (e.g., `alto-recorder`, `alto-gitops`)
+Run all agents in task's `post` array (e.g., `alto-gitops`)
 
 ### 6) Update Progress
 If task completes an objective item:

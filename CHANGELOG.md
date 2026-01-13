@@ -5,7 +5,7 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
-- `handoff-validate.py` hook for deterministic handoff validation (replaces alto-enforcer)
+- `handoff-validate.py` hook for deterministic handoff validation
 - `alto-dev` agent for ALTO development with Write, Edit, Bash, WebFetch
 - `alto-dev-guide` skill with comprehensive documentation references
 - `alto-feature-finder` agent for codebase analysis when starting features
@@ -16,6 +16,10 @@ All notable changes to ALTO.
 - Devenv MCP server configured for package search and config generation
 
 ### Changed
+- `alto-recorder` no longer runs per-task; handoffs aggregated at session end (Issue #3)
+  - Removed from `post:` arrays in task definitions
+  - `session-summary.py` now extracts handoff summaries for cross-session context
+  - Within-session context preserved by Claude's conversation memory
 - Redesigned README for clarity: centered header, highlights section, collapsible config, horizontal dividers
 - Renamed `devenv-module.nix` to `devenv.nix` for native devenv pattern
 - Converted `enterShell` to `tasks."alto:deploy"` for cleaner deployment
@@ -35,6 +39,10 @@ All notable changes to ALTO.
   - ~5-10s → ~50ms per task (no LLM call)
   - Zero token cost for validation
   - Deterministic checks (no hallucination risk)
+- `alto-recorder` agent - handoffs now aggregated by `session-summary.py` (Issue #3)
+  - ~2-3s saved per task (no haiku call)
+  - 10 tasks = ~20-30s total savings
+  - Zero token cost for recording
 
 ## [0.1.0] - 2026-01-12
 

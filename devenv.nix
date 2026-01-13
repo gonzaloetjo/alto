@@ -388,12 +388,6 @@ STATE_EOF
         model = "opus";
         prompt = readAgentPrompt "alto-gitops";
       };
-      alto-recorder = {
-        description = "Records task changes in handoffs. Internal coordination for task-to-task context.";
-        tools = [ "Read" "Edit" ];
-        model = "opus";
-        prompt = readAgentPrompt "alto-recorder";
-      };
       alto-reviewer = {
         description = "Reviews code quality after role agent completes. Can reject back to role agent.";
         tools = [ "Read" "Bash" ];

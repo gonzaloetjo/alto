@@ -55,7 +55,7 @@ Each task file MUST use the format in alto-protocol skill:
 task_id: task-001
 title: Short human title
 role: alto-backend | alto-frontend | alto-docs | alto-gitops | alto-qa
-post: [alto-recorder, alto-gitops]
+post: [alto-gitops]
 depends_on: []
 inputs:
   - runs/milestones.md
@@ -79,8 +79,8 @@ Any limitations or requirements.
 
 ### Post Agents by Role
 
-- `alto-backend` / `alto-frontend` tasks: `post: [alto-recorder, code-simplifier, alto-gitops]`
-- `alto-qa` / `alto-docs` tasks: `post: [alto-recorder, alto-gitops]`
+- `alto-backend` / `alto-frontend` tasks: `post: [code-simplifier, alto-gitops]`
+- `alto-qa` / `alto-docs` tasks: `post: [alto-gitops]`
 
 ### Rolling Planning
 

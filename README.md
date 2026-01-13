@@ -139,7 +139,6 @@ your-project/
 | `alto-qa` | Testing and fixes |
 | `alto-docs` | Documentation |
 | `alto-gitops` | Git operations |
-| `alto-recorder` | Handoff summaries |
 | `alto-reviewer` | Code quality |
 
 ---

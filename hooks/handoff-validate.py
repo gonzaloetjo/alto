@@ -2,7 +2,7 @@
 """
 SubagentStop hook: validates handoff completeness after role agents finish.
 
-Replaces alto-enforcer agent with deterministic validation:
+Deterministic validation:
 - Handoff file exists
 - Required sections present
 - Files touched are in allowed paths
@@ -151,7 +151,7 @@ def main():
 
     # Only validate after role agents (not system agents)
     agent_name = hook_input.get("agent_name", "")
-    system_agents = ["alto-arbiter", "alto-gitops", "alto-recorder", "alto-reviewer"]
+    system_agents = ["alto-arbiter", "alto-gitops", "alto-reviewer"]
     if agent_name in system_agents:
         # Skip validation for system agents
         return
