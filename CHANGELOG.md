@@ -5,6 +5,16 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- Three-tier permission system with `allow`, `ask`, and `deny` tiers:
+  - `permissions.profile` option: autonomous, supervised, or locked
+  - `permissions.allowBash` - commands that auto-approve (ls, cat, grep, etc.)
+  - `permissions.askBash` - commands that prompt user (git, npm, docker)
+  - `permissions.denyBash` - commands always blocked (rm -rf, sudo, git push -f)
+  - `permissions.denyRead` - sensitive file patterns (.env, secrets/**, *.pem)
+- Per-agent permission configuration via `agentPermissions` options:
+  - `permissionMode` per agent (plan, acceptEdits, default, dontAsk, bypassPermissions)
+  - Per-agent tool restrictions and Bash command tiers
+  - NOTE: Full support pending devenv PR for permissionMode in agents
 - `hook_utils.py` module with shared utilities for all hooks (Issue #5):
   - `@safe_hook` decorator for graceful error handling
   - Errors logged to `runs/errors.jsonl` instead of crashing
@@ -36,6 +46,13 @@ All notable changes to ALTO.
 - Devenv MCP server configured for package search and config generation
 
 ### Changed
+- Agent permission modes updated for principle of least privilege:
+  - `alto-arbiter`, `alto-feature-finder`, `alto-reviewer` now use `plan` mode (read-only)
+  - `alto-gitops` uses `default` mode (prompts for each git operation)
+  - Implementation agents (`backend`, `frontend`, `qa`, `docs`) use `acceptEdits`
+- `alto-arbiter` tools reduced to `Read`, `Grep`, `Glob` (no Bash/Edit for auditor)
+- `alto-reviewer` tools reduced to `Read`, `Grep`, `Glob`, `LS` (no Bash for reviewer)
+- `alto-gitops` tools expanded to include `Grep`, `Glob`, `LS` for better context
 - `alto-reviewer` now uses Sonnet instead of Opus (~60% cost reduction) (Issue #4)
 - Remove `check_command` from task format - replaced with "How to Verify" section
   - More flexible: supports tests, manual checks, project-specific validation
@@ -74,6 +91,7 @@ All notable changes to ALTO.
 - jq escaping in `alto-status` script (use separate echo+jq calls)
 
 ### Removed
+- `permissions.defaultMode` option - replaced by three-tier system (allow/ask/deny)
 - Flake-parts templates (native devenv only now)
 - Redundant flake.nix template options
 - `alto-enforcer` agent - replaced by `handoff-validate.py` hook (Issue #2)

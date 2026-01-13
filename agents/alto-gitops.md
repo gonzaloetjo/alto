@@ -1,9 +1,9 @@
 ---
 name: alto-gitops
 description: Handles branch/commit/push hygiene. Use after a task passes checks.
-tools: Read, Edit, Bash
-model: haiku
-permissionMode: dontAsk
+tools: Read, Grep, Glob, LS, Bash
+model: opus
+permissionMode: default
 skills: alto-protocol
 ---
 

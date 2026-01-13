@@ -55,36 +55,154 @@ in
       };
     };
 
-    # Permission defaults
+    # Permission configuration
     permissions = {
-      defaultMode = lib.mkOption {
-        type = lib.types.enum [ "bypassPermissions" "askEveryTime" "allowEdits" ];
-        default = "bypassPermissions";
-        description = "Default permission mode for Claude Code";
+      # Global permission profile
+      profile = lib.mkOption {
+        type = lib.types.enum [ "autonomous" "supervised" "locked" ];
+        default = "supervised";
+        description = ''
+          Permission profile:
+          - autonomous: broad allows, minimal prompts (for trusted environments)
+          - supervised: balanced allows/asks, safe defaults (recommended)
+          - locked: minimal allows, strict denies (for untrusted code)
+        '';
       };
 
+      # Three-tier bash permissions (allow > ask > deny precedence: deny wins)
       allowBash = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [ "git" "make" "npm" "pnpm" "yarn" "docker" "docker compose" "ls" "cat" "mkdir" "python" "python3" "node" ];
-        description = "Bash commands to allow without prompting";
+        default = [ "ls" "cat" "head" "tail" "grep" "find" "echo" "pwd" "wc" ];
+        description = "Bash commands to allow without prompting (Tier 1 - auto-allow)";
       };
 
       askBash = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [ "git push" ];
-        description = "Bash commands that require confirmation";
-      };
-
-      denyRead = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ "./.env" "./.env.*" "./secrets/**" "**/*.pem" "**/*id_rsa*" ];
-        description = "File patterns to deny reading";
+        default = [ "git" "npm" "pnpm" "yarn" "make" "docker" "python" "python3" "node" ];
+        description = "Bash commands that require confirmation (Tier 2 - prompt)";
       };
 
       denyBash = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [ "rm -rf" "sudo" ];
-        description = "Bash commands to always deny";
+        default = [ "rm -rf" "sudo" "chmod" "chown" "curl|sh" "wget|sh" "git push -f" "git reset --hard" ];
+        description = "Bash commands to always deny (Tier 3 - blocked)";
+      };
+
+      denyRead = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "./.env" "./.env.*" "./secrets/**" "**/*.pem" "**/*id_rsa*" "**/credentials*" ];
+        description = "File patterns to deny reading";
+      };
+    };
+
+    # Per-agent permission configuration
+    # NOTE: permissionMode support requires devenv PR (pending)
+    # Currently, permissionMode is set in agent frontmatter (agents/*.md)
+    # Per-agent Bash restrictions are documented in agent prompts
+    # These options serve as documentation until devenv supports permissionMode
+    agentPermissions = {
+      # Planner - creates tasks, no bash needed
+      alto-planner = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "acceptEdits";
+          tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
+          # No Bash - planners don't execute code
+        };
+        description = "Permission config for alto-planner agent";
+      };
+
+      # Feature finder - analysis only, read-only
+      alto-feature-finder = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "plan";
+          tools = [ "Read" "Grep" "Glob" "LS" ];
+          # No Bash, no Edit - pure analysis
+        };
+        description = "Permission config for alto-feature-finder agent";
+      };
+
+      # Backend - full implementation permissions
+      alto-backend = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "acceptEdits";
+          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+          allowBash = [ "npm" "make" "python" "python3" "pip" "cargo" "go" ];
+          askBash = [ "docker" "docker compose" ];
+        };
+        description = "Permission config for alto-backend agent";
+      };
+
+      # Frontend - full implementation permissions
+      alto-frontend = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "acceptEdits";
+          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+          allowBash = [ "npm" "pnpm" "yarn" "node" "npx" ];
+          askBash = [ "vite" "webpack" "esbuild" ];
+        };
+        description = "Permission config for alto-frontend agent";
+      };
+
+      # QA - testing permissions
+      alto-qa = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "acceptEdits";
+          tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+          allowBash = [ "npm test" "npm run test" "pytest" "cargo test" "go test" "make test" ];
+          askBash = [ "npm install" "pip install" ];
+        };
+        description = "Permission config for alto-qa agent";
+      };
+
+      # Docs - documentation only
+      alto-docs = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "acceptEdits";
+          tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
+          # No Bash - docs don't need to execute
+        };
+        description = "Permission config for alto-docs agent";
+      };
+
+      # GitOps - git operations with careful tiers
+      alto-gitops = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "default";  # Prompts for each action
+          tools = [ "Read" "Grep" "Glob" "LS" "Bash" ];
+          allowBash = [ "git status" "git log" "git diff" "git branch" "git show" ];
+          askBash = [ "git add" "git commit" "git checkout" "git merge" "git pull" ];
+          denyBash = [ "git push -f" "git reset --hard" "git clean -fd" ];
+        };
+        description = "Permission config for alto-gitops agent";
+      };
+
+      # Reviewer - read-only code review
+      alto-reviewer = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "plan";
+          tools = [ "Read" "Grep" "Glob" "LS" ];
+          # No Bash, no Edit - reviewers only read
+        };
+        description = "Permission config for alto-reviewer agent";
+      };
+
+      # Arbiter - minimal permissions for human review decisions
+      alto-arbiter = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "plan";
+          tools = [ "Read" "Grep" "Glob" ];
+          # Minimal - just reads state and makes decisions
+        };
+        description = "Permission config for alto-arbiter agent";
       };
     };
 
@@ -371,6 +489,8 @@ STATE_EOF
     claude.code.enable = true;
 
     # Permissions via native devenv options (per-tool structure)
+    # NOTE: devenv currently only supports allow/deny, not ask tier
+    # The ask tier requires settings.json direct write (pending devenv enhancement)
     claude.code.permissions = {
       Bash = {
         allow = map (cmd: "${cmd}:*") cfg.permissions.allowBash;
@@ -497,6 +617,7 @@ STATE_EOF
         description = "Analyzes codebase and objective.md to identify features and suggest next steps. Use when starting a new feature.";
         tools = [ "Read" "Grep" "Glob" "LS" ];
         model = "opus";
+        # permissionMode: "plan" (read-only analysis, via frontmatter)
         prompt = readAgentPrompt "alto-feature-finder";
       };
       alto-backend = {
@@ -525,20 +646,24 @@ STATE_EOF
       };
       alto-gitops = {
         description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
-        tools = [ "Read" "Edit" "Bash" ];
+        tools = [ "Read" "Grep" "Glob" "LS" "Bash" ];
         model = "opus";
+        # permissionMode: "default" (via frontmatter in agents/alto-gitops.md)
+        # Per-agent Bash: allow git reads, ask for git writes, deny force operations
         prompt = readAgentPrompt "alto-gitops";
       };
       alto-reviewer = {
         description = "Reviews code quality after role agent completes. Can reject back to role agent.";
-        tools = [ "Read" "Bash" ];
-        model = "opus";
+        tools = [ "Read" "Grep" "Glob" "LS" ];
+        model = "sonnet";
+        # permissionMode: "plan" (read-only review, via frontmatter)
         prompt = readAgentPrompt "alto-reviewer";
       };
       alto-arbiter = {
         description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Bash" "Edit" ];
+        tools = [ "Read" "Grep" "Glob" ];
         model = "opus";
+        # permissionMode: "plan" (read-only analysis, via frontmatter)
         prompt = readAgentPrompt "alto-arbiter";
       };
     };

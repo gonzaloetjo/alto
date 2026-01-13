@@ -7,6 +7,8 @@ tools:
   - Glob
   - LS
 model: opus
+permissionMode: plan
+skills: alto-protocol
 ---
 
 # Feature Finder Agent

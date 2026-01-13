@@ -26,3 +26,4 @@ Untitled-*
 
 # Pre-commit
 .pre-commit-config.yaml
+__pycache__/

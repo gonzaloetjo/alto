@@ -1,9 +1,9 @@
 ---
 name: alto-arbiter
 description: Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.
-tools: Read, Grep, Glob, LS, Bash, Edit
+tools: Read, Grep, Glob
 model: opus
-permissionMode: acceptEdits
+permissionMode: plan
 skills: alto-protocol
 ---
 

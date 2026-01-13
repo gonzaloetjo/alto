@@ -1,9 +1,9 @@
 ---
 name: alto-reviewer
 description: Reviews code quality after role agent completes. Can reject back to role agent.
-tools: Read, Bash
+tools: Read, Grep, Glob, LS
 model: sonnet
-permissionMode: acceptEdits
+permissionMode: plan
 skills: alto-protocol
 ---
 

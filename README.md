@@ -84,10 +84,13 @@ your-project/
       tokenCheckpointInterval = 100000;
     };
 
+    # Three-tier permissions: allow (auto), ask (prompt), deny (block)
     permissions = {
-      defaultMode = "bypassPermissions";
-      allowBash = [ "git" "make" "npm" "docker" ];
-      denyBash = [ "rm -rf" "sudo" ];
+      profile = "supervised";  # autonomous, supervised, or locked
+      allowBash = [ "ls" "cat" "grep" "find" "pwd" ];  # auto-approve
+      askBash = [ "git" "npm" "make" "docker" ];        # prompt user
+      denyBash = [ "rm -rf" "sudo" "git push -f" ];     # always block
+      denyRead = [ ".env" "secrets/**" "**/*.pem" ];    # sensitive files
     };
 
     # Auto-run verification after file edits
@@ -115,11 +118,11 @@ your-project/
 | `arbiter.taskCheckpointInterval` | `3` | Checkpoint every N tasks |
 | `planning.requireApproval` | `true` | Gate architecture approval |
 | `planning.replanStrategy` | `"auto"` | `auto`, `fixed`, or `none` |
-| `permissions.defaultMode` | `"bypassPermissions"` | Permission mode |
-| `permissions.allowBash` | `[]` | Allowed bash commands |
-| `permissions.askBash` | `[]` | Ask-before-run commands |
-| `permissions.denyBash` | `[]` | Blocked commands |
-| `permissions.denyRead` | `[]` | Blocked file patterns |
+| `permissions.profile` | `"supervised"` | `autonomous`, `supervised`, or `locked` |
+| `permissions.allowBash` | `[ls, cat, grep...]` | Auto-approved bash commands |
+| `permissions.askBash` | `[git, npm, docker...]` | Prompt-before-run commands |
+| `permissions.denyBash` | `[rm -rf, sudo...]` | Always blocked commands |
+| `permissions.denyRead` | `[.env, secrets/**...]` | Blocked file patterns |
 | `includeSpawnerSkills` | `false` | Include domain skills |
 | `runsDir` | `"runs"` | Runtime directory name |
 | `verification.typecheck.enable` | `false` | Auto-run typecheck after TS edits |
@@ -147,16 +150,37 @@ your-project/
 
 ## Agents
 
-| Agent | Purpose |
-|-------|---------|
-| `alto-planner` | Generate tasks from milestones |
-| `alto-arbiter` | Human review gates |
-| `alto-backend` | Backend implementation |
-| `alto-frontend` | Frontend implementation |
-| `alto-qa` | Testing and fixes |
-| `alto-docs` | Documentation |
-| `alto-gitops` | Git operations |
-| `alto-reviewer` | Code quality |
+| Agent | Purpose | Permission Mode |
+|-------|---------|-----------------|
+| `alto-planner` | Generate tasks from milestones | acceptEdits |
+| `alto-feature-finder` | Analyze codebase for next steps | plan (read-only) |
+| `alto-backend` | Backend implementation | acceptEdits |
+| `alto-frontend` | Frontend implementation | acceptEdits |
+| `alto-qa` | Testing and fixes | acceptEdits |
+| `alto-docs` | Documentation | acceptEdits |
+| `alto-gitops` | Git operations | default (prompts) |
+| `alto-reviewer` | Code quality review | plan (read-only) |
+| `alto-arbiter` | Human review gates | plan (read-only) |
+
+---
+
+## Permissions
+
+ALTO uses a three-tier permission system:
+
+| Tier | Behavior | Example |
+|------|----------|---------|
+| **allow** | Auto-approved | `ls`, `cat`, `grep` |
+| **ask** | Prompts user | `git commit`, `npm install` |
+| **deny** | Always blocked | `rm -rf`, `sudo`, `git push -f` |
+
+**Per-agent restrictions** are enforced through agent prompts and permissionMode:
+
+- **plan** — Read-only mode for analysis agents
+- **acceptEdits** — Auto-approves file edits for implementation agents
+- **default** — Prompts for each action (git operations)
+
+> **Note:** The `ask` tier and per-agent `permissionMode` require pending devenv enhancements. Currently, `allow` and `deny` work; per-agent modes are documented in agent prompts.
 
 ---
 
