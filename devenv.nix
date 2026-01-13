@@ -431,6 +431,7 @@ STATE_EOF
         # Copy ALTO protocol skills
         cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
         cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
+        cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
 
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true

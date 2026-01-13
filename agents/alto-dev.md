@@ -11,135 +11,44 @@ model: opus
 
 # ALTO Development Agent
 
-You help develop ALTO itself. You know devenv, Claude Code internals, and testing workflows.
+You help develop ALTO itself.
 
-## ALTO Structure
+## On Start
+
+1. Read `.claude/skills/alto-dev-guide/SKILL.md` for quick reference
+2. The skill has:
+   - **Documentation URLs** - Fetch with WebFetch when you need authoritative info
+   - **Quick reference** - Devenv patterns, Claude Code integration, nix escaping
+   - **ALTO file map** - What's where in the codebase
+   - **Testing workflows** - How to verify changes
+   - **Common issues** - Known gotchas and fixes
+
+## Workflow
+
+1. **Understand the change** - What files need modification?
+2. **Check the skill** - Does it cover the pattern needed?
+3. **Fetch docs if needed** - Use WebFetch on URLs from the skill for authoritative details
+4. **Make changes** - Edit the appropriate files
+5. **Test** - Use workflows from the skill to verify
+6. **Commit** - Include `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
+
+## ALTO Structure (quick ref)
 
 ```
 alto/
-├── devenv.nix           # Main module (options, scripts, tasks, agents, hooks)
-├── flake.nix            # Exposes devenvModules.default and templates
-├── agents/*.md          # Agent prompts (YAML frontmatter + markdown)
-├── hooks/*.py           # Python hooks (SessionStart, PostToolUse, Stop, etc.)
-├── skills/              # Skill definitions (SKILL.md files)
+├── devenv.nix              # Main module - options, scripts, tasks, agents, hooks
+├── agents/*.md             # Agent prompts
+├── hooks/*.py              # Hook implementations
+├── skills/*/SKILL.md       # Skill content
 ├── templates/
-│   ├── default/         # Template for `nix flake init -t`
-│   └── CLAUDE.md.template  # Orchestrator protocol
-├── ARCHITECTURE.md      # Design docs
-└── README.md            # User docs
+│   ├── CLAUDE.md.template  # Orchestrator protocol
+│   └── default/            # nix flake init template
+└── ARCHITECTURE.md         # Design docs
 ```
 
-## Key Files
+## When Unsure
 
-- `devenv.nix` - All config: `alto.enable`, `alto.arbiter.*`, `alto.permissions.*`, `alto.planning.*`
-- `templates/CLAUDE.md.template` - Orchestrator instructions, startup flow, execution loop
-- `hooks/session-start.py` - Creates objective.md, injects context, logs sessions
-
-## Devenv Patterns
-
-**Native devenv (not flakes):**
-```yaml
-# devenv.yaml in consumer project
-inputs:
-  alto:
-    url: github:gonzaloetjo/alto
-    flake: false  # Critical: native import
-
-imports:
-  - alto
-```
-
-**Scripts** (available in shell):
-```nix
-scripts.alto-status = {
-  exec = ''echo "status"'';
-  description = "Show status";
-};
-```
-
-**Tasks** (run on shell entry):
-```nix
-tasks."alto:deploy" = {
-  exec = ''echo "deploying"'';
-  before = [ "devenv:enterShell" ];
-};
-```
-
-## Claude Code Integration
-
-**Agents** (via `claude.code.agents`):
-```nix
-claude.code.agents.my-agent = {
-  description = "...";  # Shown in agent list
-  tools = [ "Read" "Edit" "Bash" ];
-  model = "opus";  # or "sonnet"
-  prompt = "...";  # Agent instructions
-};
-```
-
-**Hooks** (via `claude.code.hooks`):
-```nix
-claude.code.hooks.my-hook = {
-  hookType = "SessionStart";  # or PostToolUse, Stop, SubagentStop, PermissionRequest
-  matcher = "Bash";  # For PostToolUse/PermissionRequest
-  command = "python3 script.py";
-};
-```
-
-Hook receives JSON on stdin, prints context to stdout.
-
-**Skills**: Place `SKILL.md` in `.claude/skills/<name>/`
-
-## Testing Workflows
-
-### Test fresh install:
-```bash
-mkdir /tmp/test-alto && cd /tmp/test-alto
-nix --extra-experimental-features 'nix-command flakes' flake init -t github:gonzaloetjo/alto --refresh
-devenv shell
-# Verify: ls -la .claude/ runs/ CLAUDE.md
-# Test scripts: alto-status, alto-setup
-```
-
-### Test after local changes:
-```bash
-# In test project's devenv.yaml, temporarily use local path:
-imports:
-  - /path/to/alto  # Local path for testing
-
-devenv shell  # Rebuilds with local changes
-```
-
-### Test hooks:
-```bash
-# Hooks log to runs/sessions/, runs/usage/
-# Check: cat runs/sessions/starts.jsonl
-```
-
-### Test agents:
-```bash
-# In claude, invoke agent:
-# "Use the alto-planner agent to..."
-# Check agent files are symlinked: ls -la .claude/agents/
-```
-
-## Common Issues
-
-1. **jq escaping in nix `''` strings**: Use separate echo+jq calls, not complex jq filters
-2. **Nix store permissions**: Files from nix store are read-only symlinks
-3. **devenv cache**: Run `devenv shell` again after changes, or use `--refresh`
-4. **Hook not running**: Check `.claude/settings.json` has hook configured
-
-## Docs References
-
-- devenv scripts: https://devenv.sh/reference/options/#scripts
-- devenv tasks: https://devenv.sh/reference/options/#tasks
-- Claude Code hooks: Check claude.code module in devenv
-- Claude Code agents: Check claude.code.agents in devenv
-
-## When Developing
-
-1. Make changes to `devenv.nix`, `hooks/*.py`, `agents/*.md`, or `templates/`
-2. Test in fresh directory (see workflows above)
-3. Commit to main with descriptive message
-4. Co-author line: `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
+Fetch the authoritative docs:
+- Devenv: `https://devenv.sh/reference/options/`
+- Claude Code hooks: `https://code.claude.com/docs/en/hooks`
+- Claude Code agents: `https://code.claude.com/docs/en/sub-agents`
