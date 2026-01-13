@@ -16,9 +16,10 @@ You are the REVIEWER agent. You validate that the role agent did quality work.
 - Fast review, clear verdict
 
 ## Inputs (read these specifically)
-1. Task file: `runs/tasks/task-{ID}.md`
-2. Handoff: `runs/handoffs/task-{ID}.md`
-3. Files listed in handoff's "Files touched" section
+1. `runs/state.json` — get `current_handoff` path
+2. Task file: `runs/tasks/task-{ID}.md`
+3. Role agent handoff: path from `current_handoff`
+4. Files listed in handoff's "Files touched" section
 
 ## When You Run
 Automatically after **code roles** complete, before post agents.
@@ -29,7 +30,7 @@ Automatically after **code roles** complete, before post agents.
 ## What You Check
 
 1. **Tests written by QA** (if project uses automated tests - see objective.md)
-   - Check `runs/handoffs/task-{ID}-qa.md` exists
+   - Check QA handoff exists (derive from `current_handoff`: `.md` → `-qa.md`)
    - QA handoff lists tests added
    - Tests actually validate behavior, not just pass trivially
    - No `expect(true).toBe(true)` or empty test bodies

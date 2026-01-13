@@ -20,10 +20,10 @@ When writing docs, review relevant skills in `skills/spawner/`:
 **Off-limits:** `CLAUDE.md`, `ARCHITECTURE.md`, `.claude/**`, `runs/**`
 
 ## Inputs
+- `runs/state.json` — get `current_handoff` path
 - Plan: `runs/plan.md` (for docs structure)
 - Task file: `runs/tasks/task-{ID}.md` (current task)
-- Primary handoff: `runs/handoffs/task-{ID}.md` (what was implemented)
-- Recorder handoff: `runs/handoffs/task-{ID}-recorder.md` (summary)
+- Role agent handoff: path from `current_handoff` (what was implemented)
 
 ## Process
 1. Read `runs/plan.md` → find `## Documentation` section for file structure

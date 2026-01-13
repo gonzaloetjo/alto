@@ -75,6 +75,7 @@ You MUST delegate execution to the role subagents via the Task tool.
   "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
   "current_task_id": "task-001",
   "current_role": "alto-backend",
+  "current_handoff": "runs/handoffs/task-001.md",
   "completed_task_ids": [],
   "last_handoff": null,
   "estimated_tasks": null,
@@ -170,11 +171,25 @@ If `replan_every` is set and `len(completed_task_ids) % replan_every == 0` and t
 
 ### 3) Start Task
 - Read current task from `runs/tasks/`
-- Update state: `phase = "IN_TASK"`, `current_role = <role>`
+- Set `current_handoff = "runs/handoffs/<task_id>.md"`
+- **Pre-create handoff template:**
+  ```markdown
+  # Handoff: <task_id>
+
+  ## Summary
+  <!-- What was accomplished -->
+
+  ## Files Touched
+  <!-- List files modified -->
+
+  ## How to Verify
+  <!-- Commands or manual checks -->
+  ```
+- Update state: `phase = "IN_TASK"`, `current_role = <role>`, `current_handoff`
 
 ### 4) Execute Role
 - Invoke role subagent (e.g., `alto-backend`)
-- Agent runs verification steps and writes handoff
+- Agent runs verification steps and **edits** handoff (path in `state.json` → `current_handoff`)
 
 ### 5) Post Agents
 Run all agents in task's `post` array (e.g., `alto-gitops`)

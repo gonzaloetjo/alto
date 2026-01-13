@@ -26,14 +26,14 @@ Before implementing, review relevant skills in `skills/spawner/`:
 1. Read the task file completely
 2. Implement according to Definition of Done
 3. Run verification steps from task's "How to Verify" section (existing tests should pass)
-4. Write handoff file
+4. Edit handoff file (path in `runs/state.json` → `current_handoff`)
 
 **Note:** Tests for new code are written by `alto-qa` after your implementation.
 
 ## Output
-Write handoff to: `runs/handoffs/task-{ID}.md`
+**Edit** the pre-created handoff at `current_handoff` (from state.json).
 
-Include:
+Fill in:
 - Summary of changes
 - Files touched (list paths)
 - Components added/modified

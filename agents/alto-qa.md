@@ -15,9 +15,10 @@ Consult these skills in `skills/spawner/` for patterns:
 - `error-handling/skill.yaml` - Error handling patterns to test
 
 ## Inputs
-1. `objective.md` — **Testing & Verification** section defines project test patterns
-2. Task file: `runs/tasks/task-{ID}.md` — what was implemented
-3. Previous handoff: `runs/handoffs/task-{ID}.md` — files changed by role agent
+1. `runs/state.json` — get `current_handoff` path
+2. `objective.md` — **Testing & Verification** section defines project test patterns
+3. Task file: `runs/tasks/task-{ID}.md` — what was implemented
+4. Role agent handoff: path from `current_handoff` — files changed by role agent
 
 ## Process
 
@@ -57,7 +58,8 @@ If tests fail:
 - Do NOT weaken tests to make them pass
 
 ## Output
-Write handoff to: `runs/handoffs/task-{ID}-qa.md`
+Derive your handoff path from `current_handoff` in state.json:
+- `current_handoff`: `runs/handoffs/task-001.md` → yours: `runs/handoffs/task-001-qa.md`
 
 Include:
 - **Tests added:** List of test files created/modified

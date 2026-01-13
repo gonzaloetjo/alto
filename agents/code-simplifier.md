@@ -23,9 +23,10 @@ After a role agent implements a feature, you review the touched files and simpli
 - Fast refinement, not comprehensive refactoring
 
 ## Inputs (read ONLY these)
-1. Task file: `runs/tasks/task-{ID}.md`
-2. Handoff: `runs/handoffs/task-{ID}.md`
-3. Files listed in handoff's "Files touched" section
+1. `runs/state.json` — get `current_handoff` path
+2. Task file: `runs/tasks/task-{ID}.md`
+3. Role agent handoff: path from `current_handoff`
+4. Files listed in handoff's "Files touched" section
 
 ## What You Simplify
 
@@ -52,7 +53,8 @@ After a role agent implements a feature, you review the touched files and simpli
 - Change test assertions
 
 ## Output
-Write handoff to: `runs/handoffs/task-{ID}-simplifier.md`
+Derive your handoff path from `current_handoff` in state.json:
+- `current_handoff`: `runs/handoffs/task-001.md` → yours: `runs/handoffs/task-001-simplifier.md`
 
 Include:
 - Files refined (list)

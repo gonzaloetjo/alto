@@ -23,6 +23,7 @@ description: Defines the ALTO task/state/handoff protocol and role handoffs for 
   "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
   "current_task_id": "task-001",
   "current_role": "alto-backend",
+  "current_handoff": "runs/handoffs/task-001.md",
   "completed_task_ids": [],
   "last_handoff": null,
   "estimated_tasks": 12,
@@ -31,6 +32,8 @@ description: Defines the ALTO task/state/handoff protocol and role handoffs for 
   "updated_at": "ISO-8601"
 }
 ```
+
+**Note:** When setting `current_task_id`, also set `current_handoff` and pre-create the handoff template.
 
 ### Phase Values
 - `ARCHITECTURE` — orchestrator exploring codebase, designing milestones
@@ -134,13 +137,49 @@ Then Markdown body with:
 
 ## Handoff Format (runs/handoffs/<task_id>.md)
 
-Must include:
+**Required sections** (validated by `handoff-validate` hook):
 
-* Summary
-* Files touched
-* Interfaces/contracts changed
-* How to verify (commands)
-* Next steps / risks
+* `## Summary` — what was done
+* `## Files` / `## Files Touched` — list of modified files
+* `## How to Verify` / `## Verification` — commands to validate
+
+**Optional sections:**
+
+* `## Interfaces` — API/contract changes
+* `## Next Steps` — follow-up work or risks
+
+Handoffs are validated on SubagentStop. Missing required sections block task completion.
+
+### Handoff Template (Pre-created by Orchestrator)
+
+```markdown
+# Handoff: task-001
+
+## Summary
+<!-- What was accomplished -->
+
+## Files Touched
+<!-- List files modified -->
+
+## How to Verify
+<!-- Commands or manual checks -->
+```
+
+Role agents **Edit** this file (don't create from scratch). Path is in `state.json` → `current_handoff`.
+
+### Post-Agent Handoffs
+
+Post-agents (alto-qa, code-simplifier, alto-gitops) write separate files by appending their suffix:
+
+```
+current_handoff: runs/handoffs/task-001.md
+
+alto-qa         → runs/handoffs/task-001-qa.md
+code-simplifier → runs/handoffs/task-001-simplifier.md
+alto-gitops     → runs/handoffs/task-001-gitops.md
+```
+
+Post-agents read `current_handoff` from state.json and derive their path.
 
 ## plan.md Format (Planner Output)
 

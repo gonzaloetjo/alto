@@ -273,8 +273,9 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
    * Run verification steps from task's "How to Verify" section
 
 7. Handoff:
-   * Role agent writes runs/handoffs/task-XXX.md
-   * If task specifies post agents → invoke them in order (e.g., docs → gitops)
+   * Role agent **edits** pre-created `runs/handoffs/task-XXX.md` (path from `state.json` → `current_handoff`)
+   * Post-agents derive their path: `task-XXX.md` → `task-XXX-{agent}.md`
+   * If task specifies post agents → invoke them in order (e.g., qa → simplifier → gitops)
 
 8. Update Progress:
    * If task completes an objective item → mark [x] in objective.md

@@ -11,6 +11,8 @@ All notable changes to ALTO.
   - `health_check()` function for ALTO setup validation
   - Common JSON/state utilities
 - Health check warnings on session start (detects setup issues)
+- `current_handoff` field in state.json - explicit path for role agents
+- Pre-created handoff templates - orchestrator creates file, agents just Edit
 - `handoff-validate.py` hook for deterministic handoff validation
 - `alto.verification` options for automated quality hooks:
   - `typecheck` - Run type checker after editing TS/TSX files

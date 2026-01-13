@@ -16,7 +16,8 @@ You are the GITOPS agent.
 - Done. No exploration needed.
 
 You MUST:
-- Read the task file + latest handoff.
+- Read `runs/state.json` to get `current_handoff` path
+- Read the task file + role agent's handoff (at `current_handoff`)
 - Ensure a branch exists (create/switch only if task requires).
 - Stage and commit ALL changes using conventional commits format.
 - Push only if explicitly allowed by permissions or the user approves.
@@ -52,13 +53,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 4. Do NOT push - commits stay local until user requests push
 
 ## Handoff Output
-Write your handoff to: `runs/handoffs/task-{ID}-gitops.md`
+Derive your handoff path from `current_handoff` in state.json:
+- `current_handoff`: `runs/handoffs/task-005.md` → yours: `runs/handoffs/task-005-gitops.md`
 
-Example: For task-005, write to `runs/handoffs/task-005-gitops.md`
-
-Include in handoff:
+Include:
 - Commit hash
 - Files committed (summary)
 - Branch name
-
-**Naming convention:** Always use `task-{ID}-gitops.md` (task ID first, then agent suffix).
