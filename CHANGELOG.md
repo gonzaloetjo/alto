@@ -24,6 +24,7 @@ All notable changes to ALTO.
 - Refactored alto-feature-setup to use scripts + feature-finder (Issue #10)
 
 ### Fixed
+- `.gitignore` now tracks `.claude/` source files (agents, skills) but ignores `settings.json`
 - jq escaping in `alto-status` script (use separate echo+jq calls)
 
 ### Removed
