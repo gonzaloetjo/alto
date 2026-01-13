@@ -82,10 +82,11 @@ Now the environment activates automatically when you `cd` into the project.
 
 | Script | Purpose |
 |--------|---------|
-| `alto-setup` | First-time project initialization |
+| `alto-setup` | Show setup instructions |
 | `alto-status` | Show current ALTO status |
 | `alto-new-run` | Create new run branch |
 | `alto-clean` | Clean previous run artifacts |
+| `alto-feature` | Start new feature (interactive) |
 
 ## What Gets Deployed
 
@@ -94,7 +95,7 @@ When you enter the environment, ALTO automatically creates:
 ```
 your-project/
 ├── .claude/
-│   ├── agents/          # 12 ALTO agents
+│   ├── agents/          # 13 ALTO agents
 │   ├── hooks/           # 7 tracking hooks
 │   ├── skills/          # Protocol + feature setup skills
 │   └── settings.json    # Permissions + hooks config
@@ -175,6 +176,7 @@ ARCHITECTURE → PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 | `alto-recorder` | Handoff summaries |
 | `alto-reviewer` | Code quality gate |
 | `alto-enforcer` | Protocol compliance |
+| `alto-dev` | ALTO development helper |
 | `code-simplifier` | Code clarity refinement |
 
 ### Task Flow
@@ -191,6 +193,7 @@ ARCHITECTURE → PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 **Protocol skills** (always included):
 - `alto-protocol` - State machine, task/handoff formats
 - `alto-feature-setup` - Interactive feature setup
+- `alto-dev-guide` - ALTO development reference (devenv, Claude Code docs)
 
 **Domain skills** (opt-in via `includeSpawnerSkills = true`):
 - api-design, database-migrations, postgres-wizard, python-backend, queue-workers
