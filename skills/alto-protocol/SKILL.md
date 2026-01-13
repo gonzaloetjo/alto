@@ -1,6 +1,12 @@
 ---
 name: alto-protocol
-description: Defines the ALTO task/state/handoff protocol and role handoffs for Claude Code subagents.
+type: reference
+triggers:
+  - working with runs/state.json
+  - creating runs/handoffs/*.md
+  - reading runs/tasks/*.md
+  - writing runs/plan.md
+  - checking runs/milestones.md format
 ---
 
 # ALTO Protocol

@@ -1,6 +1,15 @@
+---
+name: alto-feature-setup
+type: technique
+triggers:
+  - running /alto-feature-setup
+  - updating objective.md for new feature
+  - running alto-new-run
+---
+
 # ALTO Feature Setup
 
-Interactive skill for starting a new feature. Invoked with `/alto-feature-setup`.
+Interactive skill for starting a new feature.
 
 ## Flow
 

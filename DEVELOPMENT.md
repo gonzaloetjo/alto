@@ -70,6 +70,31 @@ claude.code.hooks.<name> = {
 
 Hook scripts receive JSON on stdin, print to stdout (for SessionStart context).
 
+### Skill Schema
+
+Skills use YAML frontmatter with structured fields:
+
+```yaml
+---
+name: skill-name
+type: discipline | technique | reference
+triggers:
+  - editing path/to/file.md
+  - running /command-name
+---
+```
+
+| Field | Purpose |
+|-------|---------|
+| `type` | `discipline` (rules), `technique` (how-to), `reference` (lookup) |
+| `triggers` | Concrete file paths or commands (NOT workflow summaries) |
+
+**Word limits by type:** discipline <300, technique <500, reference <800
+
+**Validation:** `hooks/skill-validate.py` checks on Write/Edit to `skills/*/SKILL.md`.
+
+See `.claude/skills/writing-alto-skills/SKILL.md` for full schema documentation.
+
 ## Testing Changes
 
 **WARNING:** Do NOT run `devenv shell` in the ALTO repo itself. It creates consumer agents in `.claude/` that conflict with tracked dev agents.
@@ -152,12 +177,6 @@ In `''` strings:
 - `'''` → `''` (escape quotes)
 - `\n` → literal `\n` (not newline) - use actual newlines
 
-## Open Issues
+## Issues
 
-See [GitHub Issues](https://github.com/gonzaloetjo/alto/issues):
-
-**Open:**
-- #6 Lite mode for simple projects
-- #8 Document ALTO vs native Claude Code tools
-
-**Closed:** #2, #3, #4, #5, #7, #9
+See [GitHub Issues](https://github.com/gonzaloetjo/alto/issues) or run `gh issue list`.
