@@ -76,6 +76,11 @@ def main():
     objective_path = project_dir / "objective.md"
     if not objective_path.exists():
         objective_path.write_text(OBJECTIVE_TEMPLATE, encoding="utf-8")
+        objective_is_template = True
+    else:
+        # Check if it's still just a template (has placeholder markers)
+        content = objective_path.read_text(encoding="utf-8")
+        objective_is_template = "[Feature Name]" in content or "<!-- Describe" in content
 
     # Load ALTO state
     state = load_json(runs / "state.json")
@@ -106,8 +111,11 @@ def main():
             context_parts.append("- Phase is BLOCKED - see `runs/notes.md` for details")
         context_parts.append("")
 
-    # 2. Minimal state summary (one line) - only if protocol is active
-    if state.get("protocol") == "alto-v1":
+    # 2. Minimal state summary (one line)
+    if objective_is_template:
+        context_parts.append("[ALTO: NEW_PROJECT - objective.md needs setup]")
+        context_parts.append("")
+    elif state.get("protocol") == "alto-v1":
         task_info = f", task={state['current_task_id']}" if state.get("current_task_id") else ""
         role_info = f", role={state['current_role']}" if state.get("current_role") else ""
         context_parts.append(f"[ALTO: phase={phase}{task_info}{role_info}, completed={len(completed)}]")

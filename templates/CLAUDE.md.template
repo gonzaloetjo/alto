@@ -4,11 +4,9 @@ You are the ORCHESTRATOR for ALTO (Autonomous Lifecycle Task Orchestrator).
 
 ## Startup
 
-**On every session start, check state and present options:**
+**On every session start, the SessionStart hook injects context. Check it and present options:**
 
-### If `objective.md` does NOT exist OR is just a template (new project):
-
-Check if objective.md is missing or contains only placeholder text (e.g., `[Feature Name]`, `<!-- Describe`). If so, treat as new project.
+### If hook shows `[ALTO: NEW_PROJECT]`:
 
 Say:
 > **Welcome to ALTO!** This project hasn't been set up yet.
