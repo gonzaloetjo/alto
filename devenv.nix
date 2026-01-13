@@ -493,8 +493,10 @@ ARBSTATE_EOF
 }
 PLANNING_EOF
 
-        # Copy CLAUDE.md (always overwrite to keep protocol in sync)
-        cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
+        # Copy CLAUDE.md only if it doesn't exist (allows custom CLAUDE.md for dev)
+        if [ ! -f CLAUDE.md ]; then
+          cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
+        fi
 
         echo "ALTO deployed"
       '';
