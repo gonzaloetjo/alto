@@ -40,9 +40,52 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 
 ## Testing
 
+**WARNING:** Do NOT run `devenv shell` in the ALTO repo itself. It creates consumer agents in `.claude/` that conflict with tracked dev agents.
+
+### Quick syntax checks (no devenv needed)
+
 ```bash
-# Fresh install test
-mkdir /tmp/test && cd /tmp/test
+# Nix syntax
+nix-instantiate --parse devenv.nix > /dev/null && echo "OK"
+
+# Python syntax
+python3 -m py_compile hooks/*.py && echo "OK"
+```
+
+### Local integration test (separate directory)
+
+```bash
+# Create test directory
+mkdir -p /tmp/alto-test && cd /tmp/alto-test
+git init
+
+# Create devenv.yaml pointing to local ALTO
+cat > devenv.yaml << 'EOF'
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  alto:
+    url: path:/home/genge/dev-ash/foundry-nodevenv/cholitas/alto-2
+    flake: false
+EOF
+
+# Create devenv.nix importing local module
+cat > devenv.nix << 'EOF'
+{ pkgs, lib, inputs, ... }:
+{
+  imports = [ "${inputs.alto}/devenv.nix" ];
+  alto.enable = true;
+}
+EOF
+
+# Test
+devenv shell -- alto-status
+```
+
+### Fresh install test (from GitHub)
+
+```bash
+mkdir -p /tmp/alto-fresh && cd /tmp/alto-fresh
 nix flake init -t github:gonzaloetjo/alto --refresh
 devenv shell
 ```
