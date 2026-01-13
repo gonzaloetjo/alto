@@ -25,7 +25,7 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 | `hooks/*.py` | Hook implementations |
 | `skills/*/SKILL.md` | Skill content |
 | `templates/CLAUDE.md.template` | Orchestrator protocol (for consumer projects) |
-| `docs/DEVELOPMENT.md` | Development guide |
+| `DEVELOPMENT.md` | Development guide |
 | `CHANGELOG.md` | Recent changes |
 | `ARCHITECTURE.md` | Design documentation |
 
@@ -33,7 +33,7 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 
 1. **Check issues** - `gh issue list` for open work
 2. **Use alto-dev** - For implementation tasks
-3. **Test changes** - See docs/DEVELOPMENT.md for workflows
+3. **Test changes** - See DEVELOPMENT.md for workflows
 4. **Commit** - Conventional commits, no co-author line
 
 **Note:** The `session-summary` hook automatically reminds about CHANGELOG when key files are modified without updating it.
@@ -92,12 +92,12 @@ devenv shell
 
 ## Session End
 
-Before ending a session, create `docs/session-YYYY-MM-DD.md` with:
+Before ending a session, create `docs/dev/session-YYYY-MM-DD.md` with:
 - Issues closed (with commits and savings)
 - Remaining issues
 - Key decisions made
 
-See `docs/session-2026-01-13.md` for example format.
+See `docs/dev/session-2026-01-13.md` for example format.
 
 ## Open Issues
 

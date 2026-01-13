@@ -55,7 +55,7 @@ All notable changes to ALTO.
   - Follows AGENTS.md best practice: scannable, actionable, concise
   - Protocol Files table restored with all 9 referenced files
   - Skill reference made explicit with file path for fast lookup
-- Added `docs/template-comparison.md` documenting behavior analysis
+- Added `docs/dev/template-comparison.md` documenting behavior analysis
 - Agent permission modes updated for principle of least privilege:
   - `alto-arbiter`, `alto-feature-finder`, `alto-reviewer` now use `plan` mode (read-only)
   - `alto-gitops` uses `default` mode (prompts for each git operation)

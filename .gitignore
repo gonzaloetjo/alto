@@ -27,3 +27,6 @@ Untitled-*
 # Pre-commit
 .pre-commit-config.yaml
 __pycache__/
+
+# Internal dev docs (session notes, analysis)
+docs/dev/

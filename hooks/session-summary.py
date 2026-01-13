@@ -105,7 +105,7 @@ def check_changelog_reminder(files_modified: list[str]) -> list[str]:
             "",
             "**Consider updating:**",
             "- `CHANGELOG.md` (if user-facing change)",
-            "- `docs/session-*.md` (if closing issues)",
+            "- `docs/dev/session-*.md` (if closing issues)",
             "",
         ]
 
