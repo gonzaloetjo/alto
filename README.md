@@ -11,10 +11,6 @@
 
 ## Quick Start
 
-### Native devenv (Recommended)
-
-No `flake.nix` needed - uses devenv's native import system:
-
 ```bash
 # Initialize ALTO in your project
 nix flake init -t github:gonzaloetjo/alto
@@ -22,18 +18,10 @@ nix flake init -t github:gonzaloetjo/alto
 # Enter the dev shell
 devenv shell
 
-# ALTO: Deploying Claude Code configuration...
-# ALTO: Ready. Start Claude Code and say 'continue' or '/alto-feature-setup' to begin.
-
+# Start Claude Code
 claude
 > continue
 ```
-
-That's it. Two commands.
-
-The template creates:
-- `devenv.yaml` with `flake: false` import
-- `devenv.nix` with `alto.enable = true`
 
 ## What Gets Deployed
 
@@ -55,16 +43,13 @@ your-project/
 └── CLAUDE.md            # Orchestrator protocol
 ```
 
-The **devenv MCP server** is automatically configured, allowing Claude to search packages and understand devenv configurations.
-
 ## Configuration Options
 
-In your `devenv.nix` (ALTO is imported via `devenv.yaml`):
+In your `devenv.nix`:
 
 ```nix
 { pkgs, ... }:
 {
-  # ALTO is imported via devenv.yaml imports, just enable it
   alto = {
     enable = true;
 
@@ -129,23 +114,6 @@ PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 4. **Enforcer** checks protocol compliance (can reject)
 5. **Post agents** (recorder, gitops) finalize
 6. **Arbiter** runs between tasks if thresholds hit → may BLOCK
-
-## Using with Flakes (Advanced)
-
-For existing flake projects, import `alto.devenvModules.default`:
-
-```nix
-# In flake.nix
-devShells.${system}.default = devenv.lib.mkShell {
-  inherit inputs pkgs;
-  modules = [
-    inputs.alto.devenvModules.default
-    { alto.enable = true; }
-  ];
-};
-```
-
-Note: Native devenv (above) is recommended over flakes for better performance and caching.
 
 ## Skills
 
