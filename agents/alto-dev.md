@@ -48,7 +48,12 @@ alto/
 
 ## When Unsure
 
-Fetch the authoritative docs:
+**Devenv MCP** - Use the devenv MCP server (always available) to:
+- Search for packages and options
+- Understand devenv configuration syntax
+- Generate valid configurations
+
+**Fetch authoritative docs** with WebFetch:
 - Devenv: `https://devenv.sh/reference/options/`
 - Claude Code hooks: `https://code.claude.com/docs/en/hooks`
 - Claude Code agents: `https://code.claude.com/docs/en/sub-agents`

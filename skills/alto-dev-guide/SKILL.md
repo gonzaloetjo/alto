@@ -4,6 +4,21 @@ Reference for developing ALTO. Use URLs for authoritative docs, summaries for qu
 
 ---
 
+## Devenv MCP (always available)
+
+ALTO configures the devenv MCP server automatically. Use it for:
+
+- **Package search** - Find packages and their configuration options
+- **Config understanding** - Understand devenv syntax and patterns
+- **Config generation** - Generate valid devenv configurations
+
+The MCP is available as `devenv` server. Use MCP tools to query it when you need:
+- What packages are available for a language/tool
+- How to configure a specific service
+- Valid options for a devenv setting
+
+---
+
 ## Documentation Sources
 
 ### Devenv (authoritative)
