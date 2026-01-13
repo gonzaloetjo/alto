@@ -15,6 +15,7 @@ All notable changes to ALTO.
 - Devenv MCP server configured for package search and config generation
 
 ### Changed
+- Redesigned README for clarity: centered header, highlights section, collapsible config, horizontal dividers
 - Renamed `devenv-module.nix` to `devenv.nix` for native devenv pattern
 - Converted `enterShell` to `tasks."alto:deploy"` for cleaner deployment
 - Simplified `alto-setup` script (hook handles objective.md creation)
