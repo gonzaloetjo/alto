@@ -19,26 +19,64 @@ nix flake init -t github:gonzaloetjo/alto
 
 # Enter the dev shell
 devenv shell
-
-# First-time setup (creates objective.md)
-alto-setup
-
-# Start Claude Code and describe what you want to build
-claude
+# Or keep your shell: devenv shell -- zsh
+# Or with fish:       devenv shell -- fish
 ```
 
-### New Feature (existing project)
+Then start Claude Code:
 
 ```bash
-devenv shell
-
-# Check current status
-alto-status
-
-# Start feature setup (interactive)
 claude
-> /alto-feature-setup
 ```
+
+ALTO detects it's a new project and asks:
+
+```
+Welcome to ALTO! This project hasn't been set up yet.
+
+What would you like to do?
+○ Set up project
+○ Explain ALTO
+```
+
+Select "Set up project" and describe what you want to build.
+
+### Existing Project
+
+```bash
+cd my-project
+devenv shell  # or: devenv shell -- zsh
+
+claude
+```
+
+ALTO detects the state and asks:
+
+```
+Ready to start. I see your objective.md.
+
+What would you like to do?
+○ Start building
+○ New feature
+○ Show status
+```
+
+If work is in progress, it resumes automatically.
+
+### Using direnv (optional)
+
+If you prefer automatic environment activation:
+
+```bash
+# Install direnv: https://direnv.net/docs/installation.html
+# Add to your shell rc file (e.g. ~/.zshrc):
+#   eval "$(direnv hook zsh)"
+
+# Then in your project:
+direnv allow
+```
+
+Now the environment activates automatically when you `cd` into the project.
 
 ### Available Scripts
 
@@ -51,14 +89,14 @@ claude
 
 ## What Gets Deployed
 
-When you enter the shell, ALTO automatically creates:
+When you enter the environment, ALTO automatically creates:
 
 ```
 your-project/
 ├── .claude/
-│   ├── agents/          # 11 ALTO agents
+│   ├── agents/          # 12 ALTO agents
 │   ├── hooks/           # 7 tracking hooks
-│   ├── skills/          # Protocol + optional domain skills
+│   ├── skills/          # Protocol + feature setup skills
 │   └── settings.json    # Permissions + hooks config
 ├── .mcp.json            # MCP servers (includes devenv MCP)
 ├── runs/
@@ -88,6 +126,12 @@ In your `devenv.nix`:
       taskCheckpointInterval = 3;       # Checkpoint every N tasks
     };
 
+    # Planning configuration
+    planning = {
+      requireApproval = true;           # Gate architecture with user approval
+      replanStrategy = "auto";          # auto, fixed, or none
+    };
+
     # Permission settings for Claude Code
     permissions = {
       defaultMode = "bypassPermissions";  # or "askEveryTime", "allowEdits"
@@ -111,41 +155,42 @@ In your `devenv.nix`:
 ### State Machine
 
 ```
-PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
-              ↓
-           BLOCKED (human review required)
+ARCHITECTURE → PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
+                              ↓
+                           BLOCKED (human review required)
 ```
 
 ### Agents
 
-| Agent | Role | Model |
-|-------|------|-------|
-| `alto-planner` | Generate plan and tasks | opus |
-| `alto-arbiter` | Human review gates | opus |
-| `alto-backend` | Backend implementation | sonnet |
-| `alto-frontend` | Frontend implementation | opus |
-| `alto-qa` | Testing and fixes | sonnet |
-| `alto-docs` | Documentation | sonnet |
-| `alto-gitops` | Git commits | haiku |
-| `alto-recorder` | Handoff summaries | haiku |
-| `alto-reviewer` | Code quality gate | opus |
-| `alto-enforcer` | Protocol compliance | sonnet |
-| `code-simplifier` | Code clarity refinement | opus |
+| Agent | Role |
+|-------|------|
+| `alto-planner` | Generate tasks from milestones |
+| `alto-feature-finder` | Analyze codebase, identify features |
+| `alto-arbiter` | Human review gates |
+| `alto-backend` | Backend implementation |
+| `alto-frontend` | Frontend implementation |
+| `alto-qa` | Testing and fixes |
+| `alto-docs` | Documentation |
+| `alto-gitops` | Git commits |
+| `alto-recorder` | Handoff summaries |
+| `alto-reviewer` | Code quality gate |
+| `alto-enforcer` | Protocol compliance |
+| `code-simplifier` | Code clarity refinement |
 
 ### Task Flow
 
-1. **Planner** creates task files from `objective.md`
-2. **Role agent** (backend/frontend/qa) implements
-3. **Reviewer** checks code quality (can reject)
-4. **Enforcer** checks protocol compliance (can reject)
-5. **Post agents** (recorder, gitops) finalize
-6. **Arbiter** runs between tasks if thresholds hit → may BLOCK
+1. **Architecture** - Orchestrator explores codebase, creates milestones
+2. **Planning** - Planner creates task files from milestones
+3. **Execution** - Role agents implement tasks
+4. **Review** - Reviewer + Enforcer validate
+5. **Handoff** - Recorder + GitOps finalize
+6. **Arbiter** - Checks thresholds, may BLOCK for human review
 
 ## Skills
 
 **Protocol skills** (always included):
 - `alto-protocol` - State machine, task/handoff formats
-- `alto-feature-setup` - Interactive feature setup checklist
+- `alto-feature-setup` - Interactive feature setup
 
 **Domain skills** (opt-in via `includeSpawnerSkills = true`):
 - api-design, database-migrations, postgres-wizard, python-backend, queue-workers
