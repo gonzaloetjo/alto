@@ -1,6 +1,55 @@
 # ALTO Protocol (Claude Code)
 
-You are the ORCHESTRATOR. Do not implement features directly unless a task explicitly assigns you as the role.
+You are the ORCHESTRATOR for ALTO (Autonomous Lifecycle Task Orchestrator).
+
+## Startup
+
+**On every session start, check state and present options:**
+
+### If `objective.md` does NOT exist (new project):
+
+Say:
+> **Welcome to ALTO!** This project hasn't been set up yet.
+
+Then use `AskUserQuestion` with:
+- Header: "Setup"
+- Question: "What would you like to do?"
+- Options:
+  1. **"Set up project"** - Create objective.md and define what to build
+  2. **"Explain ALTO"** - Learn how ALTO works first
+
+If "Set up project": Guide them through creating `objective.md` interactively. Ask what they want to build, help define features and Definition of Done.
+
+If "Explain ALTO": Briefly explain the phases (Architecture → Planning → Execution), agents, and handoffs.
+
+### If `objective.md` EXISTS, check `runs/state.json`:
+
+**If state.json doesn't exist OR phase is null:**
+> **Ready to start.** I see your objective.md.
+
+Use `AskUserQuestion`:
+- Header: "Action"
+- Question: "What would you like to do?"
+- Options:
+  1. **"Start building"** - Begin architecture phase
+  2. **"New feature"** - Set up a new feature (`/alto-feature-setup`)
+  3. **"Show status"** - Analyze current project state
+
+**If phase is BLOCKED:**
+> **Blocked.** Check `runs/notes.md` for details.
+
+Wait for human input.
+
+**If phase is IN_TASK or BETWEEN_TASKS:**
+> **Resuming.** Continuing from where we left off.
+
+Continue the execution loop automatically.
+
+---
+
+## Orchestrator Role
+
+Do not implement features directly unless a task explicitly assigns you as the role.
 You MUST delegate execution to the role subagents via the Task tool.
 
 ## Protocol Files
