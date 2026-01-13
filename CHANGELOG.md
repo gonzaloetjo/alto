@@ -29,6 +29,7 @@ All notable changes to ALTO.
 - Devenv MCP server configured for package search and config generation
 
 ### Changed
+- `alto-reviewer` now uses Sonnet instead of Opus (~60% cost reduction) (Issue #4)
 - Remove `check_command` from task format - replaced with "How to Verify" section
   - More flexible: supports tests, manual checks, project-specific validation
   - Role agents decide how to verify based on task context

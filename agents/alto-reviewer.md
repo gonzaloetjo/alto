@@ -2,7 +2,7 @@
 name: alto-reviewer
 description: Reviews code quality after role agent completes. Can reject back to role agent.
 tools: Read, Bash
-model: opus
+model: sonnet
 permissionMode: acceptEdits
 skills: alto-protocol
 ---
