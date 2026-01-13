@@ -1,7 +1,6 @@
-{ inputs, pkgs, ... }:
+{ pkgs, ... }:
 {
-  imports = [ inputs.alto.devenvModules.default ];
-
+  # ALTO is imported via devenv.yaml imports, just enable it
   alto.enable = true;
 
   # Uncomment to include domain skills (api-design, frontend, etc.)

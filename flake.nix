@@ -12,15 +12,42 @@
     in
     {
       # Main export: devenv module for consumer projects
-      # Usage: imports = [ inputs.alto.devenvModules.default ];
-      devenvModules.default = ./devenv-module.nix;
-      devenvModules.alto = ./devenv-module.nix;
+      #
+      # Usage patterns:
+      # 1. Native devenv (recommended):
+      #    devenv.yaml: inputs.alto.url = github:cachix/alto, flake: false
+      #    devenv.yaml: imports: [alto]
+      #
+      # 2. Flakes:
+      #    modules = [ inputs.alto.devenvModules.default ];
+      #
+      # 3. Flake-parts:
+      #    devenv.shells.default.imports = [ inputs.alto.devenvModules.default ];
+      devenvModules.default = ./devenv.nix;
+      devenvModules.alto = ./devenv.nix;
 
-      # Flake template for quick project setup
-      # Usage: nix flake init -t github:gonzaloetjo/alto
-      templates.default = {
-        path = ./templates/default;
-        description = "ALTO - Claude Code multi-agent orchestration with human review gates";
+      # Templates for quick project setup
+      templates = {
+        # Native devenv (recommended) - no flake.nix needed
+        # Usage: nix flake init -t github:gonzaloetjo/alto
+        default = {
+          path = ./templates/default;
+          description = "ALTO with native devenv (recommended - no flake.nix needed)";
+        };
+
+        # Flakes pattern - for projects already using flakes
+        # Usage: nix flake init -t github:gonzaloetjo/alto#flakes
+        flakes = {
+          path = ./templates/flakes;
+          description = "ALTO with Nix flakes pattern";
+        };
+
+        # Flake-parts pattern - for flake-parts users
+        # Usage: nix flake init -t github:gonzaloetjo/alto#flake-parts
+        flake-parts = {
+          path = ./templates/flake-parts;
+          description = "ALTO with flake-parts pattern";
+        };
       };
 
       # Dev shell for working on ALTO itself (not for consumers)
