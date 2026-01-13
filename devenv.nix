@@ -142,50 +142,16 @@ in
 
     # ALTO scripts
     scripts = {
-      # First-time project setup
+      # First-time project setup info
       alto-setup = {
         exec = ''
           echo "ALTO Setup"
           echo "=========="
           echo ""
-
-          # Check if already initialized
-          if [ -f objective.md ]; then
-            echo "Project already initialized (objective.md exists)."
-            echo "Use 'alto-feature' to start a new feature."
-            exit 0
-          fi
-
-          # Create objective.md template
-          cat > objective.md << 'OBJECTIVE_EOF'
-# Project Objective
-
-## Overview
-<!-- Describe what this project does -->
-
-## Feature 1: [Feature Name]
-
-### Goal
-<!-- What should this feature accomplish? -->
-
-### Requirements
-- 1.1 [Requirement]
-- 1.2 [Requirement]
-
-### Definition of Done
-- [ ] [Criteria]
-- [ ] [Criteria]
-- [ ] `make check` passes (or equivalent)
-
-OBJECTIVE_EOF
-
-          echo "Created objective.md"
-          echo ""
-          echo "Next steps:"
-          echo "1. Run 'claude' to set up your project interactively"
-          echo "2. ALTO will guide you through defining your objectives"
+          echo "Run 'claude' to start."
+          echo "ALTO will create objective.md and guide you through setup."
         '';
-        description = "Initialize ALTO for a new project";
+        description = "Show ALTO setup instructions";
       };
 
       # Start a new feature (interactive, runs in Claude)

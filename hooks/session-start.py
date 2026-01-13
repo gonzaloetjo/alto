@@ -46,10 +46,36 @@ def get_git_branch(cwd: Path) -> str:
         return ""
 
 
+OBJECTIVE_TEMPLATE = """# Project Objective
+
+## Overview
+<!-- Describe what this project does -->
+
+## Feature 1: [Feature Name]
+
+### Goal
+<!-- What should this feature accomplish? -->
+
+### Requirements
+- 1.1 [Requirement]
+- 1.2 [Requirement]
+
+### Definition of Done
+- [ ] [Criteria]
+- [ ] [Criteria]
+- [ ] `make check` passes (or equivalent)
+"""
+
+
 def main():
     hook = json.load(sys.stdin)
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
     runs = project_dir / "runs"
+
+    # Create objective.md template if missing
+    objective_path = project_dir / "objective.md"
+    if not objective_path.exists():
+        objective_path.write_text(OBJECTIVE_TEMPLATE, encoding="utf-8")
 
     # Load ALTO state
     state = load_json(runs / "state.json")
