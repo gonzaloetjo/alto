@@ -96,10 +96,8 @@ in
     };
 
     # Per-agent permission configuration
-    # NOTE: permissionMode support requires devenv PR (pending)
-    # Currently, permissionMode is set in agent frontmatter (agents/*.md)
-    # Per-agent Bash restrictions are documented in agent prompts
-    # These options serve as documentation until devenv supports permissionMode
+    # Each agent has: permissionMode, tools, and optional Bash restrictions
+    # permissionMode: plan (read-only), acceptEdits (auto-approve edits), default (prompts)
     agentPermissions = {
       # Planner - creates tasks, no bash needed
       alto-planner = lib.mkOption {
@@ -488,16 +486,29 @@ STATE_EOF
     # Enable Claude Code integration
     claude.code.enable = true;
 
-    # Permissions via native devenv options (per-tool structure)
-    # NOTE: devenv currently only supports allow/deny, not ask tier
-    # The ask tier requires settings.json direct write (pending devenv enhancement)
+    # Permissions via native devenv options
+    # Three tiers: allow (auto-approve), ask (prompt), deny (block)
     claude.code.permissions = {
-      Bash = {
-        allow = map (cmd: "${cmd}:*") cfg.permissions.allowBash;
-        deny = map (cmd: "${cmd}:*") cfg.permissions.denyBash;
-      };
-      Read = {
-        deny = cfg.permissions.denyRead;
+      # Global permission mode based on profile
+      defaultMode = {
+        autonomous = "acceptEdits";
+        supervised = "default";
+        locked = "plan";
+      }.${cfg.permissions.profile};
+
+      # Prevent dangerous bypass mode in supervised/locked profiles
+      disableBypassPermissionsMode = cfg.permissions.profile != "autonomous";
+
+      # Per-tool permission rules
+      rules = {
+        Bash = {
+          allow = map (cmd: "${cmd}:*") cfg.permissions.allowBash;
+          ask = map (cmd: "${cmd}:*") cfg.permissions.askBash;
+          deny = map (cmd: "${cmd}:*") cfg.permissions.denyBash;
+        };
+        Read = {
+          deny = cfg.permissions.denyRead;
+        };
       };
     };
 
@@ -605,65 +616,69 @@ STATE_EOF
       };
     };
 
-    # Agents
+    # Agents with per-agent permissionMode from agentPermissions config
     claude.code.agents = {
       alto-planner = {
         description = "Creates task files from milestones. Use after architecture phase to generate next batch of tasks.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
+        tools = cfg.agentPermissions.alto-planner.tools;
         model = cfg.planning.plannerModel;
+        permissionMode = cfg.agentPermissions.alto-planner.permissionMode;
         prompt = readAgentPrompt "alto-planner";
       };
       alto-feature-finder = {
         description = "Analyzes codebase and objective.md to identify features and suggest next steps. Use when starting a new feature.";
-        tools = [ "Read" "Grep" "Glob" "LS" ];
+        tools = cfg.agentPermissions.alto-feature-finder.tools;
         model = "opus";
-        # permissionMode: "plan" (read-only analysis, via frontmatter)
+        permissionMode = cfg.agentPermissions.alto-feature-finder.permissionMode;
         prompt = readAgentPrompt "alto-feature-finder";
       };
       alto-backend = {
         description = "Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+        tools = cfg.agentPermissions.alto-backend.tools;
         model = "opus";
+        permissionMode = cfg.agentPermissions.alto-backend.permissionMode;
         prompt = readAgentPrompt "alto-backend";
       };
       alto-frontend = {
         description = "Implements frontend tasks only. Use for UI, charts, client state, and frontend build tooling.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+        tools = cfg.agentPermissions.alto-frontend.tools;
         model = "opus";
+        permissionMode = cfg.agentPermissions.alto-frontend.permissionMode;
         prompt = readAgentPrompt "alto-frontend";
       };
       alto-qa = {
         description = "Writes tests for implementations and fixes failures. Runs after role agents to ensure test coverage.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" "Bash" ];
+        tools = cfg.agentPermissions.alto-qa.tools;
         model = "opus";
+        permissionMode = cfg.agentPermissions.alto-qa.permissionMode;
         prompt = readAgentPrompt "alto-qa";
       };
       alto-docs = {
         description = "Writes implementation documentation for readers. Updates docs/ based on plan structure.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
+        tools = cfg.agentPermissions.alto-docs.tools;
         model = "opus";
+        permissionMode = cfg.agentPermissions.alto-docs.permissionMode;
         prompt = readAgentPrompt "alto-docs";
       };
       alto-gitops = {
         description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
-        tools = [ "Read" "Grep" "Glob" "LS" "Bash" ];
+        tools = cfg.agentPermissions.alto-gitops.tools;
         model = "opus";
-        # permissionMode: "default" (via frontmatter in agents/alto-gitops.md)
-        # Per-agent Bash: allow git reads, ask for git writes, deny force operations
+        permissionMode = cfg.agentPermissions.alto-gitops.permissionMode;
         prompt = readAgentPrompt "alto-gitops";
       };
       alto-reviewer = {
         description = "Reviews code quality after role agent completes. Can reject back to role agent.";
-        tools = [ "Read" "Grep" "Glob" "LS" ];
+        tools = cfg.agentPermissions.alto-reviewer.tools;
         model = "sonnet";
-        # permissionMode: "plan" (read-only review, via frontmatter)
+        permissionMode = cfg.agentPermissions.alto-reviewer.permissionMode;
         prompt = readAgentPrompt "alto-reviewer";
       };
       alto-arbiter = {
         description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";
-        tools = [ "Read" "Grep" "Glob" ];
+        tools = cfg.agentPermissions.alto-arbiter.tools;
         model = "opus";
-        # permissionMode: "plan" (read-only analysis, via frontmatter)
+        permissionMode = cfg.agentPermissions.alto-arbiter.permissionMode;
         prompt = readAgentPrompt "alto-arbiter";
       };
     };

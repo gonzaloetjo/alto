@@ -5,16 +5,18 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
-- Three-tier permission system with `allow`, `ask`, and `deny` tiers:
+- Three-tier permission system via devenv's Claude Code integration:
   - `permissions.profile` option: autonomous, supervised, or locked
-  - `permissions.allowBash` - commands that auto-approve (ls, cat, grep, etc.)
+  - `permissions.allowBash` - commands auto-approved (ls, cat, grep, etc.)
   - `permissions.askBash` - commands that prompt user (git, npm, docker)
   - `permissions.denyBash` - commands always blocked (rm -rf, sudo, git push -f)
   - `permissions.denyRead` - sensitive file patterns (.env, secrets/**, *.pem)
+- Global permission settings from profile:
+  - `defaultMode` - autonomous=acceptEdits, supervised=default, locked=plan
+  - `disableBypassPermissionsMode` - enabled for supervised/locked profiles
 - Per-agent permission configuration via `agentPermissions` options:
   - `permissionMode` per agent (plan, acceptEdits, default, dontAsk, bypassPermissions)
-  - Per-agent tool restrictions and Bash command tiers
-  - NOTE: Full support pending devenv PR for permissionMode in agents
+  - Per-agent tool restrictions from config
 - `hook_utils.py` module with shared utilities for all hooks (Issue #5):
   - `@safe_hook` decorator for graceful error handling
   - Errors logged to `runs/errors.jsonl` instead of crashing
