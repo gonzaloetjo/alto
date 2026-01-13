@@ -99,9 +99,8 @@ Before ending a session, create `docs/dev/session-YYYY-MM-DD.md` with:
 
 See `docs/dev/session-2026-01-13.md` for example format.
 
-## Open Issues
+## Issues
 
-- #6 Lite mode
-- #8 Document ALTO vs native tools
+See [github.com/gonzaloetjo/alto/issues](https://github.com/gonzaloetjo/alto/issues) for open issues.
 
-**Closed:** #2, #3, #4, #5, #7, #9
+Run `gh issue list` to check from CLI.
