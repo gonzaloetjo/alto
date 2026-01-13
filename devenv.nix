@@ -410,7 +410,7 @@ STATE_EOF
       };
       alto-dev = {
         description = "ALTO development helper. Knows devenv patterns, Claude Code integration, and testing workflows. Use when working on ALTO itself.";
-        tools = [ "Read" "Grep" "Glob" "Edit" "Bash" "WebFetch" ];
+        tools = [ "Read" "Write" "Grep" "Glob" "Edit" "Bash" "WebFetch" ];
         model = "opus";
         prompt = readAgentPrompt "alto-dev";
       };
