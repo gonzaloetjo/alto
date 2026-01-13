@@ -104,6 +104,47 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 
 ---
 
+## Devenv Scripts
+
+ALTO provides shell scripts for common operations:
+
+| Script | Purpose |
+|--------|---------|
+| `alto-setup` | First-time project initialization (creates objective.md) |
+| `alto-status` | Show current phase, branch, completed tasks |
+| `alto-new-run` | Create new run branch, reset state to ARCHITECTURE |
+| `alto-clean` | Clean previous run artifacts (tasks, pending.json) |
+| `alto-feature` | Quick guide for starting a new feature |
+
+Usage:
+```bash
+devenv shell
+alto-setup      # New project
+alto-status     # Check state
+alto-new-run    # Start new feature run
+```
+
+---
+
+## Interactive Startup
+
+When Claude Code starts, ALTO detects state and presents options:
+
+**New project (no objective.md):**
+- "Set up project" → Guide through objective.md creation
+- "Explain ALTO" → Overview of how ALTO works
+
+**Existing project (ready to start):**
+- "Start building" → Begin architecture phase
+- "New feature" → Run `/alto-feature-setup`
+- "Show status" → Analyze project state
+
+**In progress:** Resumes automatically from last state.
+
+**Blocked:** Waits for human input, shows `runs/notes.md`.
+
+---
+
 ## Claude Code Integration
 
 ALTO is built on Claude Code features:
@@ -129,7 +170,8 @@ objective.md                 # Project goals and requirements
 docs/                        # Implementation docs (alto-docs writes here)
 
 agents/
-├── alto-planner.md          # Generates plan + tasks
+├── alto-planner.md          # Generates task files from milestones
+├── alto-feature-finder.md   # Analyzes codebase, identifies next features
 ├── alto-backend.md          # Backend implementation
 ├── alto-frontend.md         # Frontend implementation
 ├── alto-recorder.md         # Records task changes in handoffs
@@ -150,8 +192,10 @@ hooks/
 └── session-summary.py       # Session summary generation (SessionEnd)
 
 skills/
-└── alto-protocol/
-    └── SKILL.md             # Protocol definition (task/state/handoff formats)
+├── alto-protocol/
+│   └── SKILL.md             # Protocol definition (task/state/handoff formats)
+└── alto-feature-setup/
+    └── SKILL.md             # Interactive feature setup guide (/alto-feature-setup)
 
 .claude/
 └── settings.json            # Project-wide permissions + hooks config
@@ -260,6 +304,7 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | Agent | Primary responsibility | Typical constraints |
 |-------|-------------------------|---------------------|
 | `alto-planner` | Create task files from milestones | edits **runs/** only; no Bash |
+| `alto-feature-finder` | Analyze codebase, identify next features | read-only |
 | `alto-backend` | API, DB schema, worker logic | obey `allowed_paths`; run checks |
 | `alto-frontend` | Dashboard UI, charts, client state | obey `allowed_paths`; run checks |
 | `alto-recorder` | Record task changes in handoffs | **runs/handoffs/** only |
@@ -279,6 +324,7 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 |-------|-------|-----------|
 | `alto-arbiter` | **opus** | Critical judgment - decides if run should stop |
 | `alto-planner` | **opus** (configurable) | Task decomposition from milestones |
+| `alto-feature-finder` | **opus** | Codebase analysis and feature identification |
 | `alto-reviewer` | **opus** | Quality judgment - validates code and tests |
 | `alto-frontend` | **opus** | Complex UI implementation requiring design judgment |
 | `code-simplifier` | **opus** | Code quality refinement requiring judgment |
