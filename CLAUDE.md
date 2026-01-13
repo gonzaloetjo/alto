@@ -36,6 +36,8 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 3. **Test changes** - See docs/DEVELOPMENT.md for workflows
 4. **Commit** - Include `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
 
+**Note:** The `session-summary` hook automatically reminds about CHANGELOG when key files are modified without updating it.
+
 ## Testing
 
 ```bash
@@ -56,11 +58,7 @@ See `docs/session-2026-01-13.md` for example format.
 
 ## Open Issues
 
-- #4 Simplify alto-reviewer
-- #5 Hook error handling
 - #6 Lite mode
-- #7 Handoff validation
 - #8 Document ALTO vs native tools
-- #9 Branch cleanup
 
-**Closed:** #2 (enforcer), #3 (recorder)
+**Closed:** #2, #3, #4, #5, #7, #9

@@ -16,9 +16,11 @@ You analyze the project to understand what exists and what's next.
 ## When Invoked
 
 1. **Read objective.md** to understand planned features
-2. **Scan codebase** to see what's implemented
-3. **Check runs/handoffs/** for completed work
-4. **Identify gaps** between planned and implemented
+2. **Read runs/notes.md** for follow-ups, tech debt, blockers from previous runs
+3. **Check runs/handoffs/** for completed work context
+4. **Check runs/decisions.md** (if exists) for architectural trade-offs made
+5. **Scan codebase** to see what's implemented
+6. **Identify gaps** between planned and implemented
 
 ## Output Format
 
@@ -34,9 +36,13 @@ Provide a summary:
 ### Current Feature (if in progress)
 - Feature 3: [description] - in progress, X/Y tasks done
 
+### Follow-ups from Previous Runs
+- [tech debt, ideas, improvements noted in runs/notes.md]
+- [blockers that were encountered]
+
 ### Suggested Next Feature
 - Feature N: [description]
-- Rationale: [why this should be next]
+- Rationale: [why this should be next, considering follow-ups]
 
 ### Codebase Summary
 - Languages: [detected]

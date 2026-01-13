@@ -17,7 +17,9 @@ All notable changes to ALTO.
   - Debug mode (`phase = "DEBUG"`) for testing before merge
   - Next Feature mode with `alto-clean` + `alto-new-run` scripts
   - Handoffs preserved across runs for context continuity
-  - Follow-up TODO discussion before transition
+- `alto-status` now shows remaining tasks and `>>> FEATURE COMPLETE <<<` indicator
+- `alto-feature-finder` reads `runs/notes.md` for follow-ups from previous runs
+- `session-summary` hook now reminds about CHANGELOG when key files modified without it
 - `handoff-validate.py` hook for deterministic handoff validation
 - `alto.verification` options for automated quality hooks:
   - `typecheck` - Run type checker after editing TS/TSX files
@@ -58,6 +60,14 @@ All notable changes to ALTO.
 - CLAUDE.md startup now reads hook's `[ALTO: NEW_PROJECT]` signal
 - Split architect and planner responsibilities (Issue #1)
 - Refactored alto-feature-setup to use scripts + feature-finder (Issue #10)
+- CLAUDE.md template audit (10 issues fixed):
+  - Boot now uses `alto-new-run` script instead of manual git
+  - Resume table includes COMPLETED and DEBUG phases
+  - Removed "phase is null" condition (state.json always exists)
+  - Feature completion uses `alto-status` for exit condition
+  - Simplified Feature Completion (follow-up analysis moved to feature-finder)
+  - Removed "New feature" from startup options
+  - Feature Completion is now separate section, not part of execution loop
 
 ### Fixed
 - `.gitignore` now tracks `.claude/` source files (agents, skills) but ignores `settings.json`

@@ -24,7 +24,7 @@ If "Explain ALTO": Briefly explain the phases (Architecture → Planning → Exe
 
 ### If `objective.md` has real content, check `runs/state.json`:
 
-**If state.json doesn't exist OR phase is null:**
+**If state.json doesn't exist:**
 > **Ready to start.** I see your objective.md.
 
 Use `AskUserQuestion`:
@@ -32,8 +32,7 @@ Use `AskUserQuestion`:
 - Question: "What would you like to do?"
 - Options:
   1. **"Start building"** - Begin architecture phase
-  2. **"New feature"** - Set up a new feature (`/alto-feature-setup`)
-  3. **"Show status"** - Analyze current project state
+  2. **"Show status"** - Analyze current project state
 
 **If phase is BLOCKED:**
 > **Blocked.** Check `runs/notes.md` for details.
@@ -80,6 +79,7 @@ You MUST delegate execution to the role subagents via the Task tool.
   "last_handoff": null,
   "estimated_tasks": null,
   "replan_every": null,
+  "needs_architect": false,
   "updated_at": "ISO-8601"
 }
 ```
@@ -98,14 +98,13 @@ You MUST delegate execution to the role subagents via the Task tool.
 
 ## Boot (New Run)
 
-If `runs/state.json` does not exist OR `phase` is null:
+If `runs/state.json` does not exist:
 
 ### 1) Create Run Branch
-If on main/master:
+If on main/master, run:
 ```bash
-git checkout -b run/<NNN>  # next sequential number
+alto-new-run  # Creates run/<NNN> branch, initializes state.json
 ```
-Record branch in `runs/state.json`.
 
 ### 2) Architecture Phase
 
@@ -154,6 +153,8 @@ If `runs/state.json` exists, check `phase`:
 | `BETWEEN_TASKS` | Check for replan, then proceed to execution loop |
 | `IN_TASK` | Resume current task with role agent |
 | `BLOCKED` | STOP — wait for human input, check `runs/notes.md` |
+| `COMPLETED` | Show Debug/Next Feature options (see Feature Completion) |
+| `DEBUG` | Continue debug mode — wait for human input or "done" |
 
 ## Execution Loop
 
@@ -166,7 +167,7 @@ If `runs/arbiter/pending.json` exists:
 - Handle: INFO → continue, WARNING → log + continue, BLOCK → stop
 
 ### 2) Check Replan
-If `replan_every` is set and `len(completed_task_ids) % replan_every == 0` and there are more milestones:
+If `replan_every` is set and `len(completed_task_ids) > 0` and `len(completed_task_ids) % replan_every == 0` and there are more milestones:
 - Set `phase = "PLANNING"`
 - Invoke `alto-planner` to create next batch
 - Update state, continue
@@ -202,19 +203,17 @@ If task completes an objective item:
 
 ### 7) Advance State
 - Add task to `completed_task_ids`
-- Set `phase = "BETWEEN_TASKS"`
-- Go to step 1
+- Run `alto-status` to check remaining tasks
+- If `>>> FEATURE COMPLETE <<<` shown → exit loop, go to Feature Completion section
+- Otherwise → set `phase = "BETWEEN_TASKS"`, go to step 1
 
-### 8) Feature Completion
-When all milestones are done and no more tasks remain:
+---
 
-1. **Summarize run** — what was built, files changed, key decisions
-2. **Identify follow-ups** — architect + planner discuss:
-   - New features that emerged during implementation
-   - Technical debt created
-   - Improvements for next iteration
-3. **Record TODOs** — write to `runs/notes.md` or create GitHub issues
-4. **Set phase** — `phase = "COMPLETED"`
+## Feature Completion
+
+When `alto-status` shows feature complete (0 remaining tasks):
+
+1. **Set phase** — `phase = "COMPLETED"`
 
 Use `AskUserQuestion`:
 - Header: "Feature Complete"

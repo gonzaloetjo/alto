@@ -71,6 +71,47 @@ def extract_files_modified(actions: list[dict]) -> list[str]:
     return sorted(files)
 
 
+def check_changelog_reminder(files_modified: list[str]) -> list[str]:
+    """Check if key files were modified without CHANGELOG update.
+
+    Returns reminder lines if documentation may need updating.
+    """
+    # Key file patterns that should trigger CHANGELOG reminder
+    key_patterns = [
+        "templates/CLAUDE.md",
+        "devenv.nix",
+        "agents/",
+        "hooks/",
+        "skills/",
+        "ARCHITECTURE.md",
+    ]
+
+    changelog_modified = any("CHANGELOG.md" in f for f in files_modified)
+    key_files_modified = []
+
+    for f in files_modified:
+        for pattern in key_patterns:
+            if pattern in f:
+                key_files_modified.append(f)
+                break
+
+    if key_files_modified and not changelog_modified:
+        return [
+            "## Documentation Reminder",
+            "",
+            "Key files were modified without CHANGELOG update:",
+            "",
+        ] + [f"- `{f}`" for f in key_files_modified[:5]] + [
+            "",
+            "**Consider updating:**",
+            "- `CHANGELOG.md` (if user-facing change)",
+            "- `docs/session-*.md` (if closing issues)",
+            "",
+        ]
+
+    return []
+
+
 def format_actions_summary(actions: list[dict]) -> str:
     """Format recent actions as readable summary."""
     lines = []
@@ -241,6 +282,11 @@ def main():
             f"Check `runs/tools/usage.jsonl` for details.",
             f"",
         ])
+
+    # Check for CHANGELOG reminder
+    changelog_reminder = check_changelog_reminder(files_modified)
+    if changelog_reminder:
+        summary_lines.extend(changelog_reminder)
 
     # Write summary
     sessions_dir = runs / "sessions"
