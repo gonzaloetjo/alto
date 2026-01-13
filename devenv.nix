@@ -277,7 +277,10 @@ STATE_EOF
 
           echo "ALTO Status"
           echo "==========="
-          jq -r '"Branch: \(.run_branch // \"none\")\nPhase: \(.phase // \"none\")\nCurrent Task: \(.current_task_id // \"none\")\nCompleted: \(.completed_task_ids | length) tasks"' "$RUNS_DIR/state.json"
+          echo "Branch: $(jq -r '.run_branch // "none"' "$RUNS_DIR/state.json")"
+          echo "Phase: $(jq -r '.phase // "none"' "$RUNS_DIR/state.json")"
+          echo "Current Task: $(jq -r '.current_task_id // "none"' "$RUNS_DIR/state.json")"
+          echo "Completed: $(jq -r '.completed_task_ids | length' "$RUNS_DIR/state.json") tasks"
 
           echo ""
           echo "Recent handoffs:"
