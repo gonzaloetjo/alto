@@ -13,6 +13,11 @@ All notable changes to ALTO.
 - Health check warnings on session start (detects setup issues)
 - `current_handoff` field in state.json - explicit path for role agents
 - Pre-created handoff templates - orchestrator creates file, agents just Edit
+- Branch lifecycle documentation (Issue #9):
+  - Debug mode (`phase = "DEBUG"`) for testing before merge
+  - Next Feature mode with `alto-clean` + `alto-new-run` scripts
+  - Handoffs preserved across runs for context continuity
+  - Follow-up TODO discussion before transition
 - `handoff-validate.py` hook for deterministic handoff validation
 - `alto.verification` options for automated quality hooks:
   - `typecheck` - Run type checker after editing TS/TSX files

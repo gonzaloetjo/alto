@@ -20,7 +20,7 @@ description: Defines the ALTO task/state/handoff protocol and role handoffs for 
 {
   "protocol": "alto-v1",
   "run_branch": "run/001",
-  "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
+  "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED | COMPLETED | DEBUG",
   "current_task_id": "task-001",
   "current_role": "alto-backend",
   "current_handoff": "runs/handoffs/task-001.md",
@@ -41,6 +41,8 @@ description: Defines the ALTO task/state/handoff protocol and role handoffs for 
 - `IN_TASK` — role agent executing a task
 - `BETWEEN_TASKS` — task complete, checking for replan or next task
 - `BLOCKED` — human review required
+- `COMPLETED` — all tasks done, awaiting human decision (debug or next feature)
+- `DEBUG` — human testing, fixing issues before merge
 
 ## runs/planning-config.json Schema
 

@@ -72,7 +72,7 @@ You MUST delegate execution to the role subagents via the Task tool.
 {
   "protocol": "alto-v1",
   "run_branch": "run/001",
-  "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED",
+  "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED | COMPLETED | DEBUG",
   "current_task_id": "task-001",
   "current_role": "alto-backend",
   "current_handoff": "runs/handoffs/task-001.md",
@@ -93,6 +93,8 @@ You MUST delegate execution to the role subagents via the Task tool.
 | `IN_TASK` | Role agent executing a task |
 | `BETWEEN_TASKS` | Task complete, checking for replan or next task |
 | `BLOCKED` | Human review required |
+| `COMPLETED` | All tasks done, awaiting human decision |
+| `DEBUG` | Human testing, fixing issues before merge |
 
 ## Boot (New Run)
 
@@ -202,6 +204,60 @@ If task completes an objective item:
 - Add task to `completed_task_ids`
 - Set `phase = "BETWEEN_TASKS"`
 - Go to step 1
+
+### 8) Feature Completion
+When all milestones are done and no more tasks remain:
+
+1. **Summarize run** — what was built, files changed, key decisions
+2. **Identify follow-ups** — architect + planner discuss:
+   - New features that emerged during implementation
+   - Technical debt created
+   - Improvements for next iteration
+3. **Record TODOs** — write to `runs/notes.md` or create GitHub issues
+4. **Set phase** — `phase = "COMPLETED"`
+
+Use `AskUserQuestion`:
+- Header: "Feature Complete"
+- Question: "Feature is complete. What would you like to do?"
+- Options:
+  1. **"Debug mode"** — Test and fix issues before merging
+  2. **"Next feature"** — Merge and move on to next feature
+
+#### If "Debug mode":
+1. Set `phase = "DEBUG"`
+2. Stay on current branch
+3. Human tests the site/app/feature
+4. Fix issues directly (native Claude, no task files — fast iteration)
+5. When human says "done" or "ready":
+   - Write debug summary to `runs/notes.md`:
+     ```markdown
+     ## Debug Summary - <date>
+
+     ### Fixes Made
+     - <description> (<file>)
+
+     ### Commits
+     - <hash>: <message>
+     ```
+   - Use `AskUserQuestion` again with same options (Debug or Next Feature)
+
+#### If "Next feature":
+1. **Check merge status** — is run branch merged to main?
+   - If not: prompt human to review and merge (squash recommended)
+   - Wait for confirmation before proceeding
+
+2. **Run cleanup script:**
+   ```bash
+   alto-clean  # Removes tasks, milestones, decisions; keeps handoffs for context
+   ```
+
+3. **Start next run:**
+   ```bash
+   git checkout main && git pull
+   alto-new-run  # Creates run/XXX branch, sets phase=ARCHITECTURE
+   ```
+
+4. **Continue** — state is now ARCHITECTURE phase, proceed to Boot flow
 
 ## Milestones Format
 

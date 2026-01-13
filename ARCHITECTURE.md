@@ -297,6 +297,8 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `IN_TASK` | A role agent is actively executing a task |
 | `BETWEEN_TASKS` | Task completed; arbiter may trigger; replan may occur |
 | `BLOCKED` | Human review required (arbiter decision or repeated failures) |
+| `COMPLETED` | All tasks done, awaiting human decision (debug or next feature) |
+| `DEBUG` | Human testing and fixing issues before merge |
 
 ---
 
@@ -528,3 +530,49 @@ Token usage is captured **out-of-band** (no LLM overhead) via Claude Code hooks:
 * `Stop` and `SubagentStop` trigger `.claude/hooks/usage-record.py`
 * The hook records usage into `runs/usage/usage.jsonl`
 * Records are tagged with the current `task_id` and role via `runs/state.json`
+
+---
+
+## Branch Lifecycle
+
+ALTO creates `run/XXX` branches for each feature run. These accumulate and need periodic cleanup.
+
+### Branch Strategy
+
+| Branch | Purpose | Merge |
+|--------|---------|-------|
+| `main` | Stable code | Human decision |
+| `run/001` | Feature run | Squash merge when complete |
+| `run/002` | Next feature | Same |
+
+### Cleanup (Human Task)
+
+Branch cleanup is a **human decision**, not automated:
+- **Merge** — human decides when a run is ready for main (squash merge recommended)
+- **Delete** — after merging, human deletes the run branch
+- **Abandon** — human can force-delete incomplete runs
+
+### Feature Completion Transition
+
+When all tasks complete, orchestrator sets `phase = "COMPLETED"` and uses `AskUserQuestion` to offer:
+
+1. **Debug mode** — test and fix issues before merging
+2. **Next feature** — merge and move on
+
+#### Debug Mode (`phase = "DEBUG"`)
+- Stay on run branch
+- Human tests site/app/feature
+- Fix issues directly (native Claude, no task files — fast iteration)
+- When done → write debug summary to `runs/notes.md`, then ask same options again
+
+#### Next Feature Mode
+1. Check merge status (prompt human to merge if needed, wait for confirmation)
+2. Run `alto-clean` (removes tasks, milestones, decisions; **keeps handoffs** for context)
+3. Run `git checkout main && git pull && alto-new-run`
+   - `alto-new-run` creates `run/XXX` branch and sets `phase = "ARCHITECTURE"`
+4. Continue to Boot flow (now in ARCHITECTURE phase)
+
+**Before transitioning**, architect + planner capture follow-ups:
+- New features identified during implementation
+- Technical debt created
+- Record in `runs/notes.md` or GitHub issues
