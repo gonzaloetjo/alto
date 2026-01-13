@@ -338,6 +338,10 @@ STATE_EOF
         hookType = "SubagentStop";
         command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
       };
+      handoff-validate-subagent = {
+        hookType = "SubagentStop";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-validate.py";
+      };
     };
 
     # Agents
@@ -395,12 +399,6 @@ STATE_EOF
         tools = [ "Read" "Bash" ];
         model = "opus";
         prompt = readAgentPrompt "alto-reviewer";
-      };
-      alto-enforcer = {
-        description = "Enforces ALTO protocol compliance. Checks handoffs, file locations, state updates.";
-        tools = [ "Read" ];
-        model = "opus";
-        prompt = readAgentPrompt "alto-enforcer";
       };
       alto-arbiter = {
         description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";

@@ -5,6 +5,7 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- `handoff-validate.py` hook for deterministic handoff validation (replaces alto-enforcer)
 - `alto-dev` agent for ALTO development with Write, Edit, Bash, WebFetch
 - `alto-dev-guide` skill with comprehensive documentation references
 - `alto-feature-finder` agent for codebase analysis when starting features
@@ -30,6 +31,10 @@ All notable changes to ALTO.
 ### Removed
 - Flake-parts templates (native devenv only now)
 - Redundant flake.nix template options
+- `alto-enforcer` agent - replaced by `handoff-validate.py` hook (Issue #2)
+  - ~5-10s → ~50ms per task (no LLM call)
+  - Zero token cost for validation
+  - Deterministic checks (no hallucination risk)
 
 ## [0.1.0] - 2026-01-12
 

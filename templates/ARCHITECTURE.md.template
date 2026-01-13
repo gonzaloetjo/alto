@@ -93,7 +93,6 @@ PLANNING → IN_TASK → BETWEEN_TASKS → (repeat or COMPLETE)
 | `alto-gitops` | Git commits | haiku |
 | `alto-recorder` | Handoff summaries | haiku |
 | `alto-reviewer` | Code review | sonnet |
-| `alto-enforcer` | Protocol compliance | sonnet |
 
 ### Directory Layout
 

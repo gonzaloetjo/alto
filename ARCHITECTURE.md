@@ -179,7 +179,6 @@ agents/
 ├── alto-gitops.md           # Branch/commit/push hygiene
 ├── alto-qa.md               # Check/fix loop
 ├── alto-reviewer.md         # Code quality gate (automatic)
-├── alto-enforcer.md         # Protocol compliance gate (automatic)
 ├── alto-arbiter.md          # Periodic checkpoint auditor
 ├── alto-dev.md              # ALTO development helper (meta)
 └── code-simplifier.md       # Code clarity refinement (post-agent)
@@ -190,7 +189,8 @@ hooks/
 ├── permission-record.py     # Permission request logging (PermissionRequest)
 ├── arbiter-scheduler.py     # Triggers arbiter on thresholds (Stop/SubagentStop)
 ├── session-start.py         # Session initialization (SessionStart)
-└── session-summary.py       # Session summary generation (SessionEnd)
+├── session-summary.py       # Session summary generation (SessionEnd)
+└── handoff-validate.py      # Handoff validation (SubagentStop, replaces alto-enforcer)
 
 skills/
 ├── alto-protocol/
@@ -313,7 +313,6 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `alto-qa` | Run checks, diagnose failures, minimal fixes | smallest-diff fixes |
 | `alto-gitops` | Branch/commit/push workflow | commit after checks pass |
 | `alto-reviewer` | Code quality gate (auto after role) | read-only; can reject |
-| `alto-enforcer` | Protocol compliance gate (auto after reviewer) | read-only; can reject |
 | `alto-arbiter` | Periodic checkpoint auditor | edits **runs/arbiter/** only |
 | `alto-dev` | ALTO development helper (meta) | full access for ALTO repo work |
 | `code-simplifier` | Refine code for clarity (post-agent) | edits files touched by role agent |
@@ -333,7 +332,6 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `alto-backend` | sonnet | Complex implementation work |
 | `alto-qa` | sonnet | Debugging and test fixes |
 | `alto-docs` | sonnet | Quality documentation for readers |
-| `alto-enforcer` | sonnet | Rule-based protocol checks |
 | `alto-recorder` | haiku | Simple summarization |
 | `alto-gitops` | haiku | Simple git commands |
 
