@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
+
+# ALTO dog-fooding: use ALTO to develop ALTO
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+
+imports:
+  - ./devenv.nix        # The ALTO module
+  - ./devenv.local.nix  # Enable it locally
