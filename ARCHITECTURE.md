@@ -181,6 +181,7 @@ agents/
 ├── alto-reviewer.md         # Code quality gate (automatic)
 ├── alto-enforcer.md         # Protocol compliance gate (automatic)
 ├── alto-arbiter.md          # Periodic checkpoint auditor
+├── alto-dev.md              # ALTO development helper (meta)
 └── code-simplifier.md       # Code clarity refinement (post-agent)
 
 hooks/
@@ -314,6 +315,7 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `alto-reviewer` | Code quality gate (auto after role) | read-only; can reject |
 | `alto-enforcer` | Protocol compliance gate (auto after reviewer) | read-only; can reject |
 | `alto-arbiter` | Periodic checkpoint auditor | edits **runs/arbiter/** only |
+| `alto-dev` | ALTO development helper (meta) | full access for ALTO repo work |
 | `code-simplifier` | Refine code for clarity (post-agent) | edits files touched by role agent |
 
 ---

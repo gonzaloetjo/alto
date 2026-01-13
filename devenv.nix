@@ -408,6 +408,12 @@ STATE_EOF
         model = "opus";
         prompt = readAgentPrompt "alto-arbiter";
       };
+      alto-dev = {
+        description = "ALTO development helper. Knows devenv patterns, Claude Code integration, and testing workflows. Use when working on ALTO itself.";
+        tools = [ "Read" "Grep" "Glob" "Edit" "Bash" "WebFetch" ];
+        model = "opus";
+        prompt = readAgentPrompt "alto-dev";
+      };
     };
 
     # Deploy ALTO files using tasks (runs before shell entry, skips if up-to-date)
