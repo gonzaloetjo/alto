@@ -34,7 +34,7 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 1. **Check issues** - `gh issue list` for open work
 2. **Use alto-dev** - For implementation tasks
 3. **Test changes** - See docs/DEVELOPMENT.md for workflows
-4. **Commit** - Include `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
+4. **Commit** - Conventional commits, no co-author line
 
 **Note:** The `session-summary` hook automatically reminds about CHANGELOG when key files are modified without updating it.
 
