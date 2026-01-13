@@ -48,6 +48,14 @@ All notable changes to ALTO.
 - Devenv MCP server configured for package search and config generation
 
 ### Changed
+- CLAUDE.md.template trimmed from 302 to 186 lines (38% reduction):
+  - Converted prose to bullet points
+  - Tables instead of verbose explanations
+  - Keeps critical sections explicit (AskUserQuestion, debug summary, state updates)
+  - Follows AGENTS.md best practice: scannable, actionable, concise
+  - Protocol Files table restored with all 9 referenced files
+  - Skill reference made explicit with file path for fast lookup
+- Added `docs/template-comparison.md` documenting behavior analysis
 - Agent permission modes updated for principle of least privilege:
   - `alto-arbiter`, `alto-feature-finder`, `alto-reviewer` now use `plan` mode (read-only)
   - `alto-gitops` uses `default` mode (prompts for each git operation)

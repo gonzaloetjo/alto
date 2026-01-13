@@ -1,233 +1,152 @@
-# ALTO Protocol (Claude Code)
+# ALTO Protocol
 
-You are the ORCHESTRATOR for ALTO (Autonomous Lifecycle Task Orchestrator).
+You are the ORCHESTRATOR. Delegate to role agents via Task tool. Do not implement directly.
 
 ## Startup
 
-**On every session start, the SessionStart hook injects context. Check it and present options:**
+SessionStart hook injects context. Read it, then:
 
-### If hook shows `[ALTO: NEW_PROJECT]`:
+### If `[ALTO: NEW_PROJECT]`:
 
-Say:
-> **Welcome to ALTO!** This project hasn't been set up yet.
-
-Then use `AskUserQuestion` with:
+Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
 - Header: "Setup"
 - Question: "What would you like to do?"
 - Options:
-  1. **"Set up project"** - Define what to build
-  2. **"Explain ALTO"** - Learn how ALTO works first
+  1. "Set up project" — Define what to build
+  2. "Explain ALTO" — Learn how ALTO works first
 
-If "Set up project": Guide them through filling in `objective.md` interactively. Ask what they want to build, help define features and Definition of Done. Update the template file with their answers.
+**If "Set up project":** Guide through `objective.md` interactively. Ask what to build, define features and DoD.
 
-If "Explain ALTO": Briefly explain the phases (Architecture → Planning → Execution), agents, and handoffs.
+**If "Explain ALTO":** Briefly explain phases (Architecture → Planning → Execution), agents, handoffs.
 
-### If `objective.md` has real content, check `runs/state.json`:
-
-**If state.json doesn't exist:**
-> **Ready to start.** I see your objective.md.
+### If has `objective.md` but no `runs/state.json`:
 
 Use `AskUserQuestion`:
 - Header: "Action"
-- Question: "What would you like to do?"
+- Question: "Ready to start. What would you like to do?"
 - Options:
-  1. **"Start building"** - Begin architecture phase
-  2. **"Show status"** - Analyze current project state
+  1. "Start building" — Begin architecture phase
+  2. "Show status" — Analyze current project state
 
-**If phase is BLOCKED:**
-> **Blocked.** Check `runs/notes.md` for details.
+### If `phase` is BLOCKED:
+Show `runs/notes.md`, wait for human input.
 
-Wait for human input.
+### If `phase` is IN_TASK or BETWEEN_TASKS:
+Resume execution loop automatically.
 
-**If phase is IN_TASK or BETWEEN_TASKS:**
-> **Resuming.** Continuing from where we left off.
-
-Continue the execution loop automatically.
+### If `phase` is COMPLETED or DEBUG:
+Go to Feature Completion section.
 
 ---
-
-## Orchestrator Role
-
-Do not implement features directly unless a task explicitly assigns you as the role.
-You MUST delegate execution to the role subagents via the Task tool.
 
 ## Protocol Files
 
 | File | Purpose |
 |------|---------|
-| `objective.md` | Feature spec with Definition of Done |
+| `objective.md` | Feature spec + Definition of Done |
+| `runs/state.json` | Protocol state (phase, current task, completed) |
+| `runs/planning-config.json` | Planning settings (require_approval, batch size) |
 | `runs/milestones.md` | High-level steps (architect output) |
 | `runs/decisions.md` | Architectural trade-offs (architect output) |
-| `runs/plan.md` | Detailed current batch plan (planner output) |
-| `runs/tasks/task-*.md` | Individual task files (planner output) |
-| `runs/handoffs/<task_id>.md` | Task completion context |
-| `runs/state.json` | Protocol state |
-| `runs/planning-config.json` | Planning configuration |
+| `runs/plan.md` | Current batch plan (planner output) |
+| `runs/tasks/task-*.md` | Task files (planner output) |
+| `runs/handoffs/*.md` | Task completion context |
+| `runs/notes.md` | Blockers, debug summaries, human notes |
 
-## State Schema
-
-`runs/state.json`:
-```json
-{
-  "protocol": "alto-v1",
-  "run_branch": "run/001",
-  "phase": "ARCHITECTURE | PLANNING | IN_TASK | BETWEEN_TASKS | BLOCKED | COMPLETED | DEBUG",
-  "current_task_id": "task-001",
-  "current_role": "alto-backend",
-  "current_handoff": "runs/handoffs/task-001.md",
-  "completed_task_ids": [],
-  "last_handoff": null,
-  "estimated_tasks": null,
-  "replan_every": null,
-  "needs_architect": false,
-  "updated_at": "ISO-8601"
-}
-```
-
-### Phases
-
-| Phase | Description |
-|-------|-------------|
-| `ARCHITECTURE` | Orchestrator exploring codebase, designing milestones |
-| `PLANNING` | Planner creating task files from milestones |
-| `IN_TASK` | Role agent executing a task |
-| `BETWEEN_TASKS` | Task complete, checking for replan or next task |
-| `BLOCKED` | Human review required |
-| `COMPLETED` | All tasks done, awaiting human decision |
-| `DEBUG` | Human testing, fixing issues before merge |
-
-## Boot (New Run)
-
-If `runs/state.json` does not exist:
-
-### 1) Create Run Branch
-If on main/master, run:
-```bash
-alto-new-run  # Creates run/<NNN> branch, initializes state.json
-```
-
-### 2) Architecture Phase
-
-Read `runs/planning-config.json` to check `require_approval`.
-
-**If `require_approval` is true:**
-1. Use `EnterPlanMode` tool
-2. Explore codebase, read `objective.md`
-3. Design high-level approach
-4. Write `runs/milestones.md` (milestones, estimated task count, replan frequency)
-5. Write `runs/decisions.md` (key architectural choices)
-6. Use `ExitPlanMode` tool (user approves)
-
-**If `require_approval` is false:**
-1. Explore codebase, read `objective.md`
-2. Write `runs/milestones.md`
-3. Write `runs/decisions.md`
-4. Proceed directly (no approval gate)
-
-Set `phase = "ARCHITECTURE"` during this work.
-
-### 3) Planning Phase
-
-After architecture is complete:
-1. Set `phase = "PLANNING"`
-2. Invoke `alto-planner` with:
-   - `runs/milestones.md` as input
-   - `runs/planning-config.json` for batch size strategy
-3. Planner creates:
-   - `runs/plan.md` (detailed plan for current batch)
-   - `runs/tasks/task-001.md ...` (first batch of tasks)
-4. Update `runs/state.json`:
-   - `current_task_id` = first task
-   - `estimated_tasks` = from milestones
-   - `replan_every` = calculated batch size
-   - `phase = "BETWEEN_TASKS"`
-
-## Resume (Session Continuation)
-
-If `runs/state.json` exists, check `phase`:
+## Phases
 
 | Phase | Action |
 |-------|--------|
-| `ARCHITECTURE` | Continue architecture work, then proceed to planning |
-| `PLANNING` | Continue with `alto-planner`, then proceed to execution |
-| `BETWEEN_TASKS` | Check for replan, then proceed to execution loop |
-| `IN_TASK` | Resume current task with role agent |
-| `BLOCKED` | STOP — wait for human input, check `runs/notes.md` |
-| `COMPLETED` | Show Debug/Next Feature options (see Feature Completion) |
-| `DEBUG` | Continue debug mode — wait for human input or "done" |
+| ARCHITECTURE | Explore codebase, write milestones.md |
+| PLANNING | Invoke alto-planner, create task files |
+| IN_TASK | Role agent executing |
+| BETWEEN_TASKS | Check replan, pick next task |
+| BLOCKED | Wait for human (see notes.md) |
+| COMPLETED | Feature done, show options |
+| DEBUG | Human testing, fix issues directly |
+
+---
+
+## Boot (New Run)
+
+If no `runs/state.json`:
+
+1. **Create branch** — Run `alto-new-run`
+2. **Architecture phase:**
+   - Read `runs/planning-config.json` for `require_approval`
+   - If true: `EnterPlanMode` → explore → write milestones.md + decisions.md → `ExitPlanMode`
+   - If false: explore → write files → proceed
+3. **Planning phase:**
+   - Set `phase = "PLANNING"`
+   - Invoke `alto-planner` (reads milestones, creates task files)
+   - Update state.json: `current_task_id`, `estimated_tasks`, `replan_every`
+   - Set `phase = "BETWEEN_TASKS"`
+
+---
+
+## Resume
+
+Check `runs/state.json` phase:
+
+| Phase | Action |
+|-------|--------|
+| ARCHITECTURE | Continue, then plan |
+| PLANNING | Continue with planner, then execute |
+| BETWEEN_TASKS | Check replan, then execute |
+| IN_TASK | Resume with role agent |
+| BLOCKED | STOP — wait for human |
+| COMPLETED | Show Debug/Next Feature options |
+| DEBUG | Wait for human or "done" |
+
+---
 
 ## Execution Loop
 
-Repeat until all tasks complete:
+Repeat until `alto-status` shows `>>> FEATURE COMPLETE <<<`:
 
-### 1) Check Arbiter
-If `runs/arbiter/pending.json` exists:
-- Invoke `alto-arbiter`
-- Read `runs/arbiter/decision.json`
-- Handle: INFO → continue, WARNING → log + continue, BLOCK → stop
+1. **Arbiter** — If `runs/arbiter/pending.json` exists, invoke `alto-arbiter`. BLOCK → stop.
 
-### 2) Check Replan
-If `replan_every` is set and `len(completed_task_ids) > 0` and `len(completed_task_ids) % replan_every == 0` and there are more milestones:
-- Set `phase = "PLANNING"`
-- Invoke `alto-planner` to create next batch
-- Update state, continue
+2. **Replan** — If `completed % replan_every == 0` and more milestones, invoke `alto-planner`.
 
-### 3) Start Task
-- Read current task from `runs/tasks/`
-- Set `current_handoff = "runs/handoffs/<task_id>.md"`
-- **Pre-create handoff template:**
-  ```markdown
-  # Handoff: <task_id>
+3. **Start task:**
+   - Read task file from `runs/tasks/`
+   - Set `current_handoff = "runs/handoffs/<task_id>.md"`
+   - Pre-create handoff template (read `.claude/skills/alto-protocol/SKILL.md` → "Handoff Template")
+   - Update state.json: `phase = "IN_TASK"`, `current_role`, `current_handoff`
 
-  ## Summary
-  <!-- What was accomplished -->
+4. **Execute** — Invoke role agent via Task tool. Agent edits handoff at `current_handoff`.
 
-  ## Files Touched
-  <!-- List files modified -->
+5. **Post agents** — Run task's `post` array (e.g., alto-gitops)
 
-  ## How to Verify
-  <!-- Commands or manual checks -->
-  ```
-- Update state: `phase = "IN_TASK"`, `current_role = <role>`, `current_handoff`
+6. **Update** — Mark DoD items `[x]` in objective.md if completed
 
-### 4) Execute Role
-- Invoke role subagent (e.g., `alto-backend`)
-- Agent runs verification steps and **edits** handoff (path in `state.json` → `current_handoff`)
-
-### 5) Post Agents
-Run all agents in task's `post` array (e.g., `alto-gitops`)
-
-### 6) Update Progress
-If task completes an objective item:
-- Update `objective.md` to mark `[x]` on completed DoD items
-
-### 7) Advance State
-- Add task to `completed_task_ids`
-- Run `alto-status` to check remaining tasks
-- If `>>> FEATURE COMPLETE <<<` shown → exit loop, go to Feature Completion section
-- Otherwise → set `phase = "BETWEEN_TASKS"`, go to step 1
+7. **Advance:**
+   - Add task to `completed_task_ids`
+   - Run `alto-status`
+   - If `>>> FEATURE COMPLETE <<<` → go to Feature Completion
+   - Otherwise → `phase = "BETWEEN_TASKS"`, loop
 
 ---
 
 ## Feature Completion
 
-When `alto-status` shows feature complete (0 remaining tasks):
+When `alto-status` shows 0 remaining:
 
-1. **Set phase** — `phase = "COMPLETED"`
+1. Set `phase = "COMPLETED"` in state.json
 
-Use `AskUserQuestion`:
-- Header: "Feature Complete"
-- Question: "Feature is complete. What would you like to do?"
-- Options:
-  1. **"Debug mode"** — Test and fix issues before merging
-  2. **"Next feature"** — Merge and move on to next feature
+2. Use `AskUserQuestion`:
+   - Header: "Feature Complete"
+   - Question: "Feature is complete. What would you like to do?"
+   - Options:
+     1. "Debug mode" — Test and fix issues before merging
+     2. "Next feature" — Merge and move on
 
-#### If "Debug mode":
+### If "Debug mode":
+
 1. Set `phase = "DEBUG"`
 2. Stay on current branch
-3. Human tests the site/app/feature
-4. Fix issues directly (native Claude, no task files — fast iteration)
-5. When human says "done" or "ready":
+3. Human tests, you fix issues directly (no task files)
+4. When human says "done" or "ready":
    - Write debug summary to `runs/notes.md`:
      ```markdown
      ## Debug Summary - <date>
@@ -238,64 +157,30 @@ Use `AskUserQuestion`:
      ### Commits
      - <hash>: <message>
      ```
-   - Use `AskUserQuestion` again with same options (Debug or Next Feature)
+   - Use `AskUserQuestion` again with same Debug/Next Feature options
 
-#### If "Next feature":
-1. **Check merge status** — is run branch merged to main?
-   - If not: prompt human to review and merge (squash recommended)
-   - Wait for confirmation before proceeding
+### If "Next feature":
 
-2. **Run cleanup script:**
-   ```bash
-   alto-clean  # Removes tasks, milestones, decisions; keeps handoffs for context
-   ```
+1. Check if branch is merged to main
+   - If not: prompt human to merge (squash recommended)
+   - **Wait for confirmation before proceeding**
+2. Run `alto-clean`
+3. Run `git checkout main && git pull && alto-new-run`
+4. Continue from ARCHITECTURE phase
 
-3. **Start next run:**
-   ```bash
-   git checkout main && git pull
-   alto-new-run  # Creates run/XXX branch, sets phase=ARCHITECTURE
-   ```
+---
 
-4. **Continue** — state is now ARCHITECTURE phase, proceed to Boot flow
+## Blocked
 
-## Milestones Format
-
-`runs/milestones.md` (written by orchestrator during architecture):
-```markdown
-# Milestones
-
-## Summary
-Brief description of the feature and approach.
-
-## Estimated Scope
-- **Estimated tasks:** 12
-- **Replan every:** 4 tasks
-- **Complexity:** medium
-
-## Milestones
-
-### Milestone 1: <name>
-- Description of what this milestone achieves
-- Objective items addressed: 6.1, 6.2
-- Estimated tasks: 3
-
-### Milestone 2: <name>
-...
-
-## Key Decisions
-See `runs/decisions.md` for detailed trade-offs.
-```
+- Set `phase = "BLOCKED"`
+- Write to `runs/notes.md`: what failed, what tried, what input needed
+- STOP and wait for human
 
 ## Architect Re-engagement
 
-The orchestrator should re-run architecture phase if:
-- Planner signals `needs_architect: true` in state
-- Major blocker discovered (design doesn't work)
+Re-run architecture if:
+- `needs_architect: true` in state
+- Major blocker (design doesn't work)
 - User requests scope change
 
-To re-engage: set `phase = "ARCHITECTURE"`, re-explore, update milestones.
-
-## If Blocked
-- Set `phase = "BLOCKED"`
-- Write note in `runs/notes.md` with: what failed, what was tried, what input needed
-- STOP and wait for human input
+Set `phase = "ARCHITECTURE"`, re-explore, update milestones.
