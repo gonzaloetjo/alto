@@ -22,12 +22,6 @@ in
   options.alto = {
     enable = lib.mkEnableOption "ALTO (Autonomous Lifecycle Task Orchestrator) for Claude Code";
 
-    devMode = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Development mode - only deploy alto-dev agent and skill, skip consumer orchestrator setup";
-    };
-
     # Arbiter thresholds
     arbiter = {
       enable = lib.mkOption {
@@ -146,8 +140,8 @@ in
     # Ensure python3 and jq are available for hooks
     packages = [ pkgs.python3 pkgs.jq ];
 
-    # ALTO scripts - only in non-devMode (consumer orchestrator)
-    scripts = lib.mkIf (!cfg.devMode) {
+    # ALTO scripts
+    scripts = {
       # First-time project setup info
       alto-setup = {
         exec = ''
@@ -285,8 +279,8 @@ STATE_EOF
       };
     };
 
-    # Hooks - only in non-devMode (consumer orchestrator)
-    claude.code.hooks = lib.mkIf (!cfg.devMode) {
+    # Hooks
+    claude.code.hooks = {
       # SessionStart hook
       session-start = {
         hookType = "SessionStart";
@@ -346,15 +340,8 @@ STATE_EOF
       };
     };
 
-    # Agents - alto-dev always, others only in non-devMode
+    # Agents
     claude.code.agents = {
-      alto-dev = {
-        description = "ALTO development helper. Knows devenv patterns, Claude Code integration, and testing workflows. Use when working on ALTO itself.";
-        tools = [ "Read" "Write" "Grep" "Glob" "Edit" "Bash" "WebFetch" ];
-        model = "opus";
-        prompt = readAgentPrompt "alto-dev";
-      };
-    } // lib.optionalAttrs (!cfg.devMode) {
       alto-planner = {
         description = "Creates task files from milestones. Use after architecture phase to generate next batch of tasks.";
         tools = [ "Read" "Grep" "Glob" "LS" "Edit" ];
@@ -425,14 +412,7 @@ STATE_EOF
 
     # Deploy ALTO files using tasks (runs before shell entry)
     tasks."alto:deploy" = {
-      exec = if cfg.devMode then ''
-        # DevMode: minimal deployment - just alto-dev-guide skill
-        ALTO_SRC="${altoSrc}"
-        mkdir -p .claude/skills
-        cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
-        echo "ALTO devMode deployed (alto-dev-guide only)"
-      '' else ''
-        # Full deployment for consumer projects
+      exec = ''
         ALTO_SRC="${altoSrc}"
         RUNS_DIR="${cfg.runsDir}"
 
@@ -445,7 +425,6 @@ STATE_EOF
         # Copy ALTO protocol skills
         cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
         cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
-        cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
 
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
@@ -507,7 +486,7 @@ ARBSTATE_EOF
 }
 PLANNING_EOF
 
-        # Copy CLAUDE.md only if it doesn't exist (allows custom CLAUDE.md for dev)
+        # Copy CLAUDE.md only if it doesn't exist
         if [ ! -f CLAUDE.md ]; then
           cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
         fi

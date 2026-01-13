@@ -2,6 +2,8 @@
 
 You are developing ALTO itself - a multi-agent orchestration system for Claude Code.
 
+No `devenv shell` needed - just run `claude` directly.
+
 ## On Session Start
 
 Use the `alto-dev` agent for most development tasks. It has:
@@ -13,8 +15,6 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 - Documentation URLs for devenv and Claude Code
 - Quick reference patterns
 - Testing workflows
-
-The **devenv MCP** is available for package search and config help.
 
 ## Key Files
 
