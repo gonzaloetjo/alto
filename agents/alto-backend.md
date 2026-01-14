@@ -22,6 +22,10 @@ Before implementing, review relevant skills in `skills/spawner/`:
 - Task file: `runs/tasks/task-{ID}.md` (passed by orchestrator)
 - Previous handoff: `runs/handoffs/task-{prev-ID}.md` (if referenced)
 
+## Disciplines
+Follow these shared practices:
+- Read `skills/scope-discipline/SKILL.md` — only do what task asks
+
 ## Process
 1. Read the task file completely
 2. Implement according to Definition of Done
