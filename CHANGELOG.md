@@ -46,6 +46,10 @@ All notable changes to ALTO.
 - SessionStart hook detects NEW_PROJECT vs real content, injects status signal
 - Interactive startup flow with AskUserQuestion in CLAUDE.md
 - Devenv MCP server configured for package search and config generation
+- Discipline skills pattern for shared agent practices (Issue #15):
+  - `scope-discipline` skill with warning signs and recovery steps
+  - Agent prompts reference discipline skills via `## Disciplines` section
+  - Reference-based activation (not discovery-based like superpowers)
 
 ### Changed
 - CLAUDE.md.template trimmed from 302 to 186 lines (38% reduction):
