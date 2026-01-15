@@ -6,5 +6,6 @@ inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
 
-imports:
-  - ./devenv.nix
+# Note: devenv.nix is auto-imported by devenv 2.0+
+# imports:
+#   - ./devenv.nix
