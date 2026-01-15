@@ -98,7 +98,7 @@ imports:
   - alto  # References the input name
 ```
 - `flake: false` = use devenv's native import system
-- Consumer's `devenv.nix` can set `alto.enable = true`
+- ALTO activates on import, configure with `alto.orchestrator`
 
 ---
 
@@ -193,16 +193,17 @@ claude.code.permissions = {
 
 | What | Where | Purpose |
 |------|-------|---------|
-| Module options | `devenv.nix` → `options.alto` | All configurable settings |
-| Scripts | `devenv.nix` → `scripts.*` | Shell commands |
-| Deploy task | `devenv.nix` → `tasks."alto:deploy"` | File deployment |
-| Agent configs | `devenv.nix` → `claude.code.agents` | Agent wiring |
-| Hook configs | `devenv.nix` → `claude.code.hooks` | Hook wiring |
+| Module options | `devenv.nix` -> `options.alto` | All configurable settings |
+| Scripts | `devenv.nix` -> `scripts.*` | Shell commands |
+| Deploy task | `devenv.nix` -> `tasks."alto:deploy"` | File deployment |
+| Agent configs | `devenv.nix` -> `claude.code.agents` | Agent wiring |
+| Hook configs | `devenv.nix` -> `claude.code.hooks` | Hook wiring |
 | Agent prompts | `agents/*.md` | Agent behavior |
 | Hook logic | `hooks/*.py` | Hook implementation |
 | Skills | `skills/*/SKILL.md` | Skill content |
 | Setup orchestrator | `templates/CLAUDE.md.setup` | Human-interactive mode |
 | Build orchestrator | `templates/CLAUDE.md.build` | Autonomous mode |
+| Dev orchestrator | `templates/CLAUDE.md.dev` | ALTO development mode |
 | User template | `templates/default/` | `nix flake init` output |
 | Architecture | `ARCHITECTURE.md` | Design docs |
 
@@ -247,7 +248,7 @@ cat .claude/settings.json  # Permissions + hooks
 | Files read-only | Expected - nix store symlinks |
 
 ### Nix String Escaping (`''` strings)
-- `''$` → `$` (escape dollar)
-- `'''` → `''` (escape quotes)
-- `\n` → literal `\n` (not newline)
+- `''$` -> `$` (escape dollar)
+- `'''` -> `''` (escape quotes)
+- `\n` -> literal `\n` (not newline)
 - Use actual newlines for line breaks

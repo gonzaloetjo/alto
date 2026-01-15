@@ -1,6 +1,7 @@
 ---
 tools:
   - Read
+  - Write
   - Grep
   - Glob
   - Edit
@@ -43,6 +44,7 @@ alto/
 ├── templates/
 │   ├── CLAUDE.md.setup     # Setup orchestrator (human-interactive)
 │   ├── CLAUDE.md.build     # Build orchestrator (autonomous)
+│   ├── CLAUDE.md.dev       # Dev orchestrator (ALTO development)
 │   └── default/            # nix flake init template
 └── ARCHITECTURE.md         # Design docs
 ```

@@ -2,8 +2,6 @@
 
 You are developing ALTO itself - a multi-agent orchestration system for Claude Code.
 
-No `devenv shell` needed - just run `claude` directly.
-
 ## On Session Start
 
 Use the `alto-dev` agent for most development tasks. It has:
@@ -26,6 +24,7 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 | `skills/*/SKILL.md` | Skill content |
 | `templates/CLAUDE.md.setup` | Setup orchestrator (human-interactive) |
 | `templates/CLAUDE.md.build` | Build orchestrator (autonomous) |
+| `templates/CLAUDE.md.dev` | Dev orchestrator (this file) |
 | `DEVELOPMENT.md` | Development guide |
 | `CHANGELOG.md` | Recent changes |
 | `ARCHITECTURE.md` | Design documentation |
@@ -35,15 +34,13 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 1. **Check issues** - `gh issue list` for open work
 2. **Use alto-dev** - For implementation tasks
 3. **Test changes** - See DEVELOPMENT.md for workflows
-4. **Commit** - Conventional commits, no co-author line
+4. **Commit** - Conventional commits with co-author line
 
-**Note:** The `session-summary` hook automatically reminds about CHANGELOG when key files are modified without updating it.
+**Note:** The `changelog-check` hook blocks commits without CHANGELOG updates when key files are modified.
 
 ## Testing
 
-**WARNING:** Do NOT run `devenv shell` in the ALTO repo itself. It creates consumer agents in `.claude/` that conflict with tracked dev agents.
-
-### Quick syntax checks (no devenv needed)
+### Quick syntax checks
 
 ```bash
 # Nix syntax
@@ -66,7 +63,7 @@ inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
   alto:
-    url: path:/home/genge/dev-ash/foundry-nodevenv/cholitas/alto-2
+    url: path:/path/to/alto
     flake: false
 EOF
 
@@ -75,7 +72,7 @@ cat > devenv.nix << 'EOF'
 { pkgs, lib, inputs, ... }:
 {
   imports = [ "${inputs.alto}/devenv.nix" ];
-  alto.enable = true;
+  # ALTO active by default
 }
 EOF
 
@@ -97,8 +94,6 @@ Before ending a session, create `docs/dev/session-YYYY-MM-DD.md` with:
 - Issues closed (with commits and savings)
 - Remaining issues
 - Key decisions made
-
-See `docs/dev/session-2026-01-13.md` for example format.
 
 ## Issues
 

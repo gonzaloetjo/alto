@@ -20,18 +20,15 @@ let
 in
 {
   options.alto = {
-    enable = lib.mkEnableOption "ALTO (Autonomous Lifecycle Task Orchestrator) for Claude Code";
-
     # Orchestrator selection
     orchestrator = lib.mkOption {
-      type = lib.types.enum [ "setup" "build" ];
-      default = "build";
+      type = lib.types.enum [ "setup" "build" "dev" ];
+      default = "setup";
       description = ''
         Which orchestrator mode to use:
         - setup: Human-interactive phase. Feature definition, configuration, cleanup, onboarding.
         - build: Autonomous execution. Full protocol: architecture, planning, execution, replan.
-
-        Note: "dev" mode is for ALTO development only and uses the tracked agents/ directory.
+        - dev: ALTO development mode. Single alto-dev agent with dev-guide skill.
       '';
     };
 
@@ -215,6 +212,18 @@ in
         };
         description = "Permission config for alto-arbiter agent";
       };
+
+      # Dev - full permissions for ALTO development
+      alto-dev = lib.mkOption {
+        type = lib.types.attrs;
+        default = {
+          permissionMode = "acceptEdits";
+          tools = [ "Read" "Write" "Grep" "Glob" "Edit" "Bash" "WebFetch" ];
+          allowBash = [ "git" "nix-instantiate" "python3" "gh" ];
+          askBash = [ "devenv" ];
+        };
+        description = "Permission config for alto-dev agent";
+      };
     };
 
     # Include spawner skills
@@ -354,7 +363,7 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = {
     # Ensure python3 and jq are available for hooks
     packages = [ pkgs.python3 pkgs.jq ];
 
@@ -548,17 +557,18 @@ STATE_EOF
             echo "Available orchestrators:"
             echo "  setup  - Human-interactive (feature definition, configuration, cleanup)"
             echo "  build  - Autonomous execution (architecture, planning, execution, replan)"
+            echo "  dev    - ALTO development (single alto-dev agent with dev-guide skill)"
             echo ""
             echo "To switch, update devenv.nix:"
-            echo "  alto.orchestrator = \"setup\";  # or \"build\""
+            echo "  alto.orchestrator = \"setup\";  # or \"build\" or \"dev\""
             echo ""
             echo "Then run: alto-restart"
             exit 0
           fi
 
-          if [ "$TARGET" != "setup" ] && [ "$TARGET" != "build" ]; then
+          if [ "$TARGET" != "setup" ] && [ "$TARGET" != "build" ] && [ "$TARGET" != "dev" ]; then
             echo "Error: Invalid orchestrator '$TARGET'"
-            echo "Valid options: setup, build"
+            echo "Valid options: setup, build, dev"
             exit 1
           fi
 
@@ -622,11 +632,21 @@ STATE_EOF
     };
 
     # Hooks - deployed based on orchestrator selection
-    # Shared hooks are deployed to all orchestrators
-    # Build-specific hooks only deployed when orchestrator == "build"
+    # Shared hooks are deployed to setup/build orchestrators
+    # Dev mode has minimal hooks (just changelog-check)
     claude.code.hooks = lib.mkMerge [
-      # Shared hooks (all orchestrators)
-      {
+      # Dev-only hooks (minimal for ALTO development)
+      (lib.mkIf (cfg.orchestrator == "dev") {
+        # PreToolUse hook for changelog check
+        changelog-check = {
+          hookType = "PreToolUse";
+          matcher = "Bash";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/changelog-check.py";
+        };
+      })
+
+      # Shared hooks (setup and build orchestrators)
+      (lib.mkIf (cfg.orchestrator != "dev") {
         # SessionStart hook
         session-start = {
           hookType = "SessionStart";
@@ -683,7 +703,7 @@ STATE_EOF
           hookType = "SubagentStop";
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
         };
-      }
+      })
 
       # Build-specific hooks (autonomous execution)
       (lib.mkIf (cfg.orchestrator == "build") {
@@ -824,6 +844,17 @@ STATE_EOF
           prompt = readAgentPrompt "alto-arbiter";
         };
       })
+
+      # Dev-specific agents (ALTO development)
+      (lib.mkIf (cfg.orchestrator == "dev") {
+        alto-dev = {
+          description = "ALTO development agent. Full file access, bash, and WebFetch for documentation.";
+          tools = cfg.agentPermissions.alto-dev.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-dev.permissionMode;
+          prompt = readAgentPrompt "alto-dev";
+        };
+      })
     ];
 
     # Deploy ALTO files using tasks (runs before shell entry)
@@ -838,11 +869,19 @@ STATE_EOF
         # Copy hook scripts (referenced by native hook commands)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
-        # Copy shared ALTO skills (all orchestrators)
-        cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
-        cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
-        cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
-        cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
+        # Copy shared ALTO skills (setup and build orchestrators)
+        ${lib.optionalString (cfg.orchestrator != "dev") ''
+          cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
+          cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
+          cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
+          cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
+        ''}
+
+        # Copy dev-specific skills (dev orchestrator only)
+        ${lib.optionalString (cfg.orchestrator == "dev") ''
+          cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
+          cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
+        ''}
 
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
@@ -935,5 +974,8 @@ ORCH_EOF
       # Run before shell entry
       before = [ "devenv:enterShell" ];
     };
+
+    # ALTO repo config - Claude edits this line to switch modes
+    alto.orchestrator = lib.mkDefault "setup";  # "setup" | "build" | "dev"
   };
 }

@@ -38,12 +38,13 @@ ALTO will guide you through setup interactively.
 
 ## How It Works
 
-ALTO has two orchestrator modes:
+ALTO has three orchestrator modes:
 
 | Mode | Purpose |
 |------|---------|
 | **setup** | Human-interactive: feature definition, configuration, cleanup |
 | **build** | Autonomous: architecture → planning → execution → completion |
+| **dev** | ALTO development: single `alto-dev` agent with dev-guide skill |
 
 ```
 SETUP MODE                          BUILD MODE
@@ -89,8 +90,8 @@ your-project/
   alto = {
     enable = true;
 
-    # Orchestrator mode: "setup" (human-interactive) or "build" (autonomous)
-    orchestrator = "build";  # default
+    # Orchestrator mode: "setup", "build", or "dev"
+    orchestrator = "setup";  # default - start here, switch to build when ready
 
     arbiter = {
       maxLinesChanged = 2000;
@@ -127,7 +128,7 @@ your-project/
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `orchestrator` | `"build"` | Mode: `"setup"` (human-interactive) or `"build"` (autonomous) |
+| `orchestrator` | `"setup"` | Mode: `"setup"`, `"build"`, or `"dev"` (ALTO development) |
 | `arbiter.enable` | `true` | Enable human review gates |
 | `arbiter.maxLinesChanged` | `2000` | Block threshold for lines |
 | `arbiter.maxFilesChanged` | `50` | Block threshold for files |
@@ -163,7 +164,7 @@ your-project/
 | Command | Description |
 |---------|-------------|
 | `alto-status` | Show current status (includes orchestrator mode) |
-| `alto-switch` | Show how to switch between setup/build modes |
+| `alto-switch` | Show how to switch between orchestrator modes |
 | `alto-new-run` | Create new run branch |
 | `alto-clean` | Clean run artifacts |
 | `alto-feature` | Start new feature |
@@ -176,7 +177,7 @@ your-project/
 | Agent | Mode | Purpose | Permission Mode |
 |-------|------|---------|-----------------|
 | `alto-planner` | build | Generate tasks from milestones | acceptEdits |
-| `alto-feature-finder` | both | Analyze codebase for next steps | plan (read-only) |
+| `alto-feature-finder` | setup, build | Analyze codebase for next steps | plan (read-only) |
 | `alto-backend` | build | Backend implementation | acceptEdits |
 | `alto-frontend` | build | Frontend implementation | acceptEdits |
 | `alto-qa` | build | Testing and verification config | acceptEdits |
@@ -184,6 +185,7 @@ your-project/
 | `alto-gitops` | build | Git operations | default (prompts) |
 | `alto-reviewer` | build | Code quality review | plan (read-only) |
 | `alto-arbiter` | build | Human review gates | plan (read-only) |
+| `alto-dev` | dev | ALTO development | acceptEdits |
 
 ---
 
@@ -220,14 +222,21 @@ direnv allow
 
 ## Manual Install
 
-Without Nix, copy manually:
+Without Nix, copy manually (based on mode):
 
-1. `agents/` → `.claude/agents/`
+**Setup/Build modes:**
+1. `agents/` → `.claude/agents/` (select agents for mode)
 2. `hooks/` → `.claude/hooks/`
-3. `skills/alto-protocol/`, `skills/alto-feature-setup/`, `skills/alto-configure/` → `.claude/skills/`
-4. `templates/CLAUDE.md.setup` or `templates/CLAUDE.md.build` → `CLAUDE.md` (based on mode)
+3. `skills/alto-protocol/`, `skills/alto-feature-setup/`, `skills/alto-configure/`, `skills/scope-discipline/` → `.claude/skills/`
+4. `templates/CLAUDE.md.setup` or `templates/CLAUDE.md.build` → `CLAUDE.md`
 5. Create `runs/` structure
 6. Create `.claude/settings.json`
+
+**Dev mode:**
+1. `agents/alto-dev.md` → `.claude/agents/`
+2. `hooks/changelog-check.py` → `.claude/hooks/`
+3. `skills/alto-dev-guide/`, `skills/writing-alto-skills/` → `.claude/skills/`
+4. `templates/CLAUDE.md.dev` → `CLAUDE.md`
 
 ---
 

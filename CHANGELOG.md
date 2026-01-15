@@ -5,19 +5,21 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
-- **Two-orchestrator model** (Issue #29):
-  - `alto.orchestrator` option: `"setup"` (human-interactive) or `"build"` (autonomous)
+- **Three-orchestrator model** (Issue #29):
+  - `alto.orchestrator` option: `"setup"` (human-interactive), `"build"` (autonomous), or `"dev"` (ALTO development)
   - **Setup mode**: Feature definition, configuration, cleanup, onboarding
   - **Build mode**: Architecture, planning, execution, replan, arbiter checkpoints
-  - Conditional agent deployment (setup has only `alto-feature-finder`)
-  - Conditional hook deployment (build-only: verify-dynamic, arbiter-scheduler, handoff-validate)
-- `templates/CLAUDE.md.setup` - Setup orchestrator protocol (158 lines)
-- `templates/CLAUDE.md.build` - Build orchestrator protocol (214 lines)
-- `skills/alto-configure/SKILL.md` - Shared configuration procedures for both orchestrators:
-  - Arbiter thresholds configuration
-  - Permissions configuration (devenv.nix changes)
-  - Verification commands configuration
-  - Orchestrator writes JSON files automatically (not user)
+  - **Dev mode**: Single `alto-dev` agent with dev-specific skills and minimal hooks
+  - Conditional agent deployment per mode
+  - Conditional hook deployment per mode (dev has only changelog-check)
+  - Conditional skill deployment per mode (dev has alto-dev-guide, writing-alto-skills)
+- `templates/CLAUDE.md.setup` - Setup orchestrator protocol
+- `templates/CLAUDE.md.build` - Build orchestrator protocol
+- `templates/CLAUDE.md.dev` - Dev orchestrator protocol (ALTO development)
+- `skills/alto-configure/SKILL.md` - Shared configuration procedures (setup/build)
+- `skills/alto-dev-guide/SKILL.md` - Documentation URLs and patterns (dev mode)
+- `skills/writing-alto-skills/SKILL.md` - Skill authoring methodology (dev mode)
+- `agents/alto-dev.md` - ALTO development agent with full access
 - `alto-switch` script to show how to switch between orchestrators
 - `alto-status` now shows current orchestrator mode
 - Reconfiguration option at arbiter checkpoints (build mode)
@@ -29,7 +31,11 @@ All notable changes to ALTO.
 
 ### Changed
 - ARCHITECTURE.md refactored: 819→730 lines, 25→18 sections, consolidated redundant content
-- Removed unified `templates/CLAUDE.md.template` (replaced by setup/build templates)
+- Removed unified `templates/CLAUDE.md.template` (replaced by setup/build/dev templates)
+- Unified ALTO development approach via orchestrator switch (tracked `.claude/` removed)
+- `.gitignore` now ignores entire `.claude/` directory (deployed by devenv)
+- To switch modes: edit `alto.orchestrator = "X"` in devenv.nix, run `alto-restart`
+- Removed `alto.enable` option - ALTO activates on import (no explicit enable needed)
 - Deploy task now removes CLAUDE.md before copying to handle read-only files
 - ARCHITECTURE.md reorganized with Orchestrator Modes section
 - README.md updated with orchestrator mode documentation

@@ -131,7 +131,7 @@ cat > devenv.nix << 'EOF'
 { pkgs, lib, inputs, ... }:
 {
   imports = [ "${inputs.alto}/devenv.nix" ];
-  alto.enable = true;
+  # ALTO active by default, switch modes with: alto.orchestrator = "build";
 }
 EOF
 

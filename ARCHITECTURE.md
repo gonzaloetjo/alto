@@ -37,34 +37,35 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 
 ## Orchestrator Modes
 
-ALTO uses two orchestrator modes, separated by human interaction level:
+ALTO uses three orchestrator modes:
 
-| Mode | Purpose | Agents | Shared Skills |
-|------|---------|--------|---------------|
-| **setup** | Human-interactive phase | `alto-feature-finder` | `alto-configure`, `alto-protocol` |
-| **build** | Autonomous execution | All agents | `alto-configure`, `alto-protocol` |
+| Mode | Purpose | Agents | Skills |
+|------|---------|--------|--------|
+| **setup** | Human-interactive phase | `alto-feature-finder` | `alto-configure`, `alto-protocol`, `alto-feature-setup`, `scope-discipline` |
+| **build** | Autonomous execution | All agents | `alto-configure`, `alto-protocol`, `alto-feature-setup`, `scope-discipline` |
+| **dev** | ALTO development | `alto-dev` | `alto-dev-guide`, `writing-alto-skills` |
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        ALTO ORCHESTRATOR MODES                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│   SETUP MODE                         BUILD MODE                      │
-│   (Human-Interactive)                (Autonomous)                    │
-│                                                                      │
-│   • New project init                 • Architecture exploration      │
-│   • Feature definition               • Task planning (planner)       │
-│   • Configuration                    • Task execution (role agents)  │
-│   • Cleanup between features         • Rolling replan                │
-│   • Onboarding                       • Arbiter checkpoints           │
-│                                                                      │
-│         │                                   │                        │
-│         │ "Start building"                  │ "Next feature"         │
-│         └──────────────────►   ◄────────────┘                        │
-│                                                                      │
-│   Switch: alto.orchestrator = "build"/"setup" + alto-restart         │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          ALTO ORCHESTRATOR MODES                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   SETUP MODE              BUILD MODE                  DEV MODE               │
+│   (Human-Interactive)     (Autonomous)               (Meta)                  │
+│                                                                              │
+│   • Project init          • Architecture             • ALTO development      │
+│   • Feature definition    • Task planning            • Single alto-dev agent │
+│   • Configuration         • Task execution           • Minimal hooks         │
+│   • Cleanup               • Rolling replan           • Dev-specific skills   │
+│   • Onboarding            • Arbiter checkpoints                              │
+│                                                                              │
+│         │                       │                                            │
+│         │ "Start building"      │ "Next feature"                             │
+│         └──────────►   ◄────────┘                                            │
+│                                                                              │
+│   Switch: alto.orchestrator = "setup"/"build"/"dev" + alto-restart           │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Setup Mode (Human-Interactive)
@@ -94,6 +95,16 @@ Handles:
 - In progress: Resumes from last state (`runs/state.json`)
 - Blocked: Waits for human input, shows `runs/notes.md`
 - Completed: Offers debug mode, next feature, or reconfigure
+
+### Dev Mode (Meta)
+
+For developing ALTO itself. Provides:
+- Single `alto-dev` agent with full access
+- `alto-dev-guide` skill with documentation URLs and patterns
+- `writing-alto-skills` skill for skill authoring
+- Minimal hooks (just `changelog-check`)
+
+To switch to dev mode: edit `default = "dev"` in devenv.nix, run `alto-restart`.
 
 ### Switching Modes
 
@@ -247,7 +258,8 @@ docs/                        # Implementation docs (alto-docs writes here)
 
 templates/
 ├── CLAUDE.md.setup          # Setup orchestrator protocol (human-interactive)
-└── CLAUDE.md.build          # Build orchestrator protocol (autonomous)
+├── CLAUDE.md.build          # Build orchestrator protocol (autonomous)
+└── CLAUDE.md.dev            # Dev orchestrator protocol (ALTO development)
 
 agents/                      # See Agents section for details
 ├── alto-planner.md
@@ -274,14 +286,12 @@ hooks/
 └── verify-dynamic.py        # Dynamic verification from JSON config (build only)
 
 skills/
-├── alto-protocol/
-│   └── SKILL.md             # Protocol definition (task/state/handoff formats)
-├── alto-feature-setup/
-│   └── SKILL.md             # Interactive feature setup guide
-├── alto-configure/
-│   └── SKILL.md             # Shared configuration procedures (both modes)
-└── scope-discipline/
-    └── SKILL.md             # Prevent over-engineering discipline
+├── alto-protocol/           # Protocol definition (task/state/handoff formats)
+├── alto-feature-setup/      # Interactive feature setup guide
+├── alto-configure/          # Shared configuration procedures (setup/build)
+├── scope-discipline/        # Prevent over-engineering discipline
+├── alto-dev-guide/          # Dev mode: documentation URLs and patterns
+└── writing-alto-skills/     # Dev mode: skill authoring methodology
 
 .claude/
 └── settings.json            # Project-wide permissions + hooks config
@@ -426,12 +436,14 @@ Skills are reusable procedures and rules that agents and orchestrators reference
 
 ### Current Skills
 
-| Skill | Type | Purpose | Used By |
-|-------|------|---------|---------|
-| `alto-protocol` | reference | Task/state/handoff formats | All agents |
-| `alto-feature-setup` | technique | Interactive feature setup | Setup orchestrator |
-| `alto-configure` | technique | Configuration procedures (thresholds, permissions, verification) | Both orchestrators |
-| `scope-discipline` | discipline | Prevent over-engineering | Implementation agents |
+| Skill | Type | Purpose | Mode |
+|-------|------|---------|------|
+| `alto-protocol` | reference | Task/state/handoff formats | setup, build |
+| `alto-feature-setup` | technique | Interactive feature setup | setup, build |
+| `alto-configure` | technique | Configuration procedures (thresholds, permissions, verification) | setup, build |
+| `scope-discipline` | discipline | Prevent over-engineering | setup, build |
+| `alto-dev-guide` | reference | Documentation URLs and patterns for ALTO development | dev |
+| `writing-alto-skills` | technique | Skill authoring methodology | dev |
 
 ### Activation (Reference-Based)
 

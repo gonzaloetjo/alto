@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
-  # ALTO is imported via devenv.yaml imports, just enable it
-  alto.enable = true;
+  # ALTO is imported via devenv.yaml - active by default
+  # Switch modes: alto.orchestrator = "setup" | "build" | "dev"
 
   # Uncomment to include domain skills (api-design, frontend, etc.)
   # alto.includeSpawnerSkills = true;

@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
 
-# devenv.yaml exists for testing ALTO as a consumer
-# For ALTO development, just run `claude` directly - no devenv needed
+# ALTO repo - module definition
+# To switch modes: edit `default = "X"` in devenv.nix, run alto-restart
 inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
 
 imports:
-  - ./devenv.nix  # The ALTO module (not enabled by default)
+  - ./devenv.nix
