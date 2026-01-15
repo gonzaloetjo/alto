@@ -893,10 +893,10 @@ JSON_EOF
           deny = cfg.permissions.denyRead;
         };
       };
-    } // lib.optionalAttrs (cfg.permissions.profile != "autonomous") {
-      # Prevent dangerous bypass mode in supervised/locked profiles
-      disableBypassPermissionsMode = "disable";
     };
+    # Note: disableBypassPermissionsMode removed - devenv expects boolean but
+    # Claude Code expects string "disable". This is a devenv bug.
+    # TODO: Re-enable when devenv fixes this
 
     # MCP servers via native devenv options
     claude.code.mcpServers = {
