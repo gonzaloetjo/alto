@@ -115,6 +115,7 @@ ALTO provides shell scripts for common operations:
 | `alto-new-run` | Create new run branch, reset state to ARCHITECTURE |
 | `alto-clean` | Clean previous run artifacts (tasks, pending.json) |
 | `alto-feature` | Quick guide for starting a new feature |
+| `alto-restart` | Restart Claude with fresh devenv config (applies permission changes) |
 
 Usage:
 ```bash
@@ -122,6 +123,7 @@ devenv shell
 alto-setup      # New project
 alto-status     # Check state
 alto-new-run    # Start new feature run
+alto-restart    # Apply config changes (run from within Claude)
 ```
 
 ---
@@ -478,12 +480,14 @@ Some settings can be changed mid-session, others require a shell restart (featur
 
 **Dynamic:** Edit JSON file, takes effect on next hook invocation.
 
-**Feature boundary:** Edit `devenv.nix`, then run `devenv shell` (requires exiting Claude).
+**Feature boundary:** Edit `devenv.nix`, then either:
+- Run `alto-restart` from within Claude (kills Claude, reloads devenv, restarts with `--continue`)
+- Manually exit Claude and run `devenv shell` + `claude`
 
 **Recommended flow:**
 1. Build first feature with defaults
 2. At feature completion, tune dynamic configs based on experience
-3. For permission changes, apply when starting next feature (shell restart anyway)
+3. For permission changes, run `alto-restart` to apply immediately
 
 ---
 

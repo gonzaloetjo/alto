@@ -151,6 +151,7 @@ your-project/
 | `alto-new-run` | Create new run branch |
 | `alto-clean` | Clean run artifacts |
 | `alto-feature` | Start new feature |
+| `alto-restart` | Restart Claude with fresh config (run from within Claude) |
 
 ---
 

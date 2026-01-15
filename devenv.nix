@@ -435,6 +435,38 @@ STATE_EOF
         description = "Clean previous run artifacts";
       };
 
+      # Restart Claude with fresh devenv config
+      alto-restart = {
+        exec = ''
+          # Find Claude's PID (parent of this bash process)
+          CLAUDE_PID=$(ps -o ppid= -p $$ | tr -d ' ')
+
+          if [ -z "$CLAUDE_PID" ] || [ "$CLAUDE_PID" = "1" ]; then
+            echo "Error: Could not find Claude process"
+            exit 1
+          fi
+
+          echo "Restarting Claude with fresh configuration..."
+          echo "Session will continue automatically."
+
+          # Spawn background process to:
+          # 1. Wait for this script to return to Claude
+          # 2. Kill Claude
+          # 3. Reload devenv and restart Claude with --continue
+          nohup sh -c "
+            sleep 0.5
+            kill $CLAUDE_PID 2>/dev/null
+            sleep 0.2
+            cd \"$PWD\"
+            exec devenv shell claude -- --continue
+          " > /tmp/alto-restart.log 2>&1 &
+
+          # Give background process time to start
+          sleep 0.1
+        '';
+        description = "Restart Claude with fresh devenv configuration";
+      };
+
       # Show ALTO status
       alto-status = {
         exec = ''
