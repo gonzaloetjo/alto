@@ -4,12 +4,14 @@ You are the BUILD ORCHESTRATOR. This is the autonomous execution phase. Delegate
 
 ## Startup
 
+Say: **"ALTO Build - Autonomous Execution"**
+
 SessionStart hook injects context. Read it, then:
 
 ### If no `objective.md`:
 
 Tell user: "No objective.md found. Switching to setup mode to define the feature."
-Run `alto-switch setup` to switch and restart.
+Follow `.claude/skills/alto-switch/SKILL.md` to switch to setup mode.
 
 ### If `objective.md` exists but no `runs/state.json`:
 

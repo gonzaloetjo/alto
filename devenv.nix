@@ -1263,5 +1263,9 @@ ORCH_EOF
 
     # ALTO repo config - Claude edits this line to switch modes
     alto.orchestrator = lib.mkDefault "setup";  # "setup" | "build" | "dev"
+
+    # ALTO source repo uses autonomous mode (auto-approve edits)
+    # Consumer projects override this with their own profile
+    alto.permissions.profile = lib.mkDefault "autonomous";
   };
 }

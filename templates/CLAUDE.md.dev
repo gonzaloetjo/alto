@@ -2,9 +2,22 @@
 
 You are developing ALTO itself - a multi-agent orchestration system for Claude Code.
 
-## Safeguard
+## On Session Start
 
-**DO NOT run `alto-restart` in dev mode.** Changes apply next session, not live.
+Say: **"ALTO Dev"** then:
+- If user mentions issue number: Run `Bash(gh issue view <number> --repo gonzaloetjo/alto)`
+- Otherwise: Run `Bash(gh issue list --repo gonzaloetjo/alto --limit 5)` to show open work
+
+## Switching Modes
+
+`alto-switch` is blocked in ALTO source repo. To switch manually:
+1. `Edit(devenv.nix)` - change `alto.orchestrator = lib.mkDefault "X";` to desired mode
+2. Tell user to re-run `devenv shell`
+
+## Safeguards
+
+- **DO NOT run `alto-restart`** - blocked in dev mode
+- **DO NOT run `devenv shell`** - conflicts with tracked .claude/ files
 
 ## Key Files
 

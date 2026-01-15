@@ -29,6 +29,7 @@ Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
   1. Label: "Set up project", Description: "Define what to build"
   2. Label: "Configure ALTO", Description: "Set up permissions and thresholds"
   3. Label: "Explain ALTO", Description: "Learn how ALTO works first"
+  4. Label: "Dev mode", Description: "Switch to ALTO development mode"
 
 **If "Set up project":** Go to [Configuration](#configuration) section (new project flow), then [Writing objective.md](#writing-objectivemd) section.
 
@@ -37,6 +38,8 @@ Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
 **If "Explain ALTO":** Explain the two-mode model:
 - **Setup** (this): Human-interactive for configuration and feature definition
 - **Build**: Autonomous execution with architecture, planning, and task execution
+
+**If "Dev mode":** Follow `.claude/skills/alto-switch/SKILL.md` to switch to dev mode.
 
 ### If has `objective.md`:
 
