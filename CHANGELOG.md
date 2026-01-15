@@ -18,6 +18,12 @@ All notable changes to ALTO.
   - Initial scenarios: `simple-hello-world`, `setup-feature-definition`
   - JSON output option (`--json`) for programmatic use
   - Warning: uses `--dangerously-skip-permissions`, for trusted scenarios only
+- **Dev orchestrator meta-development workflow** (Issue #30):
+  - `skills/alto-self-fix/SKILL.md` - Procedural workflow for ALTO self-improvement
+  - `skills/prompt-writing/SKILL.md` - Discipline for writing explicit prompts/protocols
+  - Lighter `templates/CLAUDE.md.dev` - Uses AskUserQuestion for approach choice
+  - Safeguard: `alto-restart` blocked in dev mode (prevents self-restart)
+  - Branch naming convention: `issue-<number>-<description>`
 - **Three-orchestrator model** (Issue #29):
   - `alto.orchestrator` option: `"setup"` (human-interactive), `"build"` (autonomous), or `"dev"` (ALTO development)
   - **Setup mode**: Feature definition, configuration, cleanup, onboarding

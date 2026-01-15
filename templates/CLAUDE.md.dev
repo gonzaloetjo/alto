@@ -1,102 +1,47 @@
-# ALTO Development
+# ALTO Dev Mode
 
 You are developing ALTO itself - a multi-agent orchestration system for Claude Code.
 
-## On Session Start
+## Safeguard
 
-Use the `alto-dev` agent for most development tasks. It has:
-- Full file access (Read, Write, Edit, Grep, Glob)
-- Bash for commands, git, testing
-- WebFetch for external documentation
-
-The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
-- Documentation URLs for devenv and Claude Code
-- Quick reference patterns
-- Testing workflows
+**DO NOT run `alto-restart` in dev mode.** Changes apply next session, not live.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `devenv.nix` | Main ALTO module - options, agents, hooks, scripts |
-| `agents/*.md` | Agent prompts (YAML frontmatter + markdown) |
+| `devenv.nix` | Main module |
+| `agents/*.md` | Agent prompts |
 | `hooks/*.py` | Hook implementations |
-| `skills/*/SKILL.md` | Skill content |
-| `templates/CLAUDE.md.setup` | Setup orchestrator (human-interactive) |
-| `templates/CLAUDE.md.build` | Build orchestrator (autonomous) |
-| `templates/CLAUDE.md.dev` | Dev orchestrator (this file) |
-| `DEVELOPMENT.md` | Development guide |
-| `CHANGELOG.md` | Recent changes |
-| `ARCHITECTURE.md` | Design documentation |
+| `skills/*/SKILL.md` | Skills |
+| `templates/CLAUDE.md.*` | Protocols |
+| `tests/scenarios/*.yaml` | Test scenarios |
 
-## Workflow
+## Working on Issues
 
-1. **Check issues** - `gh issue list` for open work
-2. **Use alto-dev** - For implementation tasks
-3. **Test changes** - See DEVELOPMENT.md for workflows
-4. **Commit** - Conventional commits with co-author line
+When user mentions a GitHub issue:
 
-**Note:** The `changelog-check` hook blocks commits without CHANGELOG updates when key files are modified.
+1. Run `gh issue view <number> --repo gonzaloetjo/alto`
+2. Use AskUserQuestion:
+   - Header: "Approach"
+   - Question: "How would you like to proceed?"
+   - Options:
+     1. Label: "Collaborative", Description: "We work through it together"
+     2. Label: "ALTO self-fix", Description: "Follow procedural workflow via /alto-self-fix skill"
 
-## Testing
+## Validation
 
-### Quick syntax checks
-
+Before committing, run:
 ```bash
-# Nix syntax
-nix-instantiate --parse devenv.nix > /dev/null && echo "OK"
-
-# Python syntax
-python3 -m py_compile hooks/*.py && echo "OK"
+nix-instantiate --parse devenv.nix > /dev/null && echo "Nix OK"
+python3 -m py_compile hooks/*.py && echo "Python OK"
 ```
 
-### Local integration test (separate directory)
+## Tools
 
-```bash
-# Create test directory
-mkdir -p /tmp/alto-test && cd /tmp/alto-test
-git init
-
-# Create devenv.yaml pointing to local ALTO
-cat > devenv.yaml << 'EOF'
-inputs:
-  nixpkgs:
-    url: github:cachix/devenv-nixpkgs/rolling
-  alto:
-    url: path:/path/to/alto
-    flake: false
-EOF
-
-# Create devenv.nix importing local module
-cat > devenv.nix << 'EOF'
-{ pkgs, lib, inputs, ... }:
-{
-  imports = [ "${inputs.alto}/devenv.nix" ];
-  # ALTO active by default
-}
-EOF
-
-# Test
-devenv shell -- alto-status
-```
-
-### Fresh install test (from GitHub)
-
-```bash
-mkdir -p /tmp/alto-fresh && cd /tmp/alto-fresh
-nix flake init -t github:gonzaloetjo/alto --refresh
-devenv shell
-```
-
-## Session End
-
-Before ending a session, create `docs/dev/session-YYYY-MM-DD.md` with:
-- Issues closed (with commits and savings)
-- Remaining issues
-- Key decisions made
-
-## Issues
-
-See [github.com/gonzaloetjo/alto/issues](https://github.com/gonzaloetjo/alto/issues) for open issues.
-
-Run `gh issue list` to check from CLI.
+| Tool | Usage |
+|------|-------|
+| `alto-test-run --scenario X --keep` | Run isolated test |
+| `alto-logs --metrics` | Query event logs |
+| `gh issue list` | List open issues |
+| `gh pr create` | Create PR |

@@ -471,6 +471,16 @@ STATE_EOF
       # Restart Claude with fresh devenv config
       alto-restart = {
         exec = ''
+          # SAFEGUARD: Block in dev mode to prevent self-restart while modifying ALTO
+          CURRENT_ORCH="${cfg.orchestrator}"
+          if [ "$CURRENT_ORCH" = "dev" ]; then
+            echo "ERROR: alto-restart is disabled in dev mode."
+            echo ""
+            echo "Restarting while modifying ALTO can cause unpredictable behavior."
+            echo "Changes apply on next session. End this session and start fresh."
+            exit 1
+          fi
+
           # Find Claude's PID (parent of this bash process)
           CLAUDE_PID=$(ps -o ppid= -p $$ | tr -d ' ')
 
@@ -1133,6 +1143,8 @@ JSON_EOF
         ${lib.optionalString (cfg.orchestrator == "dev") ''
           cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
           cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
+          cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
+          cp -r "$ALTO_SRC"/skills/prompt-writing .claude/skills/ 2>/dev/null || true
         ''}
 
         ${lib.optionalString cfg.includeSpawnerSkills ''
