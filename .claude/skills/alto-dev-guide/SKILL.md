@@ -201,7 +201,8 @@ claude.code.permissions = {
 | Agent prompts | `agents/*.md` | Agent behavior |
 | Hook logic | `hooks/*.py` | Hook implementation |
 | Skills | `skills/*/SKILL.md` | Skill content |
-| Orchestrator | `templates/CLAUDE.md.template` | Main protocol |
+| Setup orchestrator | `templates/CLAUDE.md.setup` | Human-interactive mode |
+| Build orchestrator | `templates/CLAUDE.md.build` | Autonomous mode |
 | User template | `templates/default/` | `nix flake init` output |
 | Architecture | `ARCHITECTURE.md` | Design docs |
 

@@ -22,6 +22,19 @@ in
   options.alto = {
     enable = lib.mkEnableOption "ALTO (Autonomous Lifecycle Task Orchestrator) for Claude Code";
 
+    # Orchestrator selection
+    orchestrator = lib.mkOption {
+      type = lib.types.enum [ "setup" "build" ];
+      default = "build";
+      description = ''
+        Which orchestrator mode to use:
+        - setup: Human-interactive phase. Feature definition, configuration, cleanup, onboarding.
+        - build: Autonomous execution. Full protocol: architecture, planning, execution, replan.
+
+        Note: "dev" mode is for ALTO development only and uses the tracked agents/ directory.
+      '';
+    };
+
     # Arbiter thresholds
     arbiter = {
       enable = lib.mkOption {
@@ -493,8 +506,12 @@ STATE_EOF
             done
           fi
 
+          # Get current orchestrator
+          CURRENT_ORCH="${cfg.orchestrator}"
+
           echo "ALTO Status"
           echo "==========="
+          echo "Orchestrator: $CURRENT_ORCH"
           echo "Branch: $(jq -r '.run_branch // "none"' "$RUNS_DIR/state.json")"
           echo "Phase: $PHASE"
           echo "Current Task: $(jq -r '.current_task_id // "none"' "$RUNS_DIR/state.json")"
@@ -512,6 +529,56 @@ STATE_EOF
           ls -t "$RUNS_DIR/handoffs/" 2>/dev/null | head -5 || echo "  (none)"
         '';
         description = "Show ALTO status";
+      };
+
+      # Switch between orchestrators
+      alto-switch = {
+        exec = ''
+          TARGET="$1"
+          CURRENT="${cfg.orchestrator}"
+
+          if [ -z "$TARGET" ]; then
+            echo "ALTO Switch"
+            echo "==========="
+            echo ""
+            echo "Current orchestrator: $CURRENT"
+            echo ""
+            echo "Usage: alto-switch <orchestrator>"
+            echo ""
+            echo "Available orchestrators:"
+            echo "  setup  - Human-interactive (feature definition, configuration, cleanup)"
+            echo "  build  - Autonomous execution (architecture, planning, execution, replan)"
+            echo ""
+            echo "To switch, update devenv.nix:"
+            echo "  alto.orchestrator = \"setup\";  # or \"build\""
+            echo ""
+            echo "Then run: alto-restart"
+            exit 0
+          fi
+
+          if [ "$TARGET" != "setup" ] && [ "$TARGET" != "build" ]; then
+            echo "Error: Invalid orchestrator '$TARGET'"
+            echo "Valid options: setup, build"
+            exit 1
+          fi
+
+          if [ "$TARGET" = "$CURRENT" ]; then
+            echo "Already using '$TARGET' orchestrator."
+            exit 0
+          fi
+
+          echo "Switching from '$CURRENT' to '$TARGET'..."
+          echo ""
+          echo "To complete the switch:"
+          echo ""
+          echo "1. Update devenv.nix:"
+          echo "   alto.orchestrator = \"$TARGET\";"
+          echo ""
+          echo "2. Run: alto-restart"
+          echo ""
+          echo "This will reload devenv and continue your Claude session."
+        '';
+        description = "Switch between setup and build orchestrators";
       };
     };
 
@@ -554,180 +621,203 @@ STATE_EOF
       };
     };
 
-    # Hooks
-    claude.code.hooks = {
-      # SessionStart hook
-      session-start = {
-        hookType = "SessionStart";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py";
-      };
+    # Hooks - deployed based on orchestrator selection
+    # Shared hooks are deployed to all orchestrators
+    # Build-specific hooks only deployed when orchestrator == "build"
+    claude.code.hooks = lib.mkMerge [
+      # Shared hooks (all orchestrators)
+      {
+        # SessionStart hook
+        session-start = {
+          hookType = "SessionStart";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.py";
+        };
 
-      # PostToolUse hooks for different tools
-      tool-record-bash = {
-        hookType = "PostToolUse";
-        matcher = "Bash";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
-      };
-      tool-record-edit = {
-        hookType = "PostToolUse";
-        matcher = "Edit";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
-      };
-      tool-record-write = {
-        hookType = "PostToolUse";
-        matcher = "Write";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
-      };
+        # PostToolUse hooks for different tools
+        tool-record-bash = {
+          hookType = "PostToolUse";
+          matcher = "Bash";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+        };
+        tool-record-edit = {
+          hookType = "PostToolUse";
+          matcher = "Edit";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+        };
+        tool-record-write = {
+          hookType = "PostToolUse";
+          matcher = "Write";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+        };
 
-      # Skill validation (for ALTO development)
-      skill-validate = {
-        hookType = "PostToolUse";
-        matcher = "Edit|Write";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-validate.py";
-      };
+        # PermissionRequest hook
+        permission-record = {
+          hookType = "PermissionRequest";
+          matcher = "*";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py";
+        };
 
-      # Dynamic verification (reads from runs/verification-config.json)
-      verify-dynamic = {
-        hookType = "PostToolUse";
-        matcher = "Edit|Write";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/verify-dynamic.py";
-      };
+        # Stop hooks (shared)
+        usage-record-stop = {
+          hookType = "Stop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
+        };
+        session-summary-stop = {
+          hookType = "Stop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
+        };
 
-      # Verification hooks (user-configured, static)
-    } // lib.optionalAttrs cfg.verification.typecheck.enable {
-      verify-typecheck = {
-        hookType = "PostToolUse";
-        matcher = cfg.verification.typecheck.matcher;
-        command = cfg.verification.typecheck.command;
-      };
-    } // lib.optionalAttrs cfg.verification.lint.enable {
-      verify-lint = {
-        hookType = "PostToolUse";
-        matcher = cfg.verification.lint.matcher;
-        command = cfg.verification.lint.command;
-      };
-    } // lib.optionalAttrs cfg.verification.test.enable {
-      verify-test = {
-        hookType = "PostToolUse";
-        matcher = cfg.verification.test.matcher;
-        command = cfg.verification.test.command;
-      };
-    } // lib.listToAttrs (map (hook: {
-      name = "verify-custom-${hook.name}";
-      value = {
-        hookType = "PostToolUse";
-        matcher = hook.matcher;
-        command = hook.command;
-        timeout = hook.timeout;
-      };
-    }) cfg.verification.custom) // {
+        # SubagentStop hooks (shared)
+        usage-record-subagent = {
+          hookType = "SubagentStop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
+        };
+        session-summary-subagent = {
+          hookType = "SubagentStop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
+        };
+      }
 
-      # PermissionRequest hook
-      permission-record = {
-        hookType = "PermissionRequest";
-        matcher = "*";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py";
-      };
+      # Build-specific hooks (autonomous execution)
+      (lib.mkIf (cfg.orchestrator == "build") {
+        # Dynamic verification (reads from runs/verification-config.json)
+        verify-dynamic = {
+          hookType = "PostToolUse";
+          matcher = "Edit|Write";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/verify-dynamic.py";
+        };
 
-      # Stop hooks
-      usage-record-stop = {
-        hookType = "Stop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
-      };
-      arbiter-scheduler-stop = {
-        hookType = "Stop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
-      };
-      session-summary-stop = {
-        hookType = "Stop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
-      };
+        # Arbiter scheduler (triggers checkpoints)
+        arbiter-scheduler-stop = {
+          hookType = "Stop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
+        };
+        arbiter-scheduler-subagent = {
+          hookType = "SubagentStop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
+        };
 
-      # SubagentStop hooks
-      usage-record-subagent = {
-        hookType = "SubagentStop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/usage-record.py";
-      };
-      arbiter-scheduler-subagent = {
-        hookType = "SubagentStop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
-      };
-      session-summary-subagent = {
-        hookType = "SubagentStop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.py";
-      };
-      handoff-validate-subagent = {
-        hookType = "SubagentStop";
-        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-validate.py";
-      };
-    };
+        # Handoff validation
+        handoff-validate-subagent = {
+          hookType = "SubagentStop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-validate.py";
+        };
+      })
+
+      # Verification hooks (user-configured, static) - builder only
+      (lib.mkIf (cfg.orchestrator == "build" && cfg.verification.typecheck.enable) {
+        verify-typecheck = {
+          hookType = "PostToolUse";
+          matcher = cfg.verification.typecheck.matcher;
+          command = cfg.verification.typecheck.command;
+        };
+      })
+      (lib.mkIf (cfg.orchestrator == "build" && cfg.verification.lint.enable) {
+        verify-lint = {
+          hookType = "PostToolUse";
+          matcher = cfg.verification.lint.matcher;
+          command = cfg.verification.lint.command;
+        };
+      })
+      (lib.mkIf (cfg.orchestrator == "build" && cfg.verification.test.enable) {
+        verify-test = {
+          hookType = "PostToolUse";
+          matcher = cfg.verification.test.matcher;
+          command = cfg.verification.test.command;
+        };
+      })
+      (lib.mkIf (cfg.orchestrator == "build") (lib.listToAttrs (map (hook: {
+        name = "verify-custom-${hook.name}";
+        value = {
+          hookType = "PostToolUse";
+          matcher = hook.matcher;
+          command = hook.command;
+          timeout = hook.timeout;
+        };
+      }) cfg.verification.custom)))
+    ];
 
     # Agents with per-agent permissionMode from agentPermissions config
-    claude.code.agents = {
-      alto-planner = {
-        description = "Creates task files from milestones. Use after architecture phase to generate next batch of tasks.";
-        tools = cfg.agentPermissions.alto-planner.tools;
-        model = cfg.planning.plannerModel;
-        permissionMode = cfg.agentPermissions.alto-planner.permissionMode;
-        prompt = readAgentPrompt "alto-planner";
-      };
-      alto-feature-finder = {
-        description = "Analyzes codebase and objective.md to identify features and suggest next steps. Use when starting a new feature.";
-        tools = cfg.agentPermissions.alto-feature-finder.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-feature-finder.permissionMode;
-        prompt = readAgentPrompt "alto-feature-finder";
-      };
-      alto-backend = {
-        description = "Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.";
-        tools = cfg.agentPermissions.alto-backend.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-backend.permissionMode;
-        prompt = readAgentPrompt "alto-backend";
-      };
-      alto-frontend = {
-        description = "Implements frontend tasks only. Use for UI, charts, client state, and frontend build tooling.";
-        tools = cfg.agentPermissions.alto-frontend.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-frontend.permissionMode;
-        prompt = readAgentPrompt "alto-frontend";
-      };
-      alto-qa = {
-        description = "Writes tests for implementations and fixes failures. Runs after role agents to ensure test coverage.";
-        tools = cfg.agentPermissions.alto-qa.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-qa.permissionMode;
-        prompt = readAgentPrompt "alto-qa";
-      };
-      alto-docs = {
-        description = "Writes implementation documentation for readers. Updates docs/ based on plan structure.";
-        tools = cfg.agentPermissions.alto-docs.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-docs.permissionMode;
-        prompt = readAgentPrompt "alto-docs";
-      };
-      alto-gitops = {
-        description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
-        tools = cfg.agentPermissions.alto-gitops.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-gitops.permissionMode;
-        prompt = readAgentPrompt "alto-gitops";
-      };
-      alto-reviewer = {
-        description = "Reviews code quality after role agent completes. Can reject back to role agent.";
-        tools = cfg.agentPermissions.alto-reviewer.tools;
-        model = "sonnet";
-        permissionMode = cfg.agentPermissions.alto-reviewer.permissionMode;
-        prompt = readAgentPrompt "alto-reviewer";
-      };
-      alto-arbiter = {
-        description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";
-        tools = cfg.agentPermissions.alto-arbiter.tools;
-        model = "opus";
-        permissionMode = cfg.agentPermissions.alto-arbiter.permissionMode;
-        prompt = readAgentPrompt "alto-arbiter";
-      };
-    };
+    # Deployed based on orchestrator selection
+    claude.code.agents = lib.mkMerge [
+      # Setup-specific agents (minimal - human-interactive phase)
+      (lib.mkIf (cfg.orchestrator == "setup") {
+        alto-feature-finder = {
+          description = "Analyzes codebase and objective.md to identify features and suggest next steps. Use when starting a new feature.";
+          tools = cfg.agentPermissions.alto-feature-finder.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-feature-finder.permissionMode;
+          prompt = readAgentPrompt "alto-feature-finder";
+        };
+      })
+
+      # Build-specific agents (full autonomous execution)
+      (lib.mkIf (cfg.orchestrator == "build") {
+        alto-planner = {
+          description = "Creates task files from milestones. Use after architecture phase to generate next batch of tasks.";
+          tools = cfg.agentPermissions.alto-planner.tools;
+          model = cfg.planning.plannerModel;
+          permissionMode = cfg.agentPermissions.alto-planner.permissionMode;
+          prompt = readAgentPrompt "alto-planner";
+        };
+        alto-feature-finder = {
+          description = "Analyzes codebase and objective.md to identify features and suggest next steps. Use when starting a new feature.";
+          tools = cfg.agentPermissions.alto-feature-finder.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-feature-finder.permissionMode;
+          prompt = readAgentPrompt "alto-feature-finder";
+        };
+        alto-backend = {
+          description = "Implements backend tasks only. Use for API, ingestion, DB, workers, and server-side logic.";
+          tools = cfg.agentPermissions.alto-backend.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-backend.permissionMode;
+          prompt = readAgentPrompt "alto-backend";
+        };
+        alto-frontend = {
+          description = "Implements frontend tasks only. Use for UI, charts, client state, and frontend build tooling.";
+          tools = cfg.agentPermissions.alto-frontend.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-frontend.permissionMode;
+          prompt = readAgentPrompt "alto-frontend";
+        };
+        alto-qa = {
+          description = "Writes tests for implementations and fixes failures. Runs after role agents to ensure test coverage.";
+          tools = cfg.agentPermissions.alto-qa.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-qa.permissionMode;
+          prompt = readAgentPrompt "alto-qa";
+        };
+        alto-docs = {
+          description = "Writes implementation documentation for readers. Updates docs/ based on plan structure.";
+          tools = cfg.agentPermissions.alto-docs.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-docs.permissionMode;
+          prompt = readAgentPrompt "alto-docs";
+        };
+        alto-gitops = {
+          description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
+          tools = cfg.agentPermissions.alto-gitops.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-gitops.permissionMode;
+          prompt = readAgentPrompt "alto-gitops";
+        };
+        alto-reviewer = {
+          description = "Reviews code quality after role agent completes. Can reject back to role agent.";
+          tools = cfg.agentPermissions.alto-reviewer.tools;
+          model = "sonnet";
+          permissionMode = cfg.agentPermissions.alto-reviewer.permissionMode;
+          prompt = readAgentPrompt "alto-reviewer";
+        };
+        alto-arbiter = {
+          description = "Periodic blackhat checkpoint auditor. Runs only when runs/arbiter/pending.json exists. Decides if human review is needed.";
+          tools = cfg.agentPermissions.alto-arbiter.tools;
+          model = "opus";
+          permissionMode = cfg.agentPermissions.alto-arbiter.permissionMode;
+          prompt = readAgentPrompt "alto-arbiter";
+        };
+      })
+    ];
 
     # Deploy ALTO files using tasks (runs before shell entry)
     tasks."alto:deploy" = {
@@ -741,9 +831,11 @@ STATE_EOF
         # Copy hook scripts (referenced by native hook commands)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
-        # Copy ALTO protocol skills
+        # Copy shared ALTO skills (all orchestrators)
         cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
         cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
+        cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
+        cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
 
         ${lib.optionalString cfg.includeSpawnerSkills ''
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
@@ -817,10 +909,19 @@ PLANNING_EOF
 VERIFY_EOF
         fi
 
-        # Copy CLAUDE.md only if it doesn't exist
-        if [ ! -f CLAUDE.md ]; then
-          cp "$ALTO_SRC/templates/CLAUDE.md.template" CLAUDE.md 2>/dev/null || true
-        fi
+        # Write orchestrator config (always overwrite to keep in sync)
+        cat > "$RUNS_DIR/orchestrator.json" << 'ORCH_EOF'
+{
+  "orchestrator": "${cfg.orchestrator}",
+  "updated_at": "$(date -Iseconds)"
+}
+ORCH_EOF
+
+        # Copy orchestrator-specific CLAUDE.md (always overwrite to match orchestrator)
+        # setup = human-interactive, build = autonomous execution
+        # Remove first to handle read-only files from previous deploys
+        rm -f CLAUDE.md 2>/dev/null || true
+        cp "$ALTO_SRC/templates/CLAUDE.md.${cfg.orchestrator}" CLAUDE.md 2>/dev/null || true
 
         echo "ALTO deployed"
       '';

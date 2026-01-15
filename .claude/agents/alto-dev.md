@@ -42,7 +42,8 @@ alto/
 ├── hooks/*.py              # Hook implementations
 ├── skills/*/SKILL.md       # Skill content
 ├── templates/
-│   ├── CLAUDE.md.template  # Orchestrator protocol
+│   ├── CLAUDE.md.setup     # Setup orchestrator (human-interactive)
+│   ├── CLAUDE.md.build     # Build orchestrator (autonomous)
 │   └── default/            # nix flake init template
 └── ARCHITECTURE.md         # Design docs
 ```

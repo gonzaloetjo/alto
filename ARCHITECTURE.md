@@ -2,6 +2,33 @@
 
 > Autonomous Lifecycle Task Orchestrator for Claude Code
 
+## Index
+
+- [Overview](#overview)
+- [Orchestrator Modes](#orchestrator-modes)
+- [Agent & Flow Diagram (Build Mode)](#agent--flow-diagram-build-mode)
+- [Devenv Scripts](#devenv-scripts)
+- [Interactive Startup](#interactive-startup)
+- [Claude Code Integration](#claude-code-integration)
+- [Directory Structure](#directory-structure)
+- [Orchestration Flow (Build Mode)](#orchestration-flow-build-mode)
+- [State Phases (Build Mode)](#state-phases-build-mode)
+- [Role Agents](#role-agents)
+- [Skills](#skills)
+- [Model Assignment](#model-assignment)
+- [Task Format](#task-format)
+- [Handoff Contract](#handoff-contract)
+- [Arbiter System](#arbiter-system)
+- [Configuration Timing](#configuration-timing)
+- [Verification Hooks](#verification-hooks)
+- [Hook Error Handling](#hook-error-handling)
+- [Communication Model](#communication-model)
+- [Permissions Model](#permissions-model)
+- [Token Tracking](#token-tracking)
+- [Branch Lifecycle](#branch-lifecycle)
+
+---
+
 ## Overview
 
 ALTO is a multi-agent orchestration protocol for Claude Code that provides:
@@ -12,12 +39,63 @@ ALTO is a multi-agent orchestration protocol for Claude Code that provides:
 
 ---
 
-## Agent & Flow Diagram
+## Orchestrator Modes
+
+ALTO uses two orchestrator modes, separated by human interaction level:
+
+| Mode | Purpose | Agents | Shared Skills |
+|------|---------|--------|---------------|
+| **setup** | Human-interactive phase | `alto-feature-finder` | `alto-configure`, `alto-protocol` |
+| **build** | Autonomous execution | All agents | `alto-configure`, `alto-protocol` |
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ALTO ORCHESTRATOR MODES                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   SETUP MODE                         BUILD MODE                      │
+│   (Human-Interactive)                (Autonomous)                    │
+│                                                                      │
+│   • New project init                 • Architecture exploration      │
+│   • Feature definition               • Task planning (planner)       │
+│   • Configuration                    • Task execution (role agents)  │
+│   • Cleanup between features         • Rolling replan                │
+│   • Onboarding                       • Arbiter checkpoints           │
+│                                                                      │
+│         │                                   │                        │
+│         │ "Start building"                  │ "Next feature"         │
+│         └──────────────────►   ◄────────────┘                        │
+│                                                                      │
+│   Switch: alto.orchestrator = "build"/"setup" + alto-restart         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Setup Mode** handles:
+- Writing `objective.md` interactively
+- Configuring arbiter thresholds, permissions, verification
+- Cleanup after feature completion
+- Explaining ALTO to new users
+
+**Build Mode** handles:
+- Architecture phase (milestones, decisions)
+- Planning phase (task generation)
+- Execution loop (role agents, QA, gitops)
+- Arbiter checkpoints with optional reconfiguration
+- Feature completion (debug mode, next feature)
+
+**Switching modes:** Edit `devenv.nix` to set `alto.orchestrator`, then run `alto-restart`.
+
+---
+
+## Agent & Flow Diagram (Build Mode)
+
+The following diagram shows BUILD mode. Setup mode has only the `alto-feature-finder` agent, but both modes share the `alto-configure` and `alto-protocol` skills.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                            ORCHESTRATOR                                  │
-│                           (CLAUDE.md)                                    │
+│                       BUILD ORCHESTRATOR                                 │
+│                      (CLAUDE.md.build)                                   │
 │                                                                          │
 │  ┌──────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐    │
 │  │ARCHITECT │──▶│PLANNING │──▶│BETWEEN_ │──▶│IN_TASK  │──▶│BLOCKED  │    │
@@ -111,17 +189,19 @@ ALTO provides shell scripts for common operations:
 | Script | Purpose |
 |--------|---------|
 | `alto-setup` | First-time project initialization (creates objective.md) |
-| `alto-status` | Show current phase, branch, completed tasks |
+| `alto-status` | Show current phase, branch, completed tasks, orchestrator mode |
+| `alto-switch` | Show how to switch between setup/build orchestrators |
 | `alto-new-run` | Create new run branch, reset state to ARCHITECTURE |
 | `alto-clean` | Clean previous run artifacts (tasks, pending.json) |
 | `alto-feature` | Quick guide for starting a new feature |
-| `alto-restart` | Restart Claude with fresh devenv config (applies permission changes) |
+| `alto-restart` | Restart Claude with fresh devenv config (applies config changes) |
 
 Usage:
 ```bash
 devenv shell
 alto-setup      # New project
-alto-status     # Check state
+alto-status     # Check state (includes orchestrator mode)
+alto-switch     # See how to switch orchestrators
 alto-new-run    # Start new feature run
 alto-restart    # Apply config changes (run from within Claude)
 ```
@@ -130,20 +210,32 @@ alto-restart    # Apply config changes (run from within Claude)
 
 ## Interactive Startup
 
-When Claude Code starts, ALTO detects state and presents options:
+Startup behavior depends on the orchestrator mode:
+
+### Setup Mode (Human-Interactive)
 
 **New project (no objective.md):**
-- "Set up project" → Guide through objective.md creation
-- "Explain ALTO" → Overview of how ALTO works
+- "Set up project" → Configure ALTO, then write objective.md
+- "Configure ALTO" → Set thresholds, permissions
+- "Explain ALTO" → Overview of two-mode model
 
-**Existing project (ready to start):**
-- "Start building" → Begin architecture phase
-- "New feature" → Run `/alto-feature-setup`
-- "Show status" → Analyze project state
+**Has objective.md:**
+- "Start building" → Switch to build mode
+- "Edit objective" → Modify feature definition
+- "Configure ALTO" → Adjust settings
+- "Analyze codebase" → Run alto-feature-finder
 
-**In progress:** Resumes automatically from last state.
+### Build Mode (Autonomous)
+
+**No objective.md:** Prompts to switch to setup mode.
+
+**Has objective.md, no state:** Begins architecture phase automatically.
+
+**In progress:** Resumes from last state (phase in `runs/state.json`).
 
 **Blocked:** Waits for human input, shows `runs/notes.md`.
+
+**Completed:** Offers debug mode, next feature, or reconfigure.
 
 ---
 
@@ -166,46 +258,57 @@ References:
 ## Directory Structure
 
 ```
-CLAUDE.md                    # Orchestrator protocol (auto-loaded)
+CLAUDE.md                    # Orchestrator protocol (copied from template based on mode)
 ARCHITECTURE.md              # This file - AI agent architecture
 objective.md                 # Project goals and requirements
 docs/                        # Implementation docs (alto-docs writes here)
 
+templates/
+├── CLAUDE.md.setup          # Setup orchestrator protocol (human-interactive)
+└── CLAUDE.md.build          # Build orchestrator protocol (autonomous)
+
 agents/
-├── alto-planner.md          # Generates task files from milestones
-├── alto-feature-finder.md   # Analyzes codebase, identifies next features
-├── alto-backend.md          # Backend implementation
-├── alto-frontend.md         # Frontend implementation
-├── alto-docs.md             # Implementation documentation for readers
-├── alto-gitops.md           # Branch/commit/push hygiene
-├── alto-qa.md               # Check/fix loop
-├── alto-reviewer.md         # Code quality gate (automatic)
-├── alto-arbiter.md          # Periodic checkpoint auditor
+├── alto-planner.md          # Generates task files from milestones (build only)
+├── alto-feature-finder.md   # Analyzes codebase, identifies next features (both modes)
+├── alto-backend.md          # Backend implementation (build only)
+├── alto-frontend.md         # Frontend implementation (build only)
+├── alto-docs.md             # Implementation documentation for readers (build only)
+├── alto-gitops.md           # Branch/commit/push hygiene (build only)
+├── alto-qa.md               # Tests + verification config updates (build only)
+├── alto-reviewer.md         # Code quality gate (build only)
+├── alto-arbiter.md          # Periodic checkpoint auditor (build only)
 ├── alto-dev.md              # ALTO development helper (meta)
-└── code-simplifier.md       # Code clarity refinement (post-agent)
+└── code-simplifier.md       # Code clarity refinement (build only)
 
 hooks/
-├── usage-record.py          # Token tracking (Stop/SubagentStop)
-├── tool-record.py           # Tool invocation logging (PostToolUse)
-├── permission-record.py     # Permission request logging (PermissionRequest)
-├── arbiter-scheduler.py     # Triggers arbiter on thresholds (Stop/SubagentStop)
-├── session-start.py         # Session initialization (SessionStart)
-├── session-summary.py       # Session summary generation (SessionEnd)
-└── handoff-validate.py      # Handoff validation (SubagentStop)
+├── usage-record.py          # Token tracking (Stop/SubagentStop) - shared
+├── tool-record.py           # Tool invocation logging (PostToolUse) - shared
+├── permission-record.py     # Permission request logging (PermissionRequest) - shared
+├── session-start.py         # Session initialization (SessionStart) - shared
+├── session-summary.py       # Session summary generation (SessionEnd) - shared
+├── arbiter-scheduler.py     # Triggers arbiter on thresholds (build only)
+├── handoff-validate.py      # Handoff validation (build only)
+└── verify-dynamic.py        # Dynamic verification from JSON config (build only)
 
 skills/
 ├── alto-protocol/
 │   └── SKILL.md             # Protocol definition (task/state/handoff formats)
-└── alto-feature-setup/
-    └── SKILL.md             # Interactive feature setup guide (/alto-feature-setup)
+├── alto-feature-setup/
+│   └── SKILL.md             # Interactive feature setup guide
+├── alto-configure/
+│   └── SKILL.md             # Shared configuration procedures (both modes)
+└── scope-discipline/
+    └── SKILL.md             # Prevent over-engineering discipline
 
 .claude/
 └── settings.json            # Project-wide permissions + hooks config
 
 runs/
-├── milestones.md            # Generated: high-level steps (orchestrator output)
-├── decisions.md             # Generated: architectural trade-offs (orchestrator output)
+├── orchestrator.json        # Generated: current orchestrator mode
+├── milestones.md            # Generated: high-level steps (build mode)
+├── decisions.md             # Generated: architectural trade-offs (build mode)
 ├── planning-config.json     # Generated: planning configuration from devenv
+├── verification-config.json # Generated: dynamic verification commands (QA updates)
 ├── plan.md                  # Generated: detailed batch plan (planner output)
 ├── state.json               # Generated: current task + phase + role
 ├── tasks/                   # Generated: task-XXX.md (YAML frontmatter + DoD)
@@ -225,9 +328,9 @@ runs/
 
 ---
 
-## Orchestration Flow
+## Orchestration Flow (Build Mode)
 
-The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
+The build orchestrator is defined in `CLAUDE.md` (copied from `templates/CLAUDE.md.build`).
 
 ### Boot (New Run)
 
@@ -290,7 +393,9 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 
 ---
 
-## State Phases
+## State Phases (Build Mode)
+
+These phases apply only to BUILD mode. Setup mode doesn't use state phases.
 
 | Phase | Description |
 |-------|-------------|
@@ -299,34 +404,66 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 | `IN_TASK` | A role agent is actively executing a task |
 | `BETWEEN_TASKS` | Task completed; arbiter may trigger; replan may occur |
 | `BLOCKED` | Human review required (arbiter decision or repeated failures) |
-| `COMPLETED` | All tasks done, awaiting human decision (debug or next feature) |
+| `COMPLETED` | All tasks done, awaiting human decision (debug, next feature, or reconfigure) |
 | `DEBUG` | Human testing and fixing issues before merge |
 
 ---
 
 ## Role Agents
 
-| Agent | Primary responsibility | Typical constraints |
-|-------|-------------------------|---------------------|
-| `alto-planner` | Create task files from milestones | edits **runs/** only; no Bash |
-| `alto-feature-finder` | Analyze codebase, identify next features | read-only |
-| `alto-backend` | API, DB schema, worker logic | obey `allowed_paths`; run checks |
-| `alto-frontend` | Dashboard UI, charts, client state | obey `allowed_paths`; run checks |
-| `alto-docs` | Write implementation docs for readers | **docs/** only |
-| `alto-qa` | Write tests for implementations, fix failures | runs after role agents; follows objective.md patterns |
-| `alto-gitops` | Branch/commit/push workflow | commit after checks pass |
-| `alto-reviewer` | Code quality gate (auto after role) | read-only; can reject |
-| `alto-arbiter` | Periodic checkpoint auditor | edits **runs/arbiter/** only |
-| `alto-dev` | ALTO development helper (meta) | full access for ALTO repo work |
-| `code-simplifier` | Refine code for clarity (post-agent) | edits files touched by role agent |
+| Agent | Mode | Primary responsibility | Typical constraints |
+|-------|------|-------------------------|---------------------|
+| `alto-planner` | build | Create task files from milestones | edits **runs/** only; no Bash |
+| `alto-feature-finder` | both | Analyze codebase, identify next features | read-only |
+| `alto-backend` | build | API, DB schema, worker logic | obey `allowed_paths`; run checks |
+| `alto-frontend` | build | Dashboard UI, charts, client state | obey `allowed_paths`; run checks |
+| `alto-docs` | build | Write implementation docs for readers | **docs/** only |
+| `alto-qa` | build | Write tests, update verification-config | runs after role agents |
+| `alto-gitops` | build | Branch/commit/push workflow | commit after checks pass |
+| `alto-reviewer` | build | Code quality gate (auto after role) | read-only; can reject |
+| `alto-arbiter` | build | Periodic checkpoint auditor | edits **runs/arbiter/** only |
+| `alto-dev` | (meta) | ALTO development helper | full access for ALTO repo work |
+| `code-simplifier` | build | Refine code for clarity (post-agent) | edits files touched by role agent |
 
 ---
 
-## Discipline Skills
+## Skills
 
-Discipline skills define **shared practices** that apply across multiple agents. Unlike role-specific prompts, disciplines enforce behavioral rules that prevent common agent failures.
+Skills are reusable procedures and rules that agents and orchestrators reference. Three types:
 
-### Structure
+| Type | Purpose | Required Sections |
+|------|---------|-------------------|
+| `discipline` | Enforce behavioral rules | Hard Rule, Warning Signs |
+| `technique` | How-to procedures | Process/steps |
+| `reference` | Lookup information | Quick reference table |
+
+### Current Skills
+
+| Skill | Type | Purpose | Used By |
+|-------|------|---------|---------|
+| `alto-protocol` | reference | Task/state/handoff formats | All agents |
+| `alto-feature-setup` | technique | Interactive feature setup | Setup orchestrator |
+| `alto-configure` | technique | Configuration procedures (thresholds, permissions, verification) | Both orchestrators |
+| `scope-discipline` | discipline | Prevent over-engineering | Implementation agents |
+
+### Activation (Reference-Based)
+
+Agent prompts and orchestrators explicitly reference skills:
+
+```markdown
+## Skills
+- Read `skills/alto-configure/SKILL.md` — configuration procedures
+- Read `skills/scope-discipline/SKILL.md` — only do what task asks
+```
+
+Reference-based activation (vs discovery-based):
+- No discovery overhead per invocation
+- Selective per agent (not all need all skills)
+- Explicit in prompt (auditable)
+
+### Discipline Skills
+
+Discipline skills enforce behavioral rules. Structure:
 
 ```markdown
 ---
@@ -334,7 +471,6 @@ name: scope-discipline
 type: discipline
 triggers:
   - implementing features
-  - editing source code
 ---
 
 ## Hard Rule
@@ -343,39 +479,16 @@ triggers:
 ## Warning Signs
 If you catch yourself thinking:
 - "[rationalization 1]"
-- "[rationalization 2]"
 
 STOP. [What to do instead].
 ```
 
-### Activation (Reference-Based)
+### Adding Skills
 
-Agent prompts explicitly reference discipline skills:
-
-```markdown
-## Disciplines
-Follow these shared practices:
-- Read `skills/scope-discipline/SKILL.md` — only do what task asks
-- Read `skills/verification/SKILL.md` — verify before claiming done
-```
-
-This differs from discovery-based activation ("might any skill apply?") used by some frameworks. Reference-based activation:
-- No discovery overhead per invocation
-- Selective per agent (not all need all disciplines)
-- Explicit in agent prompt (auditable)
-
-### Current Disciplines
-
-| Skill | Purpose | Applies To |
-|-------|---------|------------|
-| `scope-discipline` | Prevent over-engineering, stay on task | Implementation agents |
-
-### Adding Disciplines
-
-1. Create `skills/<name>/SKILL.md` with discipline frontmatter
-2. Include Hard Rule + Warning Signs sections
-3. Add reference to relevant agent prompts
-4. Test that agent follows the discipline
+1. Create `skills/<name>/SKILL.md` with frontmatter (name, type, triggers)
+2. Include required sections for the type
+3. Stay within word limit (discipline: 300, technique: 500, reference: 800)
+4. Add reference to relevant agent prompts or orchestrator templates
 
 ---
 
@@ -473,21 +586,23 @@ Some settings can be changed mid-session, others require a shell restart (featur
 | Arbiter thresholds | **Dynamic** | `runs/arbiter/config.json` |
 | Verification commands | **Dynamic** | `runs/verification-config.json` |
 | Planning settings | **Dynamic** | `runs/planning-config.json` |
+| Orchestrator mode | Feature boundary | `devenv.nix` → `alto.orchestrator` |
 | Permissions (allow/deny) | Feature boundary | `devenv.nix` → `.claude/settings.json` |
 | Agent tools | Feature boundary | `devenv.nix` → agent files |
 | Hook definitions | Feature boundary | `devenv.nix` → `.claude/settings.json` |
 | Permission profile | Feature boundary | `devenv.nix` |
 
-**Dynamic:** Edit JSON file, takes effect on next hook invocation.
+**Dynamic:** Edit JSON file, takes effect on next hook invocation. Orchestrator writes these automatically via `alto-configure` skill.
 
 **Feature boundary:** Edit `devenv.nix`, then either:
 - Run `alto-restart` from within Claude (kills Claude, reloads devenv, restarts with `--continue`)
 - Manually exit Claude and run `devenv shell` + `claude`
 
 **Recommended flow:**
-1. Build first feature with defaults
-2. At feature completion, tune dynamic configs based on experience
-3. For permission changes, run `alto-restart` to apply immediately
+1. Start in setup mode, configure ALTO, write objective.md
+2. Switch to build mode for autonomous execution
+3. At arbiter checkpoints, optionally reconfigure thresholds/verification
+4. At feature completion, switch back to setup for next feature
 
 ---
 
@@ -677,6 +792,7 @@ When all tasks complete, orchestrator sets `phase = "COMPLETED"` and uses `AskUs
 
 1. **Debug mode** — test and fix issues before merging
 2. **Next feature** — merge and move on
+3. **Reconfigure** — adjust ALTO settings (thresholds, verification, permissions)
 
 #### Debug Mode (`phase = "DEBUG"`)
 - Stay on run branch
@@ -684,14 +800,19 @@ When all tasks complete, orchestrator sets `phase = "COMPLETED"` and uses `AskUs
 - Fix issues directly (native Claude, no task files — fast iteration)
 - When done → write debug summary to `runs/notes.md`, then ask same options again
 
+#### Reconfigure
+- Follow `alto-configure` skill procedures
+- Adjust thresholds, verification commands, or permissions
+- For permissions: edit `devenv.nix` then `alto-restart`
+- Return to completion options after
+
 #### Next Feature Mode
 1. Check merge status (prompt human to merge if needed, wait for confirmation)
 2. Run `alto-clean` (removes tasks, milestones, decisions; **keeps handoffs** for context)
-3. Run `git checkout main && git pull && alto-new-run`
-   - `alto-new-run` creates `run/XXX` branch and sets `phase = "ARCHITECTURE"`
-4. Continue to Boot flow (now in ARCHITECTURE phase)
+3. Run `git checkout main && git pull`
+4. Tell user: Switch to setup mode (`alto.orchestrator = "setup"` + `alto-restart`)
+5. Setup mode guides through new feature definition
 
-**Before transitioning**, architect + planner capture follow-ups:
+**Before transitioning**, capture follow-ups in `runs/notes.md`:
 - New features identified during implementation
 - Technical debt created
-- Record in `runs/notes.md` or GitHub issues

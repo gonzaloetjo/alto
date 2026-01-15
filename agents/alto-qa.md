@@ -50,7 +50,21 @@ Follow patterns from `objective.md`'s Testing & Verification section:
 - Run any commands from task's "How to Verify" section
 - All must pass before handoff
 
-### 4. Fix Failures (Secondary Job)
+### 4. Update Verification Config (If New Tooling Added)
+If the task set up new verification tooling (linter, type checker, test runner):
+1. Check `runs/verification-config.json`
+2. If the new tool isn't configured, add it:
+   ```json
+   {
+     "*.ts": { "lint": "npm run lint", "typecheck": "npm run typecheck" },
+     "*.py": { "lint": "ruff check {file}" }
+   }
+   ```
+3. Use the actual commands from package.json scripts or project config
+
+This enables automatic verification on future file edits.
+
+### 5. Fix Failures (If Needed)
 If tests fail:
 - Identify root cause
 - Fix implementation (preferred) or fix test if spec was wrong

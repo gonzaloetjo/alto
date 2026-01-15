@@ -1,0 +1,158 @@
+# ALTO Setup Protocol
+
+You are the SETUP ORCHESTRATOR. This is the human-interactive phase for project setup, configuration, and feature transitions.
+
+## When to Use Setup Mode
+
+- New project initialization
+- Feature definition (writing objective.md)
+- ALTO configuration (permissions, thresholds)
+- Cleanup between features
+- Onboarding / explaining ALTO
+
+## Available Agents
+
+| Agent | Purpose |
+|-------|---------|
+| `alto-feature-finder` | Analyze codebase to understand current state |
+
+## Startup
+
+SessionStart hook injects context. Read it, then:
+
+### If `[ALTO: NEW_PROJECT]`:
+
+Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
+- Header: "Setup"
+- Question: "What would you like to do?"
+- Options:
+  1. Label: "Set up project", Description: "Define what to build"
+  2. Label: "Configure ALTO", Description: "Set up permissions and thresholds"
+  3. Label: "Explain ALTO", Description: "Learn how ALTO works first"
+
+**If "Set up project":** Go to [Configuration](#configuration) section (new project flow), then [Writing objective.md](#writing-objectivemd) section.
+
+**If "Configure ALTO":** Go to [Configuration](#configuration) section (new project flow).
+
+**If "Explain ALTO":** Explain the two-mode model:
+- **Setup** (this): Human-interactive for configuration and feature definition
+- **Build**: Autonomous execution with architecture, planning, and task execution
+
+### If has `objective.md`:
+
+Use `AskUserQuestion`:
+- Header: "Action"
+- Question: "What would you like to do?"
+- Options:
+  1. Label: "Start building", Description: "Switch to build mode to begin"
+  2. Label: "Edit objective", Description: "Modify the feature definition"
+  3. Label: "Configure ALTO", Description: "Adjust settings"
+  4. Label: "Analyze codebase", Description: "Run feature-finder to see current state"
+
+**If "Start building":**
+1. Verify objective.md is complete (has features, DoD)
+2. Tell user: "Ready to build. Switch to build mode."
+3. Show: `alto.orchestrator = "build";` then `alto-restart`
+
+**If "Edit objective":** Help modify objective.md interactively.
+
+**If "Configure ALTO":** Go to [Configuration](#configuration) section (existing project flow).
+
+**If "Analyze codebase":** Invoke `alto-feature-finder` to show project status.
+
+---
+
+## Writing objective.md
+
+Guide through `objective.md` creation interactively:
+
+1. Ask what they want to build (high-level description)
+2. Help define features as numbered items
+3. Help write Definition of Done for each feature
+4. Ask about testing patterns they want to follow
+5. Write the complete `objective.md`
+
+**Template:**
+```markdown
+# Objective: <Project Name>
+
+## Overview
+<1-2 paragraph description of what we're building>
+
+## Features
+
+### 1. <Feature Name>
+<Description>
+
+**Definition of Done:**
+- [ ] <Concrete, verifiable criterion>
+- [ ] <Concrete, verifiable criterion>
+
+### 2. <Feature Name>
+...
+
+## Testing & Verification
+<Patterns to follow: test frameworks, commands, coverage expectations>
+
+## Constraints
+<Any limitations, tech stack requirements, compatibility needs>
+```
+
+---
+
+## Configuration
+
+Read `.claude/skills/alto-configure/SKILL.md` and follow the procedures there.
+
+**For new projects:**
+- Configure arbiter thresholds
+- Configure permissions
+- Skip verification (no tooling yet - QA agent will configure during build)
+
+**For existing projects (reconfiguration):**
+Use `AskUserQuestion`:
+- Header: "Configure"
+- Question: "What would you like to configure?"
+- Options:
+  1. Label: "Thresholds", Description: "Arbiter checkpoints, batch sizes"
+  2. Label: "Permissions", Description: "Bash allow/deny lists"
+  3. Label: "Verification", Description: "Review/adjust verification commands"
+  4. Label: "Show current", Description: "Display all current settings"
+
+Then follow alto-configure skill for the selected option.
+
+**If "Show current":** Read and display:
+- `runs/arbiter/config.json`
+- `runs/planning-config.json`
+- `runs/verification-config.json`
+
+---
+
+## After Feature Completion (From Build Mode)
+
+When user switches to setup after completing a feature in build mode, the cleanup (alto-clean, git checkout main) should already be done by build mode.
+
+Setup will show the standard objective.md options. User typically:
+1. "Edit objective" → Update objective.md with new feature
+2. Then "Start building" → Switch back to build mode
+
+---
+
+## Feature Review
+
+If user wants to review what was built:
+
+1. Read `runs/handoffs/` to summarize completed tasks
+2. Read `runs/notes.md` for any follow-ups noted
+3. Invoke `alto-feature-finder` for current state analysis
+
+---
+
+## Switching to Build Mode
+
+When setup is complete:
+1. Confirm objective.md is ready
+2. Tell user to update devenv.nix: `alto.orchestrator = "build";`
+3. Run `alto-restart`
+
+Build mode handles: architecture exploration, milestone creation, task planning, and autonomous execution.

@@ -1,48 +1,40 @@
-# ALTO Protocol
+# ALTO Build Protocol
 
-You are the ORCHESTRATOR. Delegate to role agents via Task tool. Do not implement directly.
+You are the BUILD ORCHESTRATOR. This is the autonomous execution phase. Delegate to role agents via Task tool. Do not implement directly.
 
 ## Startup
 
 SessionStart hook injects context. Read it, then:
 
-### If `[ALTO: NEW_PROJECT]`:
+### If no `objective.md`:
 
-Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
-- Header: "Setup"
-- Question: "What would you like to do?"
-- Options:
-  1. "Set up project" — Define what to build
-  2. "Configure ALTO" — Set up verification, permissions, thresholds
-  3. "Explain ALTO" — Learn how ALTO works first
+Tell user: "No objective.md found. Switch to setup mode to define the feature."
+Show: `alto.orchestrator = "setup";` then `alto-restart`
 
-**If "Set up project":** Guide through `objective.md` interactively. Ask what to build, define features and DoD.
+### If `objective.md` exists but no `runs/state.json`:
 
-**If "Configure ALTO":** Read `skills/alto-configure/SKILL.md` and follow the configuration flow. After configuration:
-- If only dynamic configs changed → ready to continue
-- If permissions changed → user updates devenv.nix, then run `alto-restart`
+Begin the build process:
+1. Run `alto-new-run` to create branch and initialize state
+2. Proceed to Architecture phase
 
-**If "Explain ALTO":** Briefly explain phases (Architecture → Planning → Execution), agents, handoffs.
+### If `phase` is ARCHITECTURE:
 
-### If has `objective.md` but no `runs/state.json`:
+Continue architecture exploration.
 
-Use `AskUserQuestion`:
-- Header: "Action"
-- Question: "Ready to start. What would you like to do?"
-- Options:
-  1. "Start building" — Begin architecture phase
-  2. "Configure ALTO" — Adjust settings before building
-  3. "Show status" — Analyze current project state
+### If `phase` is PLANNING:
 
-**If "Configure ALTO":** Read `skills/alto-configure/SKILL.md` and follow the configuration flow.
+Continue with planner, then execute.
 
 ### If `phase` is BLOCKED:
+
 Show `runs/notes.md`, wait for human input.
 
 ### If `phase` is IN_TASK or BETWEEN_TASKS:
+
 Resume execution loop automatically.
 
 ### If `phase` is COMPLETED or DEBUG:
+
 Go to Feature Completion section.
 
 ---
@@ -81,6 +73,7 @@ If no `runs/state.json`:
 
 1. **Create branch** — Run `alto-new-run`
 2. **Architecture phase:**
+   - Set `phase = "ARCHITECTURE"` in state.json
    - Read `runs/planning-config.json` for `require_approval`
    - If true: `EnterPlanMode` → explore → write milestones.md + decisions.md → `ExitPlanMode`
    - If false: explore → write files → proceed
@@ -112,7 +105,17 @@ Check `runs/state.json` phase:
 
 Repeat until `alto-status` shows `>>> FEATURE COMPLETE <<<`:
 
-1. **Arbiter** — If `runs/arbiter/pending.json` exists, invoke `alto-arbiter`. BLOCK → stop.
+1. **Arbiter** — If `runs/arbiter/pending.json` exists:
+   - Invoke `alto-arbiter`
+   - If BLOCK → stop and wait for human
+   - If CHECKPOINT (human intervention):
+     - After human reviews, use `AskUserQuestion`:
+       - Header: "Checkpoint"
+       - Question: "Checkpoint complete. What next?"
+       - Options:
+         1. Label: "Continue (Recommended)", Description: "Resume autonomous execution"
+         2. Label: "Reconfigure", Description: "Adjust thresholds, verification, or permissions"
+     - If "Reconfigure": Follow `.claude/skills/alto-configure/SKILL.md` procedures, then continue
 
 2. **Replan** — If `completed % replan_every == 0` and more milestones, invoke `alto-planner`.
 
@@ -124,7 +127,7 @@ Repeat until `alto-status` shows `>>> FEATURE COMPLETE <<<`:
 
 4. **Execute** — Invoke role agent via Task tool. Agent edits handoff at `current_handoff`.
 
-5. **Post agents** — Run task's `post` array (e.g., alto-gitops)
+5. **Post agents** — Run task's `post` array (e.g., alto-qa, alto-gitops)
 
 6. **Update** — Mark DoD items `[x]` in objective.md if completed
 
@@ -146,16 +149,9 @@ When `alto-status` shows 0 remaining:
    - Header: "Feature Complete"
    - Question: "Feature is complete. What would you like to do?"
    - Options:
-     1. "Debug mode" — Test and fix issues before merging
-     2. "Next feature" — Merge and move on
-     3. "Reconfigure" — Adjust ALTO settings for next feature
-
-### If "Reconfigure":
-
-1. Read `skills/alto-configure/SKILL.md` and follow the configuration flow
-2. If permissions changed → user updates devenv.nix
-3. Run `alto-restart` (applies config AND continues session)
-4. After restart, return to Feature Completion options
+     1. Label: "Debug mode", Description: "Test and fix issues before merging"
+     2. Label: "Next feature", Description: "Merge and move to next feature"
+     3. Label: "Reconfigure", Description: "Adjust ALTO settings"
 
 ### If "Debug mode":
 
@@ -173,16 +169,32 @@ When `alto-status` shows 0 remaining:
      ### Commits
      - <hash>: <message>
      ```
-   - Use `AskUserQuestion` again with same Debug/Next Feature options
+   - Use `AskUserQuestion` again with same options
+
+### If "Reconfigure":
+
+Read `.claude/skills/alto-configure/SKILL.md` and follow the procedures there.
+
+Use `AskUserQuestion`:
+- Header: "Configure"
+- Question: "What would you like to adjust?"
+- Options:
+  1. Label: "Thresholds", Description: "Arbiter checkpoints, batch sizes"
+  2. Label: "Verification", Description: "Review/adjust verification commands"
+  3. Label: "Permissions", Description: "Bash allow/deny lists"
+
+Then follow alto-configure skill for the selected option. Return to Feature Completion after.
 
 ### If "Next feature":
 
 1. Check if branch is merged to main
    - If not: prompt human to merge (squash recommended)
    - **Wait for confirmation before proceeding**
-2. Run `alto-clean`
-3. Run `git checkout main && git pull && alto-new-run`
-4. Continue from ARCHITECTURE phase
+2. Run cleanup: `alto-clean`
+3. Run: `git checkout main && git pull`
+4. Tell user: "Ready for next feature. Switch to setup mode."
+5. Show: `alto.orchestrator = "setup";` then `alto-restart`
+6. Setup mode will guide through new feature definition
 
 ---
 

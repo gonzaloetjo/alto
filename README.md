@@ -38,10 +38,21 @@ ALTO will guide you through setup interactively.
 
 ## How It Works
 
+ALTO has two orchestrator modes:
+
+| Mode | Purpose |
+|------|---------|
+| **setup** | Human-interactive: feature definition, configuration, cleanup |
+| **build** | Autonomous: architecture → planning → execution → completion |
+
 ```
-ARCHITECTURE → PLANNING → IN_TASK → BETWEEN_TASKS → COMPLETE
-                              ↓
-                           BLOCKED (human review)
+SETUP MODE                          BUILD MODE
+────────────                        ──────────
+• Configure ALTO                    ARCHITECTURE → PLANNING → IN_TASK → COMPLETE
+• Write objective.md                                              ↓
+• Cleanup between features                                     BLOCKED (checkpoint)
+        │                                   │
+        └──► "Start building" ──►           └──► "Next feature" ──►
 ```
 
 **Agents** handle specialized tasks: planning, implementation (backend/frontend), QA, docs, git, and review. The **Arbiter** monitors thresholds and triggers human checkpoints.
@@ -78,6 +89,9 @@ your-project/
   alto = {
     enable = true;
 
+    # Orchestrator mode: "setup" (human-interactive) or "build" (autonomous)
+    orchestrator = "build";  # default
+
     arbiter = {
       maxLinesChanged = 2000;
       maxFilesChanged = 50;
@@ -113,6 +127,7 @@ your-project/
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `orchestrator` | `"build"` | Mode: `"setup"` (human-interactive) or `"build"` (autonomous) |
 | `arbiter.enable` | `true` | Enable human review gates |
 | `arbiter.maxLinesChanged` | `2000` | Block threshold for lines |
 | `arbiter.maxFilesChanged` | `50` | Block threshold for files |
@@ -147,7 +162,8 @@ your-project/
 
 | Command | Description |
 |---------|-------------|
-| `alto-status` | Show current status |
+| `alto-status` | Show current status (includes orchestrator mode) |
+| `alto-switch` | Show how to switch between setup/build modes |
 | `alto-new-run` | Create new run branch |
 | `alto-clean` | Clean run artifacts |
 | `alto-feature` | Start new feature |
@@ -157,17 +173,17 @@ your-project/
 
 ## Agents
 
-| Agent | Purpose | Permission Mode |
-|-------|---------|-----------------|
-| `alto-planner` | Generate tasks from milestones | acceptEdits |
-| `alto-feature-finder` | Analyze codebase for next steps | plan (read-only) |
-| `alto-backend` | Backend implementation | acceptEdits |
-| `alto-frontend` | Frontend implementation | acceptEdits |
-| `alto-qa` | Testing and fixes | acceptEdits |
-| `alto-docs` | Documentation | acceptEdits |
-| `alto-gitops` | Git operations | default (prompts) |
-| `alto-reviewer` | Code quality review | plan (read-only) |
-| `alto-arbiter` | Human review gates | plan (read-only) |
+| Agent | Mode | Purpose | Permission Mode |
+|-------|------|---------|-----------------|
+| `alto-planner` | build | Generate tasks from milestones | acceptEdits |
+| `alto-feature-finder` | both | Analyze codebase for next steps | plan (read-only) |
+| `alto-backend` | build | Backend implementation | acceptEdits |
+| `alto-frontend` | build | Frontend implementation | acceptEdits |
+| `alto-qa` | build | Testing and verification config | acceptEdits |
+| `alto-docs` | build | Documentation | acceptEdits |
+| `alto-gitops` | build | Git operations | default (prompts) |
+| `alto-reviewer` | build | Code quality review | plan (read-only) |
+| `alto-arbiter` | build | Human review gates | plan (read-only) |
 
 ---
 
@@ -208,8 +224,8 @@ Without Nix, copy manually:
 
 1. `agents/` → `.claude/agents/`
 2. `hooks/` → `.claude/hooks/`
-3. `skills/alto-protocol/`, `skills/alto-feature-setup/` → `.claude/skills/`
-4. `templates/CLAUDE.md.template` → `CLAUDE.md`
+3. `skills/alto-protocol/`, `skills/alto-feature-setup/`, `skills/alto-configure/` → `.claude/skills/`
+4. `templates/CLAUDE.md.setup` or `templates/CLAUDE.md.build` → `CLAUDE.md` (based on mode)
 5. Create `runs/` structure
 6. Create `.claude/settings.json`
 

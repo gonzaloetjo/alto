@@ -24,7 +24,8 @@ The agent reads `.claude/skills/alto-dev-guide/SKILL.md` which contains:
 | `agents/*.md` | Agent prompts (YAML frontmatter + markdown) |
 | `hooks/*.py` | Hook implementations |
 | `skills/*/SKILL.md` | Skill content |
-| `templates/CLAUDE.md.template` | Orchestrator protocol (for consumer projects) |
+| `templates/CLAUDE.md.setup` | Setup orchestrator (human-interactive) |
+| `templates/CLAUDE.md.build` | Build orchestrator (autonomous) |
 | `DEVELOPMENT.md` | Development guide |
 | `CHANGELOG.md` | Recent changes |
 | `ARCHITECTURE.md` | Design documentation |

@@ -5,6 +5,34 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Two-orchestrator model** (Issue #29):
+  - `alto.orchestrator` option: `"setup"` (human-interactive) or `"build"` (autonomous)
+  - **Setup mode**: Feature definition, configuration, cleanup, onboarding
+  - **Build mode**: Architecture, planning, execution, replan, arbiter checkpoints
+  - Conditional agent deployment (setup has only `alto-feature-finder`)
+  - Conditional hook deployment (build-only: verify-dynamic, arbiter-scheduler, handoff-validate)
+- `templates/CLAUDE.md.setup` - Setup orchestrator protocol (158 lines)
+- `templates/CLAUDE.md.build` - Build orchestrator protocol (214 lines)
+- `skills/alto-configure/SKILL.md` - Shared configuration procedures for both orchestrators:
+  - Arbiter thresholds configuration
+  - Permissions configuration (devenv.nix changes)
+  - Verification commands configuration
+  - Orchestrator writes JSON files automatically (not user)
+- `alto-switch` script to show how to switch between orchestrators
+- `alto-status` now shows current orchestrator mode
+- Reconfiguration option at arbiter checkpoints (build mode)
+- Reconfiguration option at feature completion (build mode)
+- `alto-qa` agent now updates `runs/verification-config.json` when new tooling is set up
+- ARCHITECTURE.md index with 25 anchor links
+- Skills section in ARCHITECTURE.md covering all skill types (discipline, technique, reference)
+
+### Changed
+- Removed unified `templates/CLAUDE.md.template` (replaced by setup/build templates)
+- Deploy task now removes CLAUDE.md before copying to handle read-only files
+- ARCHITECTURE.md reorganized with Orchestrator Modes section
+- README.md updated with orchestrator mode documentation
+- All AskUserQuestion options now use explicit Label/Description format
+
 - Three-tier permission system via devenv's Claude Code integration:
   - `permissions.profile` option: autonomous, supervised, or locked
   - `permissions.allowBash` - commands auto-approved (ls, cat, grep, etc.)

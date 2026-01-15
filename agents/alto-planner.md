@@ -88,6 +88,7 @@ Any limitations or requirements.
 
 **Note:** `alto-qa` writes tests for new implementations, runs after role agent completes.
 
+
 ### Rolling Planning
 
 Create tasks for the current batch only. When the orchestrator triggers a replan:
