@@ -882,9 +882,6 @@ JSON_EOF
         locked = "plan";
       }.${cfg.permissions.profile};
 
-      # Prevent dangerous bypass mode in supervised/locked profiles
-      disableBypassPermissionsMode = cfg.permissions.profile != "autonomous";
-
       # Per-tool permission rules
       rules = {
         Bash = {
@@ -896,6 +893,9 @@ JSON_EOF
           deny = cfg.permissions.denyRead;
         };
       };
+    } // lib.optionalAttrs (cfg.permissions.profile != "autonomous") {
+      # Prevent dangerous bypass mode in supervised/locked profiles
+      disableBypassPermissionsMode = "disable";
     };
 
     # MCP servers via native devenv options

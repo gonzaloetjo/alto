@@ -162,6 +162,7 @@ All notable changes to ALTO.
 ### Fixed
 - `.gitignore` now tracks `.claude/` source files (agents, skills) but ignores `settings.json`
 - jq escaping in `alto-status` script (use separate echo+jq calls)
+- `disableBypassPermissionsMode` now uses string `"disable"` instead of boolean (Claude Code validation fix)
 
 ### Removed
 - `permissions.defaultMode` option - replaced by three-tier system (allow/ask/deny)
