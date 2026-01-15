@@ -1146,6 +1146,9 @@ JSON_EOF
         # Copy hook scripts (referenced by native hook commands)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
+        # Copy skills available to all orchestrators
+        cp -r "$ALTO_SRC"/skills/alto-switch .claude/skills/ 2>/dev/null || true
+
         # Copy shared ALTO skills (setup and build orchestrators)
         ${lib.optionalString (cfg.orchestrator != "dev") ''
           cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
