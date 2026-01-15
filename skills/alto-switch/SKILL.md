@@ -12,11 +12,10 @@ ALTO has three orchestrator modes: `setup`, `build`, `dev`.
 
 ## Process
 
-Run `Bash(alto-switch <mode>)` where `<mode>` is `setup`, `build`, or `dev`.
+1. `Edit(devenv.nix)` - find `alto.orchestrator = "X"` and change `"X"` to desired mode
+2. `Bash(alto-restart)` to apply
 
-This command:
-1. Updates `alto.orchestrator` in devenv.nix
-2. Runs `alto-restart` to apply
+If `alto-restart` not found, tell user to run `devenv shell` to reload.
 
 ## Quick Reference
 
