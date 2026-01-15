@@ -23,10 +23,12 @@ All notable changes to ALTO.
 - Reconfiguration option at arbiter checkpoints (build mode)
 - Reconfiguration option at feature completion (build mode)
 - `alto-qa` agent now updates `runs/verification-config.json` when new tooling is set up
-- ARCHITECTURE.md index with 25 anchor links
+- ARCHITECTURE.md index with anchor links
 - Skills section in ARCHITECTURE.md covering all skill types (discipline, technique, reference)
+- `changelog-check.py` hook - PreToolUse hook that blocks `git commit` if key files staged without CHANGELOG.md
 
 ### Changed
+- ARCHITECTURE.md refactored: 819→730 lines, 25→18 sections, consolidated redundant content
 - Removed unified `templates/CLAUDE.md.template` (replaced by setup/build templates)
 - Deploy task now removes CLAUDE.md before copying to handle read-only files
 - ARCHITECTURE.md reorganized with Orchestrator Modes section

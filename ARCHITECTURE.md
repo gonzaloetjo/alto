@@ -266,6 +266,7 @@ hooks/
 ├── usage-record.py          # Token tracking (Stop/SubagentStop) - shared
 ├── tool-record.py           # Tool invocation logging (PostToolUse) - shared
 ├── permission-record.py     # Permission request logging (PermissionRequest) - shared
+├── changelog-check.py       # Blocks commit without CHANGELOG (PreToolUse) - shared
 ├── session-start.py         # Session initialization (SessionStart) - shared
 ├── session-summary.py       # Session summary generation (SessionEnd) - shared
 ├── arbiter-scheduler.py     # Triggers arbiter on thresholds (build only)

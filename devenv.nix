@@ -657,6 +657,13 @@ STATE_EOF
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-record.py";
         };
 
+        # PreToolUse hook for changelog check
+        changelog-check = {
+          hookType = "PreToolUse";
+          matcher = "Bash";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/changelog-check.py";
+        };
+
         # Stop hooks (shared)
         usage-record-stop = {
           hookType = "Stop";
