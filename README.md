@@ -93,7 +93,7 @@ your-project/
       denyRead = [ ".env" "secrets/**" "**/*.pem" ];    # sensitive files
     };
 
-    # Auto-run verification after file edits
+    # Auto-run verification after file edits (static)
     verification = {
       typecheck.enable = true;
       typecheck.command = "pnpm type:check";
@@ -105,6 +105,8 @@ your-project/
   };
 }
 ```
+
+**Dynamic verification:** Edit `runs/verification-config.json` mid-session without shell restart. See ARCHITECTURE.md for format.
 
 <details>
 <summary><strong>All options</strong></summary>
@@ -118,11 +120,15 @@ your-project/
 | `arbiter.taskCheckpointInterval` | `3` | Checkpoint every N tasks |
 | `planning.requireApproval` | `true` | Gate architecture approval |
 | `planning.replanStrategy` | `"auto"` | `auto`, `fixed`, or `none` |
+| `planning.fixedBatchSize` | `5` | Batch size when replanStrategy = `fixed` |
+| `planning.architectModel` | `"opus"` | Model for architecture phase |
+| `planning.plannerModel` | `"opus"` | Model for planner agent |
 | `permissions.profile` | `"supervised"` | `autonomous`, `supervised`, or `locked` |
 | `permissions.allowBash` | `[ls, cat, grep...]` | Auto-approved bash commands |
 | `permissions.askBash` | `[git, npm, docker...]` | Prompt-before-run commands |
 | `permissions.denyBash` | `[rm -rf, sudo...]` | Always blocked commands |
 | `permissions.denyRead` | `[.env, secrets/**...]` | Blocked file patterns |
+| `agentPermissions.<agent>` | (see devenv.nix) | Per-agent tools, permissionMode, bash tiers |
 | `includeSpawnerSkills` | `false` | Include domain skills |
 | `runsDir` | `"runs"` | Runtime directory name |
 | `verification.typecheck.enable` | `false` | Auto-run typecheck after TS edits |

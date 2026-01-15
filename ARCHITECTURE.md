@@ -462,6 +462,31 @@ The arbiter is an independent "blackhat" auditor that operates between tasks to 
 
 ---
 
+## Configuration Timing
+
+Some settings can be changed mid-session, others require a shell restart (feature boundary).
+
+| Config | When Applied | Location |
+|--------|--------------|----------|
+| Arbiter thresholds | **Dynamic** | `runs/arbiter/config.json` |
+| Verification commands | **Dynamic** | `runs/verification-config.json` |
+| Planning settings | **Dynamic** | `runs/planning-config.json` |
+| Permissions (allow/deny) | Feature boundary | `devenv.nix` → `.claude/settings.json` |
+| Agent tools | Feature boundary | `devenv.nix` → agent files |
+| Hook definitions | Feature boundary | `devenv.nix` → `.claude/settings.json` |
+| Permission profile | Feature boundary | `devenv.nix` |
+
+**Dynamic:** Edit JSON file, takes effect on next hook invocation.
+
+**Feature boundary:** Edit `devenv.nix`, then run `devenv shell` (requires exiting Claude).
+
+**Recommended flow:**
+1. Build first feature with defaults
+2. At feature completion, tune dynamic configs based on experience
+3. For permission changes, apply when starting next feature (shell restart anyway)
+
+---
+
 ## Verification Hooks
 
 Automated quality checks that run after file edits via `PostToolUse` hooks. Configured in `devenv.nix`:
@@ -511,6 +536,39 @@ alto.verification = {
 **Replaces `check_command`:** Tasks no longer specify a single check command. Instead:
 - Automated checks run via hooks (deterministic, always runs)
 - Task body has "How to Verify" section for acceptance criteria (conceptual)
+
+### Dynamic Verification
+
+For verification that can be configured mid-session without shell restart, use `runs/verification-config.json`:
+
+```json
+{
+  "*.ts": {
+    "typecheck": { "enable": true, "command": "pnpm type:check" }
+  },
+  "*.py": {
+    "lint": "ruff check {file}",
+    "test": { "enable": true, "command": "pytest" }
+  },
+  "src/api/**/*.ts": {
+    "openapi": "./scripts/validate-openapi.sh"
+  }
+}
+```
+
+**Format:**
+- Keys are glob patterns (`*.ts`, `src/**/*.py`)
+- Values are objects mapping check names to commands
+- Commands can be strings or `{ enable, command }` objects
+- Use `{file}` placeholder for the edited file path
+
+**When to use:**
+| Approach | Use Case |
+|----------|----------|
+| Static (devenv.nix) | Known at project setup, rarely changes |
+| Dynamic (JSON) | Discovered after first feature, tuned per-project |
+
+The dynamic hook runs on all Edit/Write and checks the config file each time.
 
 ---
 

@@ -554,7 +554,14 @@ STATE_EOF
         command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-validate.py";
       };
 
-      # Verification hooks (user-configured)
+      # Dynamic verification (reads from runs/verification-config.json)
+      verify-dynamic = {
+        hookType = "PostToolUse";
+        matcher = "Edit|Write";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/verify-dynamic.py";
+      };
+
+      # Verification hooks (user-configured, static)
     } // lib.optionalAttrs cfg.verification.typecheck.enable {
       verify-typecheck = {
         hookType = "PostToolUse";
@@ -765,6 +772,18 @@ ARBSTATE_EOF
   "planner_model": "${cfg.planning.plannerModel}"
 }
 PLANNING_EOF
+
+        # Initialize verification config if not exists (user can modify mid-session)
+        if [ ! -f "$RUNS_DIR/verification-config.json" ]; then
+          cat > "$RUNS_DIR/verification-config.json" << 'VERIFY_EOF'
+{
+  "*.ts": {},
+  "*.tsx": {},
+  "*.py": {},
+  "*.go": {}
+}
+VERIFY_EOF
+        fi
 
         # Copy CLAUDE.md only if it doesn't exist
         if [ ! -f CLAUDE.md ]; then
