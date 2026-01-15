@@ -1,0 +1,22 @@
+# Simple Hello World - Basic test scenario
+name: simple-hello-world
+description: Create a Python script that prints Hello
+
+orchestrator: build
+objective: |
+  Create a simple Python CLI that prints "Hello, ALTO!"
+
+  Requirements:
+  - Single Python file `hello.py`
+  - Print greeting when run
+
+  Testing: `python hello.py`
+
+prompt: "Read objective.md and build the project. The plan is pre-approved."
+
+# Expected outcomes (for validation)
+expected:
+  files_created:
+    - hello.py
+  output_contains: "Hello"
+  max_duration_seconds: 120

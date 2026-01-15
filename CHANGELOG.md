@@ -12,6 +12,12 @@ All notable changes to ALTO.
   - `alto-logs` script to query event logs (`--metrics`, `--type`, `--raw`)
   - Generic tool usage NOT duplicated (Claude Code OTel handles this)
   - `hook_utils.py`: `log_event()`, `is_debug_mode()`, `get_events()`, `get_session_metrics()`
+- **Test harness for meta-development** (Issue #30):
+  - `alto-test-run` script - run isolated test scenarios
+  - `tests/scenarios/` directory with YAML scenario definitions
+  - Initial scenarios: `simple-hello-world`, `setup-feature-definition`
+  - JSON output option (`--json`) for programmatic use
+  - Warning: uses `--dangerously-skip-permissions`, for trusted scenarios only
 - **Three-orchestrator model** (Issue #29):
   - `alto.orchestrator` option: `"setup"` (human-interactive), `"build"` (autonomous), or `"dev"` (ALTO development)
   - **Setup mode**: Feature definition, configuration, cleanup, onboarding

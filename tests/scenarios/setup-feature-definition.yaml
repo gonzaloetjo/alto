@@ -1,0 +1,16 @@
+# Setup Mode - Feature Definition
+name: setup-feature-definition
+description: Test setup orchestrator defining a feature
+
+orchestrator: setup
+objective: |
+  # Project Overview
+  Building a task management CLI.
+
+prompt: "Help me define a feature for adding task priorities (high/medium/low)."
+
+# Expected outcomes
+expected:
+  # Setup mode should ask clarifying questions, not build
+  should_ask_questions: true
+  should_not_create_files: true
