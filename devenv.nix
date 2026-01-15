@@ -808,6 +808,15 @@ JSON_EOF
           TARGET="$1"
           CURRENT="${cfg.orchestrator}"
 
+          # Detect if we're in ALTO source repo (not a consumer project)
+          if [ -f "templates/CLAUDE.md.dev" ]; then
+            echo "ERROR: Cannot switch orchestrator modes in the ALTO source repo."
+            echo ""
+            echo "You're developing ALTO itself. Mode switching is for consumer projects."
+            echo "In the ALTO repo, you work directly with the source files."
+            exit 1
+          fi
+
           if [ -z "$TARGET" ]; then
             echo "ALTO Switch"
             echo "==========="
@@ -820,11 +829,6 @@ JSON_EOF
             echo "  setup  - Human-interactive (feature definition, configuration, cleanup)"
             echo "  build  - Autonomous execution (architecture, planning, execution, replan)"
             echo "  dev    - ALTO development (single alto-dev agent with dev-guide skill)"
-            echo ""
-            echo "To switch, update devenv.nix:"
-            echo "  alto.orchestrator = \"setup\";  # or \"build\" or \"dev\""
-            echo ""
-            echo "Then run: alto-restart"
             exit 0
           fi
 
@@ -839,18 +843,29 @@ JSON_EOF
             exit 0
           fi
 
+          # Check devenv.nix exists
+          if [ ! -f "devenv.nix" ]; then
+            echo "Error: devenv.nix not found in current directory"
+            exit 1
+          fi
+
           echo "Switching from '$CURRENT' to '$TARGET'..."
+
+          # Update devenv.nix - handle both quoted and unquoted formats
+          if grep -q 'alto\.orchestrator\s*=' devenv.nix; then
+            ${pkgs.gnused}/bin/sed -i 's/alto\.orchestrator\s*=\s*"[^"]*"/alto.orchestrator = "'"$TARGET"'"/' devenv.nix
+            echo "Updated devenv.nix: alto.orchestrator = \"$TARGET\""
+          else
+            echo "Warning: Could not find alto.orchestrator in devenv.nix"
+            echo "Please add manually: alto.orchestrator = \"$TARGET\";"
+            exit 1
+          fi
+
           echo ""
-          echo "To complete the switch:"
-          echo ""
-          echo "1. Update devenv.nix:"
-          echo "   alto.orchestrator = \"$TARGET\";"
-          echo ""
-          echo "2. Run: alto-restart"
-          echo ""
-          echo "This will reload devenv and continue your Claude session."
+          echo "Running alto-restart to apply changes..."
+          alto-restart
         '';
-        description = "Switch between setup and build orchestrators";
+        description = "Switch between orchestrators (modifies devenv.nix and restarts)";
       };
     };
 

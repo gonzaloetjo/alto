@@ -39,7 +39,11 @@ All notable changes to ALTO.
 - `skills/alto-dev-guide/SKILL.md` - Documentation URLs and patterns (dev mode)
 - `skills/writing-alto-skills/SKILL.md` - Skill authoring methodology (dev mode)
 - `agents/alto-dev.md` - ALTO development agent with full access
-- `alto-switch` script to show how to switch between orchestrators
+- **`alto-switch` script enhanced** (Issue #31):
+  - Now modifies `devenv.nix` directly and runs `alto-restart`
+  - Usage: `alto-switch build` or `alto-switch setup` or `alto-switch dev`
+  - Detects ALTO source repo and blocks (mode switching is for consumer projects)
+  - CLAUDE.md templates updated to use `alto-switch` instead of manual instructions
 - `alto-status` now shows current orchestrator mode
 - Reconfiguration option at arbiter checkpoints (build mode)
 - Reconfiguration option at feature completion (build mode)
@@ -53,7 +57,7 @@ All notable changes to ALTO.
 - Removed unified `templates/CLAUDE.md.template` (replaced by setup/build/dev templates)
 - Unified ALTO development approach via orchestrator switch (tracked `.claude/` removed)
 - `.gitignore` now ignores entire `.claude/` directory (deployed by devenv)
-- To switch modes: edit `alto.orchestrator = "X"` in devenv.nix, run `alto-restart`
+- To switch modes: run `alto-switch <mode>` (modifies devenv.nix and restarts automatically)
 - Removed `alto.enable` option - ALTO activates on import (no explicit enable needed)
 - Deploy task now removes CLAUDE.md before copying to handle read-only files
 - ARCHITECTURE.md reorganized with Orchestrator Modes section

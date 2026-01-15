@@ -51,8 +51,7 @@ Use `AskUserQuestion`:
 
 **If "Start building":**
 1. Verify objective.md is complete (has features, DoD)
-2. Tell user: "Ready to build. Switch to build mode."
-3. Show: `alto.orchestrator = "build";` then `alto-restart`
+2. Run `alto-switch build` to switch to build mode and restart
 
 **If "Edit objective":** Help modify objective.md interactively.
 
@@ -152,7 +151,6 @@ If user wants to review what was built:
 
 When setup is complete:
 1. Confirm objective.md is ready
-2. Tell user to update devenv.nix: `alto.orchestrator = "build";`
-3. Run `alto-restart`
+2. Run `alto-switch build` to switch and restart
 
 Build mode handles: architecture exploration, milestone creation, task planning, and autonomous execution.

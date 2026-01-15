@@ -8,8 +8,8 @@ SessionStart hook injects context. Read it, then:
 
 ### If no `objective.md`:
 
-Tell user: "No objective.md found. Switch to setup mode to define the feature."
-Show: `alto.orchestrator = "setup";` then `alto-restart`
+Tell user: "No objective.md found. Switching to setup mode to define the feature."
+Run `alto-switch setup` to switch and restart.
 
 ### If `objective.md` exists but no `runs/state.json`:
 
@@ -192,8 +192,8 @@ Then follow alto-configure skill for the selected option. Return to Feature Comp
    - **Wait for confirmation before proceeding**
 2. Run cleanup: `alto-clean`
 3. Run: `git checkout main && git pull`
-4. Tell user: "Ready for next feature. Switch to setup mode."
-5. Show: `alto.orchestrator = "setup";` then `alto-restart`
+4. Tell user: "Ready for next feature. Switching to setup mode."
+5. Run `alto-switch setup` to switch and restart
 6. Setup mode will guide through new feature definition
 
 ---
