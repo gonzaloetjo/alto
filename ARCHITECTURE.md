@@ -320,6 +320,63 @@ The orchestrator is defined in `CLAUDE.md` (the "protocol controller").
 
 ---
 
+## Discipline Skills
+
+Discipline skills define **shared practices** that apply across multiple agents. Unlike role-specific prompts, disciplines enforce behavioral rules that prevent common agent failures.
+
+### Structure
+
+```markdown
+---
+name: scope-discipline
+type: discipline
+triggers:
+  - implementing features
+  - editing source code
+---
+
+## Hard Rule
+[One-line non-negotiable]
+
+## Warning Signs
+If you catch yourself thinking:
+- "[rationalization 1]"
+- "[rationalization 2]"
+
+STOP. [What to do instead].
+```
+
+### Activation (Reference-Based)
+
+Agent prompts explicitly reference discipline skills:
+
+```markdown
+## Disciplines
+Follow these shared practices:
+- Read `skills/scope-discipline/SKILL.md` — only do what task asks
+- Read `skills/verification/SKILL.md` — verify before claiming done
+```
+
+This differs from discovery-based activation ("might any skill apply?") used by some frameworks. Reference-based activation:
+- No discovery overhead per invocation
+- Selective per agent (not all need all disciplines)
+- Explicit in agent prompt (auditable)
+
+### Current Disciplines
+
+| Skill | Purpose | Applies To |
+|-------|---------|------------|
+| `scope-discipline` | Prevent over-engineering, stay on task | Implementation agents |
+
+### Adding Disciplines
+
+1. Create `skills/<name>/SKILL.md` with discipline frontmatter
+2. Include Hard Rule + Warning Signs sections
+3. Add reference to relevant agent prompts
+4. Test that agent follows the discipline
+
+---
+
 ## Model Assignment
 
 | Agent | Model | Rationale |
