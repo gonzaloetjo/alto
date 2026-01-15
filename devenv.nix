@@ -547,6 +547,13 @@ STATE_EOF
         command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
       };
 
+      # Skill validation (for ALTO development)
+      skill-validate = {
+        hookType = "PostToolUse";
+        matcher = "Edit|Write";
+        command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-validate.py";
+      };
+
       # Verification hooks (user-configured)
     } // lib.optionalAttrs cfg.verification.typecheck.enable {
       verify-typecheck = {
