@@ -20,7 +20,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from hook_utils import health_check, safe_hook
+from hook_utils import health_check, log_event, safe_hook
 
 
 def load_json(p: Path, default=None):
@@ -167,6 +167,20 @@ def main():
     }
     with (log_dir / "starts.jsonl").open("a", encoding="utf-8") as f:
         f.write(json.dumps(log_record, ensure_ascii=False) + "\n")
+
+    # Log to unified event log
+    log_event(
+        "session_start",
+        {
+            "is_resume": hook.get("resume", False),
+            "git_branch": git_branch,
+            "arbiter_pending": arbiter_pending,
+            "health_issues": health["issues"] if not health["healthy"] else [],
+            "objective_is_template": objective_is_template,
+        },
+        project_dir=project_dir,
+        session_id=hook.get("session_id"),
+    )
 
     # Output context for Claude to see
     if context_parts:

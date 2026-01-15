@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-from hook_utils import safe_hook
+from hook_utils import log_event, safe_hook
 
 
 def load_state(project_dir: Path) -> dict:
@@ -180,8 +180,29 @@ def main():
     # 3. Validate state consistency
     errors.extend(validate_state_consistency(project_dir, state, task_id))
 
+    # Get files touched for logging
+    records = load_tool_usage(project_dir)
+    task_records = [r for r in records if r.get("task_id") == task_id]
+    files_modified = list(set(
+        r.get("file_path", "") for r in task_records
+        if r.get("tool_name") in ("Write", "Edit") and r.get("file_path")
+    ))
+
     # Output result
     if errors:
+        # Log handoff failure
+        log_event(
+            "handoff",
+            {
+                "agent": agent_name,
+                "success": False,
+                "validation_errors": errors,
+                "files_modified": files_modified[:10],
+            },
+            project_dir=project_dir,
+            session_id=hook_input.get("session_id"),
+        )
+
         # Return error to block continuation
         result = {
             "status": "VIOLATION",
@@ -192,8 +213,17 @@ def main():
         print(json.dumps(result), file=sys.stderr)
         sys.exit(1)
     else:
-        # Validation passed - silent success
-        pass
+        # Log successful handoff
+        log_event(
+            "handoff",
+            {
+                "agent": agent_name,
+                "success": True,
+                "files_modified": files_modified[:10],
+            },
+            project_dir=project_dir,
+            session_id=hook_input.get("session_id"),
+        )
 
 
 if __name__ == "__main__":

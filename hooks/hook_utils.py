@@ -114,6 +114,196 @@ def get_state(project_dir: Path | None = None) -> dict:
     return read_json_safe(project_dir / "runs" / "state.json", {})
 
 
+def is_debug_mode(project_dir: Path | None = None) -> bool:
+    """Check if ALTO debug mode is enabled.
+
+    Reads runs/debug-config.json to determine if debug logging is active.
+    """
+    if project_dir is None:
+        project_dir = get_project_dir()
+    config = read_json_safe(project_dir / "runs" / "debug-config.json", {})
+    return config.get("debug", False)
+
+
+# =============================================================================
+# Event Logging - Unified log for meta-development analysis
+# =============================================================================
+
+# Event types for the unified event log
+EVENT_TYPES = [
+    "agent_dispatch",      # Agent was called
+    "agent_complete",      # Agent finished
+    "handoff",             # Handoff between agents
+    "decision",            # Plan approval, code acceptance, etc.
+    "phase_change",        # Orchestrator phase transition
+    "verification",        # Typecheck, lint, test result
+    "arbiter_checkpoint",  # Arbiter review point
+    "tool_use",            # Tool execution (summary)
+    "session_start",       # Session began
+    "session_end",         # Session ended
+    "error",               # Error occurred
+]
+
+
+def log_event(
+    event_type: str,
+    data: dict[str, Any],
+    project_dir: Path | None = None,
+    session_id: str | None = None,
+) -> bool:
+    """Log an event to runs/logs/events.jsonl (only in debug mode).
+
+    Args:
+        event_type: One of EVENT_TYPES
+        data: Event-specific data
+        project_dir: Project directory (defaults to CLAUDE_PROJECT_DIR)
+        session_id: Optional session ID to include
+
+    Returns:
+        True if logged successfully, False if debug mode disabled
+
+    Example:
+        log_event("agent_dispatch", {
+            "agent": "alto-backend",
+            "task_id": "task-001",
+            "reason": "implement backend task",
+        })
+    """
+    if project_dir is None:
+        project_dir = get_project_dir()
+
+    # Only log if debug mode is enabled
+    if not is_debug_mode(project_dir):
+        return False
+
+    logs_dir = project_dir / "runs" / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    # Get current ALTO state for context
+    state = get_state(project_dir)
+
+    event = {
+        "ts": datetime.utcnow().isoformat() + "Z",
+        "event": event_type,
+        "session_id": session_id,
+        # ALTO context
+        "task_id": state.get("current_task_id"),
+        "role": state.get("current_role"),
+        "phase": state.get("phase"),
+        # Event-specific data
+        **data,
+    }
+
+    try:
+        with (logs_dir / "events.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+        return True
+    except IOError:
+        return False
+
+
+def get_events(
+    project_dir: Path | None = None,
+    event_type: str | None = None,
+    limit: int = 100,
+    session_id: str | None = None,
+) -> list[dict]:
+    """Read events from runs/logs/events.jsonl.
+
+    Args:
+        project_dir: Project directory
+        event_type: Filter by event type
+        limit: Max events to return (most recent)
+        session_id: Filter by session ID
+
+    Returns:
+        List of event dicts, most recent last
+    """
+    if project_dir is None:
+        project_dir = get_project_dir()
+
+    events_file = project_dir / "runs" / "logs" / "events.jsonl"
+    if not events_file.exists():
+        return []
+
+    events = []
+    try:
+        with events_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                    # Apply filters
+                    if event_type and event.get("event") != event_type:
+                        continue
+                    if session_id and event.get("session_id") != session_id:
+                        continue
+                    events.append(event)
+                except json.JSONDecodeError:
+                    continue
+    except IOError:
+        return []
+
+    return events[-limit:]
+
+
+def get_session_metrics(
+    project_dir: Path | None = None,
+    session_id: str | None = None,
+) -> dict[str, Any]:
+    """Calculate metrics from events for a session.
+
+    Returns:
+        Dict with token totals, agent counts, durations, success rates
+    """
+    if project_dir is None:
+        project_dir = get_project_dir()
+
+    events = get_events(project_dir, session_id=session_id, limit=10000)
+
+    metrics = {
+        "total_tokens": {"input": 0, "output": 0},
+        "agent_calls": {},
+        "tool_calls": {},
+        "decisions": [],
+        "errors": 0,
+        "verifications": {"passed": 0, "failed": 0},
+    }
+
+    for event in events:
+        event_type = event.get("event")
+
+        if event_type == "agent_complete":
+            agent = event.get("agent", "unknown")
+            metrics["agent_calls"][agent] = metrics["agent_calls"].get(agent, 0) + 1
+            tokens = event.get("tokens", {})
+            metrics["total_tokens"]["input"] += tokens.get("input", 0)
+            metrics["total_tokens"]["output"] += tokens.get("output", 0)
+
+        elif event_type == "tool_use":
+            tool = event.get("tool_name", "unknown")
+            metrics["tool_calls"][tool] = metrics["tool_calls"].get(tool, 0) + 1
+
+        elif event_type == "decision":
+            metrics["decisions"].append({
+                "type": event.get("decision_type"),
+                "decision": event.get("decision"),
+            })
+
+        elif event_type == "verification":
+            if event.get("success"):
+                metrics["verifications"]["passed"] += 1
+            else:
+                metrics["verifications"]["failed"] += 1
+
+        elif event_type == "error":
+            metrics["errors"] += 1
+
+    return metrics
+
+
 def health_check(project_dir: Path | None = None) -> dict[str, Any]:
     """Run basic health checks on ALTO setup.
 

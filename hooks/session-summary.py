@@ -17,7 +17,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from hook_utils import safe_hook
+from hook_utils import log_event, safe_hook
 
 
 def load_json(p: Path, default=None):
@@ -298,6 +298,20 @@ def main():
     # Also update a "latest" symlink/file for easy access
     latest_path = sessions_dir / "latest-summary.md"
     latest_path.write_text("\n".join(summary_lines), encoding="utf-8")
+
+    # Log to unified event log
+    log_event(
+        "session_end",
+        {
+            "files_modified_count": len(files_modified),
+            "files_modified": files_modified[:10],  # First 10
+            "completed_tasks_count": len(completed),
+            "failures_count": len(failures),
+            "has_changelog_reminder": bool(changelog_reminder),
+        },
+        project_dir=project_dir,
+        session_id=session_id,
+    )
 
 
 if __name__ == "__main__":

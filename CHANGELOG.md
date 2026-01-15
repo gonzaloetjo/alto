@@ -5,6 +5,13 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Debug mode with event logging** (Issue #30):
+  - `alto.debug` option (default false) - enables verbose event logging
+  - Events logged to `runs/logs/events.jsonl` when enabled
+  - ALTO-specific events: `session_start`, `session_end`, `handoff`
+  - `alto-logs` script to query event logs (`--metrics`, `--type`, `--raw`)
+  - Generic tool usage NOT duplicated (Claude Code OTel handles this)
+  - `hook_utils.py`: `log_event()`, `is_debug_mode()`, `get_events()`, `get_session_metrics()`
 - **Three-orchestrator model** (Issue #29):
   - `alto.orchestrator` option: `"setup"` (human-interactive), `"build"` (autonomous), or `"dev"` (ALTO development)
   - **Setup mode**: Feature definition, configuration, cleanup, onboarding

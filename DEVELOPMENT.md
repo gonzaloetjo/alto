@@ -70,6 +70,30 @@ claude.code.hooks.<name> = {
 
 Hook scripts receive JSON on stdin, print to stdout (for SessionStart context).
 
+### Debug Mode & Event Logging
+
+Enable verbose event logging for testing and meta-development:
+
+```nix
+alto.debug = true;
+```
+
+**When disabled (default):** No extra logging. Claude Code's built-in OpenTelemetry handles generic metrics (tokens, tool calls, etc.).
+
+**When enabled:** ALTO-specific events logged to `runs/logs/events.jsonl`:
+- `session_start` / `session_end` - Session lifecycle
+- `handoff` - Agent handoffs with success/failure
+
+Query logs with `alto-logs`:
+```bash
+alto-logs              # Show last 20 events
+alto-logs --metrics    # Aggregated stats
+alto-logs --type handoff --last 50
+alto-logs --raw | jq   # Pipe to jq
+```
+
+**Note:** Generic tool usage is NOT duplicated to events.jsonl - use Claude Code's `/cost` command or enable OTel export for that data.
+
 ### Skill Schema
 
 Skills use YAML frontmatter with structured fields:
