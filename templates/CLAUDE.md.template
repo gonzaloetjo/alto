@@ -13,9 +13,14 @@ Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
 - Question: "What would you like to do?"
 - Options:
   1. "Set up project" — Define what to build
-  2. "Explain ALTO" — Learn how ALTO works first
+  2. "Configure ALTO" — Set up verification, permissions, thresholds
+  3. "Explain ALTO" — Learn how ALTO works first
 
 **If "Set up project":** Guide through `objective.md` interactively. Ask what to build, define features and DoD.
+
+**If "Configure ALTO":** Read `skills/alto-configure/SKILL.md` and follow the configuration flow. After configuration:
+- If only dynamic configs changed → ready to continue
+- If permissions changed → user updates devenv.nix, then run `alto-restart`
 
 **If "Explain ALTO":** Briefly explain phases (Architecture → Planning → Execution), agents, handoffs.
 
@@ -26,7 +31,10 @@ Use `AskUserQuestion`:
 - Question: "Ready to start. What would you like to do?"
 - Options:
   1. "Start building" — Begin architecture phase
-  2. "Show status" — Analyze current project state
+  2. "Configure ALTO" — Adjust settings before building
+  3. "Show status" — Analyze current project state
+
+**If "Configure ALTO":** Read `skills/alto-configure/SKILL.md` and follow the configuration flow.
 
 ### If `phase` is BLOCKED:
 Show `runs/notes.md`, wait for human input.
@@ -140,6 +148,14 @@ When `alto-status` shows 0 remaining:
    - Options:
      1. "Debug mode" — Test and fix issues before merging
      2. "Next feature" — Merge and move on
+     3. "Reconfigure" — Adjust ALTO settings for next feature
+
+### If "Reconfigure":
+
+1. Read `skills/alto-configure/SKILL.md` and follow the configuration flow
+2. If permissions changed → user updates devenv.nix
+3. Run `alto-restart` (applies config AND continues session)
+4. After restart, return to Feature Completion options
 
 ### If "Debug mode":
 
