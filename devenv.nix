@@ -2,7 +2,9 @@
 
 let
   cfg = config.alto;
-  altoSrc = ./.;
+  # Use config.devenv.root for monorepo support (devenv 1.10+)
+  # Falls back to ./. for compatibility
+  altoSrc = config.devenv.root or ./.;
 
   # Helper to read agent file and strip YAML frontmatter
   # Agent files have format: ---\nfrontmatter\n---\ncontent
@@ -378,6 +380,14 @@ in
     # Ensure python3, jq, and yq are available for hooks and test harness
     packages = [ pkgs.python3 pkgs.jq pkgs.yq-go ];
 
+    # Common environment variables available to all scripts and hooks
+    env = {
+      ALTO_SRC = altoSrc;
+      ALTO_RUNS_DIR = cfg.runsDir;
+      ALTO_ORCHESTRATOR = cfg.orchestrator;
+      ALTO_DEBUG = lib.boolToString cfg.debug;
+    };
+
     # ALTO scripts
     scripts = {
       # First-time project setup info
@@ -576,7 +586,23 @@ STATE_EOF
         type = "stdio";
         command = "devenv";
         args = [ "mcp" ];
-        env = { DEVENV_ROOT = "."; };
+        env = { DEVENV_ROOT = altoSrc; };
+      };
+    };
+
+    # Expose alto scripts as Claude Code slash commands
+    claude.code.commands = {
+      alto-status = {
+        exec = "alto-status";
+        description = "Show ALTO status (phase, tasks, orchestrator)";
+      };
+      alto-logs = {
+        exec = "alto-logs --metrics";
+        description = "Show ALTO event metrics (debug mode)";
+      };
+      alto-clean = {
+        exec = "alto-clean";
+        description = "Clean previous run artifacts";
       };
     };
 
@@ -807,6 +833,7 @@ STATE_EOF
     ];
 
     # Deploy ALTO files using tasks (runs before shell entry)
+    # Uses status check for caching - skips if orchestrator matches (devenv 1.2+)
     tasks."alto:deploy" = {
       exec = ''
         export ALTO_SRC="${altoSrc}"
@@ -824,6 +851,14 @@ STATE_EOF
         export PLANNING_ARCHITECT_MODEL="${cfg.planning.architectModel}"
         export PLANNING_PLANNER_MODEL="${cfg.planning.plannerModel}"
         exec "${altoSrc}/scripts/alto-deploy.sh"
+      '';
+      # Status check for caching - returns 0 if deploy can be skipped
+      # Skips if orchestrator.json exists and matches current orchestrator
+      status = ''
+        [ -f "${cfg.runsDir}/orchestrator.json" ] && \
+        [ "$(${pkgs.jq}/bin/jq -r '.orchestrator' "${cfg.runsDir}/orchestrator.json" 2>/dev/null)" = "${cfg.orchestrator}" ] && \
+        [ -d ".claude/hooks" ] && \
+        [ -f "CLAUDE.md" ]
       '';
       # Run before shell entry
       before = [ "devenv:enterShell" ];

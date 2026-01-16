@@ -5,6 +5,12 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Changed
+- **devenv.nix optimizations** based on devenv 1.2-1.11 best practices:
+  - Task caching with `status` check for `alto:deploy` - skips if orchestrator unchanged
+  - Use `config.devenv.root` for monorepo support (devenv 1.10+)
+  - Add `env` block for common environment variables (`ALTO_SRC`, `ALTO_RUNS_DIR`, etc.)
+  - Add Claude Code commands (`/alto-status`, `/alto-logs`, `/alto-clean`)
+  - Fix MCP server to use proper root path
 - **Script extraction from devenv.nix** - Moved complex bash logic to external files:
   - `scripts/alto.sh` - Main entry point with session resume (55 lines)
   - `scripts/alto-switch.sh` - Mode switching (91 lines)
