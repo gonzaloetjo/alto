@@ -1172,6 +1172,9 @@ JSON_EOF
           cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
         ''}
 
+        # Ensure .claude files are writable (they come read-only from nix store)
+        chmod -R +w .claude/ 2>/dev/null || true
+
         # Create runs directory structure
         mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools,logs}
 
