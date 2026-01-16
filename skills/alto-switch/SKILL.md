@@ -17,11 +17,11 @@ ALTO has three orchestrator modes: `setup`, `build`, `dev`.
 2. Run this to trigger restart:
 ```bash
 touch /tmp/alto-restart-requested
-echo "Switching mode. Claude will restart automatically."
-exit 0
+echo "Switching mode. Restarting Claude..."
+kill -TERM $(ps -o ppid= -p $$ | tr -d ' ')
 ```
 
-The shell trap will detect the restart file and restart Claude with fresh config.
+This kills Claude. The shell trap detects the restart file and restarts Claude with fresh config.
 
 ## Quick Reference
 
