@@ -1146,6 +1146,9 @@ JSON_EOF
         # Copy hook scripts (referenced by native hook commands)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
+        # Remove old skills before copying (they're read-only from nix store)
+        rm -rf .claude/skills/* 2>/dev/null || true
+
         # Copy skills available to all orchestrators
         cp -r "$ALTO_SRC"/skills/alto-switch .claude/skills/ 2>/dev/null || true
 
