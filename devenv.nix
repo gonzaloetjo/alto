@@ -1288,9 +1288,18 @@ ORCH_EOF
     scripts.alto-update = {
       exec = ''
         echo "Updating ALTO..."
-        rm -f devenv.lock
-        nix-collect-garbage -d 2>/dev/null || true
-        echo "Lock removed. Run 'devenv shell' to rebuild with latest ALTO."
+
+        # Ensure ?ref=main is in devenv.yaml for proper cache invalidation
+        if grep -q 'github:gonzaloetjo/alto$' devenv.yaml 2>/dev/null; then
+          echo "Adding ?ref=main to alto input for proper updates..."
+          ${pkgs.gnused}/bin/sed -i 's|github:gonzaloetjo/alto$|github:gonzaloetjo/alto?ref=main|' devenv.yaml
+        fi
+
+        rm -rf .devenv devenv.lock
+        echo "Fetching latest ALTO..."
+        devenv update
+        echo ""
+        echo "Done. Run 'direnv reload' or 'devenv shell' to use updated ALTO."
       '';
       description = "Force update ALTO (removes lock, clears cache)";
     };
