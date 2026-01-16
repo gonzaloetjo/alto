@@ -6,15 +6,41 @@ set -e
 
 echo "=== ALTO Reset ==="
 
-# Check we're in an ALTO project
-if [ ! -f "devenv.yaml" ]; then
+# Check we're in an ALTO project (devenv.yaml must exist, even if empty)
+if [ ! -e "devenv.yaml" ]; then
   echo "Error: devenv.yaml not found. Run this from an ALTO project directory."
   exit 1
 fi
 
+# Fix .envrc if empty
+if [ ! -s ".envrc" ]; then
+  echo "[0/5] Fixing empty .envrc..."
+  cat > .envrc << 'ENVRC_EOF'
+if ! has devenv; then
+  echo "Installing devenv..."
+  nix profile install --accept-flake-config github:cachix/devenv/latest
+fi
+
+eval "$(devenv print-dev-env)"
+ENVRC_EOF
+fi
+
 # Step 1: Fix devenv.yaml if needed
 echo "[1/5] Checking devenv.yaml..."
-if grep -q 'github:gonzaloetjo/alto$' devenv.yaml 2>/dev/null; then
+if [ ! -s "devenv.yaml" ] || ! grep -q 'alto' devenv.yaml 2>/dev/null; then
+  echo "      devenv.yaml is empty or missing alto, resetting..."
+  cat > devenv.yaml << 'YAML_EOF'
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  alto:
+    url: github:gonzaloetjo/alto?ref=main
+    flake: false
+
+imports:
+  - alto
+YAML_EOF
+elif grep -q 'github:gonzaloetjo/alto$' devenv.yaml 2>/dev/null; then
   echo "      Adding ?ref=main to alto input..."
   sed -i 's|github:gonzaloetjo/alto$|github:gonzaloetjo/alto?ref=main|' devenv.yaml
 else
