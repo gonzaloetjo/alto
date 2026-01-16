@@ -21,7 +21,7 @@ echo "Switching mode. Restarting Claude..."
 kill -TERM $(ps -o ppid= -p $$ | tr -d ' ')
 ```
 
-This kills Claude. The shell trap detects the restart file and restarts Claude with fresh config.
+This kills Claude. The wrapper function detects the restart file and restarts Claude with fresh config.
 
 ## Quick Reference
 
