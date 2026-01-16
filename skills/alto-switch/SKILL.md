@@ -14,21 +14,14 @@ ALTO has three orchestrator modes: `setup`, `build`, `dev`.
 
 1. `Edit(devenv.nix)` - find line `alto.orchestrator = lib.mkDefault "X"` and change `"X"` to desired mode (`setup`, `build`, or `dev`)
 
-2. Run this restart command:
+2. Run this to trigger restart:
 ```bash
-CLAUDE_PID=$(ps -o ppid= -p $$ | tr -d ' ')
-nohup sh -c "
-  sleep 0.5
-  kill $CLAUDE_PID 2>/dev/null
-  sleep 0.2
-  cd '$PWD'
-  exec devenv shell claude
-" > /tmp/alto-restart.log 2>&1 &
-sleep 0.1
-echo "Restarting..."
+touch /tmp/alto-restart-requested
+echo "Switching mode. Claude will restart automatically."
+exit 0
 ```
 
-This kills the current Claude and restarts with new config.
+The shell trap will detect the restart file and restart Claude with fresh config.
 
 ## Quick Reference
 

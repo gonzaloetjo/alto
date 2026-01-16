@@ -1270,6 +1270,18 @@ ORCH_EOF
       before = [ "devenv:enterShell" ];
     };
 
+    # Set up trap to restart Claude when requested
+    enterShell = ''
+      alto_restart_trap() {
+        if [ -f /tmp/alto-restart-requested ]; then
+          rm -f /tmp/alto-restart-requested
+          echo "Restarting Claude with new configuration..."
+          exec devenv shell claude
+        fi
+      }
+      trap alto_restart_trap EXIT
+    '';
+
     # ALTO repo config - Claude edits this line to switch modes
     alto.orchestrator = lib.mkDefault "setup";  # "setup" | "build" | "dev"
 
