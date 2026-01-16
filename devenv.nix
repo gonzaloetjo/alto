@@ -783,7 +783,14 @@ JSON_EOF
       alto-switch = {
         exec = ''
           TARGET="$1"
-          CURRENT="${cfg.orchestrator}"
+          RUNS_DIR="${cfg.runsDir}"
+
+          # Read current mode from orchestrator.json (runtime value, not nix-time)
+          if [ -f "$RUNS_DIR/orchestrator.json" ]; then
+            CURRENT=$(${pkgs.jq}/bin/jq -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
+          else
+            CURRENT="setup"
+          fi
 
           # Detect if we're in ALTO source repo (not a consumer project)
           if [ -f "templates/CLAUDE.md.dev" ]; then
@@ -839,7 +846,6 @@ JSON_EOF
           fi
 
           # Also update runs/orchestrator.json for tooling that reads mode at runtime
-          RUNS_DIR="${cfg.runsDir}"
           if [ -d "$RUNS_DIR" ]; then
             cat > "$RUNS_DIR/orchestrator.json" << ORCH_EOF
 {
@@ -849,11 +855,80 @@ JSON_EOF
 ORCH_EOF
           fi
 
+          # Copy the correct CLAUDE.md for the new mode
+          ALTO_SRC="${altoSrc}"
+          if [ -f "$ALTO_SRC/templates/CLAUDE.md.$TARGET" ]; then
+            rm -f CLAUDE.md 2>/dev/null || true
+            cp "$ALTO_SRC/templates/CLAUDE.md.$TARGET" CLAUDE.md
+            echo "Updated CLAUDE.md for $TARGET mode"
+          fi
+
           echo ""
           echo "Switched to $TARGET mode."
-          echo "Run '/exit' then 'claude' to start with new mode."
+          echo ""
+
+          # Automatically start alto
+          exec alto
         '';
-        description = "Switch orchestrator mode (edits devenv.nix and runs/orchestrator.json)";
+        description = "Switch orchestrator mode and start Claude";
+      };
+
+      # Shell wrapper for automatic session resume per mode
+      alto = {
+        exec = ''
+          set -e
+
+          # Handle mode switching: alto dev, alto setup, alto build, alto switch X
+          case "$1" in
+            setup|build|dev)
+              exec alto-switch "$1"
+              ;;
+            switch)
+              shift
+              exec alto-switch "$@"
+              ;;
+          esac
+
+          RUNS_DIR="${cfg.runsDir}"
+
+          # Not an ALTO project? Just run claude
+          if [ ! -f "$RUNS_DIR/orchestrator.json" ]; then
+            exec claude "$@"
+          fi
+
+          # Read current mode
+          CURRENT_MODE=$(${pkgs.jq}/bin/jq -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
+
+          # Check for existing session
+          MODES_FILE="$RUNS_DIR/sessions/modes.json"
+          SESSION_ID=""
+
+          if [ -f "$MODES_FILE" ]; then
+            SESSION_ID=$(${pkgs.jq}/bin/jq -r ".[\"$CURRENT_MODE\"].session_id // empty" "$MODES_FILE" 2>/dev/null || true)
+          fi
+
+          # Default prompt if none provided
+          if [ $# -eq 0 ]; then
+            PROMPT="hi"
+          else
+            PROMPT="$*"
+          fi
+
+          if [ -n "$SESSION_ID" ]; then
+            # Validate session exists
+            if [ -d "$HOME/.claude/session-env/$SESSION_ID" ]; then
+              echo "Resuming $CURRENT_MODE session..."
+              exec claude --resume "$SESSION_ID" "$PROMPT"
+            else
+              echo "Previous session expired. Starting fresh $CURRENT_MODE session..."
+              ${pkgs.jq}/bin/jq ".[\"$CURRENT_MODE\"] = null" "$MODES_FILE" > "$MODES_FILE.tmp" && mv "$MODES_FILE.tmp" "$MODES_FILE"
+            fi
+          fi
+
+          echo "Starting new $CURRENT_MODE session..."
+          exec claude "$PROMPT"
+        '';
+        description = "Start Claude with automatic session resume per mode";
       };
     };
 
@@ -1190,6 +1265,11 @@ DEBUG_EOF
   "updated_at": null
 }
 STATE_EOF
+        fi
+
+        # Initialize sessions/modes.json if not exists
+        if [ ! -f "$RUNS_DIR/sessions/modes.json" ]; then
+          echo '{"setup": null, "build": null, "dev": null}' > "$RUNS_DIR/sessions/modes.json"
         fi
 
         # Initialize arbiter config (always overwrite to keep in sync)

@@ -28,8 +28,8 @@ nix flake init -t github:gonzaloetjo/alto
 # Enter the environment
 devenv shell
 
-# Start Claude
-claude
+# Start ALTO
+alto
 ```
 
 ALTO will guide you through setup interactively.
@@ -163,12 +163,14 @@ your-project/
 
 | Command | Description |
 |---------|-------------|
+| `alto` | Main entry point. Resumes current mode session, sends "hi" if no args |
+| `alto dev/build/setup` | Switch to specified mode and start Claude |
 | `alto-status` | Show current status (includes orchestrator mode) |
-| `alto-switch` | Show how to switch between orchestrator modes |
 | `alto-new-run` | Create new run branch |
 | `alto-clean` | Clean run artifacts |
+| `alto-nuke` | Full reset (removes .claude/, runs/, CLAUDE.md, objective.md) |
 | `alto-feature` | Start new feature |
-| `alto-restart` | Restart Claude with fresh config (run from within Claude) |
+| `alto-update` | Force update ALTO to latest version |
 
 ---
 

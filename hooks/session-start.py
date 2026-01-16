@@ -48,6 +48,41 @@ def get_git_branch(cwd: Path) -> str:
         return ""
 
 
+def save_session_for_mode(project_dir: Path, session_id: str, is_resume: bool):
+    """Save or update session ID for current orchestrator mode."""
+    runs = project_dir / "runs"
+    modes_file = runs / "sessions" / "modes.json"
+    orch_file = runs / "orchestrator.json"
+
+    # Read current mode
+    if not orch_file.exists():
+        return
+    orch = load_json(orch_file)
+    current_mode = orch.get("orchestrator")
+    if not current_mode:
+        return
+
+    # Load existing modes data
+    modes = load_json(modes_file, {})
+
+    now = datetime.utcnow().isoformat() + "Z"
+
+    if is_resume:
+        # Update timestamp only
+        if current_mode in modes and modes[current_mode]:
+            modes[current_mode]["last_resumed_at"] = now
+    else:
+        # Fresh start - save new session
+        modes[current_mode] = {
+            "session_id": session_id,
+            "started_at": now,
+            "last_resumed_at": None
+        }
+
+    modes_file.parent.mkdir(parents=True, exist_ok=True)
+    modes_file.write_text(json.dumps(modes, indent=2) + "\n")
+
+
 OBJECTIVE_TEMPLATE = """# Project Objective
 
 ## Overview
@@ -180,6 +215,13 @@ def main():
         },
         project_dir=project_dir,
         session_id=hook.get("session_id"),
+    )
+
+    # Save session ID for mode-based resume
+    save_session_for_mode(
+        project_dir,
+        hook.get("session_id"),
+        hook.get("resume", False)
     )
 
     # Output context for Claude to see

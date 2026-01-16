@@ -8,25 +8,16 @@ triggers:
 
 # Mode Switching
 
-## Steps
+The `alto` command handles mode switching and session management automatically.
 
-1. Run `alto-switch <mode>` to update devenv.nix
-2. Tell user exactly what to type next:
-   - If they have a named session: `/resume <mode>`
-   - Otherwise: `/exit` then `claude`
+## Commands
 
-## Example Response
-
-After running `alto-switch dev`:
-```
-Switched to dev mode. Type one of:
-  /resume dev     (if you have a session named "dev")
-  /exit           (then run `claude` to start fresh)
-```
-
-## Naming Sessions (optional)
-
-Users can name sessions with `/rename <mode>` to enable quick switching via `/resume`.
+| Command | What it does |
+|---------|--------------|
+| `alto` | Resume current mode (sends "hi" if no message provided) |
+| `alto dev` | Switch to dev mode and start Claude |
+| `alto build` | Switch to build mode and start Claude |
+| `alto setup` | Switch to setup mode and start Claude |
 
 ## Modes
 
@@ -35,3 +26,17 @@ Users can name sessions with `/rename <mode>` to enable quick switching via `/re
 | setup | Feature definition, configuration |
 | build | Autonomous execution |
 | dev | ALTO development |
+
+## If User Is Already In Claude
+
+They must exit first:
+```
+/exit
+```
+
+Then from terminal:
+```
+alto <mode>
+```
+
+The switch happens automatically - no need to manually edit files or restart.
