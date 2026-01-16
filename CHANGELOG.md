@@ -4,6 +4,17 @@ All notable changes to ALTO.
 
 ## [Unreleased]
 
+### Changed
+- **Script extraction from devenv.nix** - Moved complex bash logic to external files:
+  - `scripts/alto.sh` - Main entry point with session resume (55 lines)
+  - `scripts/alto-switch.sh` - Mode switching (91 lines)
+  - `scripts/alto-status.sh` - Status display (48 lines)
+  - `scripts/alto-logs.sh` - Log querying (66 lines)
+  - `scripts/alto-test-run.sh` - Test harness (166 lines)
+  - `scripts/alto-deploy.sh` - Deployment task (138 lines)
+  - devenv.nix reduced from 1378 to 869 lines (~37% reduction)
+  - Scripts receive Nix config values via environment variables
+
 ### Added
 - **Mode switching**:
   - `alto-switch <mode>` script - updates devenv.nix orchestrator setting

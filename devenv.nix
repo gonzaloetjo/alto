@@ -493,168 +493,8 @@ STATE_EOF
       # See: https://devenv.sh/containers/
       alto-test-run = {
         exec = ''
-          set -e
-          ALTO_SRC="${altoSrc}"
-
-          usage() {
-            echo "ALTO Test Harness - Run isolated test scenarios"
-            echo ""
-            echo "WARNING: Uses --dangerously-skip-permissions. Only run trusted scenarios."
-            echo ""
-            echo "Usage: alto-test-run [OPTIONS]"
-            echo ""
-            echo "Options:"
-            echo "  --scenario FILE    YAML scenario file from tests/scenarios/"
-            echo "  --objective TEXT   Inline objective (alternative to --scenario)"
-            echo "  --prompt TEXT      Prompt to send to Claude (default: 'Build the project')"
-            echo "  --orchestrator X   Orchestrator mode: setup|build (default: build)"
-            echo "  --dir DIR          Test directory (default: /tmp/alto-test-XXXX)"
-            echo "  --keep             Keep test directory after run"
-            echo "  --json             Output results as JSON"
-            echo "  --help             Show this help"
-            echo ""
-            echo "Examples:"
-            echo "  alto-test-run --scenario simple-hello-world"
-            echo "  alto-test-run --objective 'Create hello.py that prints Hello'"
-          }
-
-          # Defaults
-          SCENARIO=""
-          OBJECTIVE=""
-          PROMPT="Read objective.md and build the project. The plan is pre-approved."
-          ORCHESTRATOR="build"
-          TEST_DIR=""
-          KEEP_DIR=false
-          JSON_OUTPUT=false
-
-          while [[ $# -gt 0 ]]; do
-            case "$1" in
-              --scenario) SCENARIO="$2"; shift 2 ;;
-              --objective) OBJECTIVE="$2"; shift 2 ;;
-              --prompt) PROMPT="$2"; shift 2 ;;
-              --orchestrator) ORCHESTRATOR="$2"; shift 2 ;;
-              --dir) TEST_DIR="$2"; shift 2 ;;
-              --keep) KEEP_DIR=true; shift ;;
-              --json) JSON_OUTPUT=true; shift ;;
-              --help) usage; exit 0 ;;
-              *) echo "Unknown option: $1"; usage; exit 1 ;;
-            esac
-          done
-
-          # Load scenario if provided
-          if [ -n "$SCENARIO" ]; then
-            SCENARIO_FILE="$ALTO_SRC/tests/scenarios/$SCENARIO.yaml"
-            if [ ! -f "$SCENARIO_FILE" ]; then
-              echo "Error: Scenario not found: $SCENARIO_FILE" >&2
-              exit 1
-            fi
-            OBJECTIVE=$(yq -r '.objective // ""' "$SCENARIO_FILE")
-            PROMPT=$(yq -r '.prompt // "Read objective.md and build the project."' "$SCENARIO_FILE")
-            ORCHESTRATOR=$(yq -r '.orchestrator // "build"' "$SCENARIO_FILE")
-          fi
-
-          if [ -z "$OBJECTIVE" ]; then
-            echo "Error: Must provide --scenario or --objective" >&2
-            usage
-            exit 1
-          fi
-
-          # Create test directory
-          if [ -z "$TEST_DIR" ]; then
-            TEST_DIR=$(mktemp -d /tmp/alto-test-XXXXXX)
-          else
-            mkdir -p "$TEST_DIR"
-          fi
-
-          cleanup() {
-            if [ "$KEEP_DIR" = false ] && [ -d "$TEST_DIR" ]; then
-              rm -rf "$TEST_DIR"
-            fi
-          }
-          trap cleanup EXIT
-
-          # Initialize git repo
-          git init -q "$TEST_DIR"
-
-          # Create devenv.yaml
-          cat > "$TEST_DIR/devenv.yaml" << YAML_EOF
-inputs:
-  nixpkgs:
-    url: github:cachix/devenv-nixpkgs/rolling
-  alto:
-    url: path:$ALTO_SRC
-    flake: false
-
-imports:
-  - alto
-YAML_EOF
-
-          # Create devenv.nix with debug enabled
-          cat > "$TEST_DIR/devenv.nix" << NIX_EOF
-{ pkgs, ... }:
-{
-  alto.orchestrator = "$ORCHESTRATOR";
-  alto.debug = true;
-}
-NIX_EOF
-
-          # Create objective.md
-          cat > "$TEST_DIR/objective.md" << OBJ_EOF
-# Test Objective
-
-$OBJECTIVE
-OBJ_EOF
-
-          # Record start time
-          START_TIME=$(date +%s)
-
-          # Run devenv shell with claude
-          cd "$TEST_DIR"
-          OUTPUT=$(devenv shell -- claude --print --dangerously-skip-permissions "$PROMPT" 2>&1) || true
-          EXIT_CODE=$?
-
-          # Record end time
-          END_TIME=$(date +%s)
-          DURATION=$((END_TIME - START_TIME))
-
-          # Gather results
-          FILES_CREATED=$(find "$TEST_DIR" -maxdepth 1 -type f -name "*.py" -o -name "*.js" -o -name "*.ts" 2>/dev/null | wc -l)
-          EVENTS_COUNT=0
-          if [ -f "$TEST_DIR/runs/logs/events.jsonl" ]; then
-            EVENTS_COUNT=$(wc -l < "$TEST_DIR/runs/logs/events.jsonl")
-          fi
-
-          if [ "$JSON_OUTPUT" = true ]; then
-            # JSON output
-            cat << JSON_EOF
-{
-  "success": $([ $EXIT_CODE -eq 0 ] && echo "true" || echo "false"),
-  "exit_code": $EXIT_CODE,
-  "duration_seconds": $DURATION,
-  "test_dir": "$TEST_DIR",
-  "files_created": $FILES_CREATED,
-  "events_logged": $EVENTS_COUNT,
-  "orchestrator": "$ORCHESTRATOR",
-  "keep_dir": $KEEP_DIR
-}
-JSON_EOF
-          else
-            # Human-readable output
-            echo ""
-            echo "ALTO Test Results"
-            echo "================="
-            echo "Status: $([ $EXIT_CODE -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
-            echo "Duration: ''${DURATION}s"
-            echo "Files created: $FILES_CREATED"
-            echo "Events logged: $EVENTS_COUNT"
-            echo "Test dir: $TEST_DIR"
-            if [ "$KEEP_DIR" = true ]; then
-              echo ""
-              echo "Directory kept. Inspect with:"
-              echo "  ls -la $TEST_DIR"
-              echo "  cat $TEST_DIR/runs/logs/events.jsonl"
-            fi
-          fi
+          export ALTO_SRC="${altoSrc}"
+          exec "${altoSrc}/scripts/alto-test-run.sh" "$@"
         '';
         description = "Run isolated ALTO test scenarios";
       };
@@ -662,68 +502,8 @@ JSON_EOF
       # Query event logs (debug mode)
       alto-logs = {
         exec = ''
-          RUNS_DIR="${cfg.runsDir}"
-          EVENTS_FILE="$RUNS_DIR/logs/events.jsonl"
-
-          usage() {
-            echo "ALTO Logs - Query event log (debug mode)"
-            echo ""
-            echo "Usage: alto-logs [OPTIONS]"
-            echo ""
-            echo "Options:"
-            echo "  --type TYPE    Filter by event type"
-            echo "  --last N       Show last N events (default: 20)"
-            echo "  --metrics      Show aggregated metrics"
-            echo "  --raw          Output raw JSON"
-            echo "  --help         Show this help"
-            echo ""
-            echo "Event types: session_start, session_end, handoff, decision, phase_change"
-          }
-
-          LAST_N=20
-          EVENT_TYPE=""
-          SHOW_METRICS=false
-          RAW_OUTPUT=false
-
-          while [[ $# -gt 0 ]]; do
-            case "$1" in
-              --type) EVENT_TYPE="$2"; shift 2 ;;
-              --last) LAST_N="$2"; shift 2 ;;
-              --metrics) SHOW_METRICS=true; shift ;;
-              --raw) RAW_OUTPUT=true; shift ;;
-              --help) usage; exit 0 ;;
-              *) echo "Unknown option: $1"; usage; exit 1 ;;
-            esac
-          done
-
-          if [ ! -f "$EVENTS_FILE" ]; then
-            echo "No events logged. Enable debug mode: alto.debug = true;"
-            exit 0
-          fi
-
-          if [ "$SHOW_METRICS" = true ]; then
-            echo "ALTO Metrics"
-            echo "============"
-            TOTAL=$(wc -l < "$EVENTS_FILE")
-            echo "Total events: $TOTAL"
-            echo ""
-            echo "Events by type:"
-            jq -r '.event' "$EVENTS_FILE" | sort | uniq -c | sort -rn
-            exit 0
-          fi
-
-          FILTER="."
-          if [ -n "$EVENT_TYPE" ]; then
-            FILTER="select(.event == \"$EVENT_TYPE\")"
-          fi
-
-          if [ "$RAW_OUTPUT" = true ]; then
-            tail -n "$LAST_N" "$EVENTS_FILE" | jq -c "$FILTER"
-          else
-            echo "Recent events (last $LAST_N):"
-            echo ""
-            tail -n "$LAST_N" "$EVENTS_FILE" | jq -r "$FILTER | \"\(.ts | split(\"T\")[1] | split(\".\")[0]) [\(.event)] \(if .agent then .agent else \"\" end)\""
-          fi
+          export RUNS_DIR="${cfg.runsDir}"
+          exec "${altoSrc}/scripts/alto-logs.sh" "$@"
         '';
         description = "Query ALTO event logs (debug mode)";
       };
@@ -731,50 +511,9 @@ JSON_EOF
       # Show ALTO status
       alto-status = {
         exec = ''
-          RUNS_DIR="${cfg.runsDir}"
-
-          if [ ! -f "$RUNS_DIR/state.json" ]; then
-            echo "ALTO not initialized. Run 'alto-setup' first."
-            exit 1
-          fi
-
-          PHASE=$(jq -r '.phase // "none"' "$RUNS_DIR/state.json")
-          COMPLETED=$(jq -r '.completed_task_ids | length' "$RUNS_DIR/state.json")
-
-          # Count remaining tasks (exclude completed)
-          COMPLETED_IDS=$(jq -r '.completed_task_ids[]?' "$RUNS_DIR/state.json" 2>/dev/null)
-          REMAINING=0
-          if [ -d "$RUNS_DIR/tasks" ]; then
-            for task_file in "$RUNS_DIR/tasks"/task-*.md; do
-              [ -f "$task_file" ] || continue
-              task_id=$(basename "$task_file" .md)
-              if ! echo "$COMPLETED_IDS" | grep -q "^$task_id$"; then
-                REMAINING=$((REMAINING + 1))
-              fi
-            done
-          fi
-
-          # Get current orchestrator
-          CURRENT_ORCH="${cfg.orchestrator}"
-
-          echo "ALTO Status"
-          echo "==========="
-          echo "Orchestrator: $CURRENT_ORCH"
-          echo "Branch: $(jq -r '.run_branch // "none"' "$RUNS_DIR/state.json")"
-          echo "Phase: $PHASE"
-          echo "Current Task: $(jq -r '.current_task_id // "none"' "$RUNS_DIR/state.json")"
-          echo "Completed: $COMPLETED tasks"
-          echo "Remaining: $REMAINING tasks"
-
-          # Feature complete check
-          if [ "$REMAINING" -eq 0 ] && [ "$COMPLETED" -gt 0 ]; then
-            echo ""
-            echo ">>> FEATURE COMPLETE <<<"
-          fi
-
-          echo ""
-          echo "Recent handoffs:"
-          ls -t "$RUNS_DIR/handoffs/" 2>/dev/null | head -5 || echo "  (none)"
+          export RUNS_DIR="${cfg.runsDir}"
+          export ORCHESTRATOR="${cfg.orchestrator}"
+          exec "${altoSrc}/scripts/alto-status.sh" "$@"
         '';
         description = "Show ALTO status";
       };
@@ -782,93 +521,11 @@ JSON_EOF
       # Switch between orchestrators
       alto-switch = {
         exec = ''
-          TARGET="$1"
-          RUNS_DIR="${cfg.runsDir}"
-
-          # Read current mode from orchestrator.json (runtime value, not nix-time)
-          if [ -f "$RUNS_DIR/orchestrator.json" ]; then
-            CURRENT=$(${pkgs.jq}/bin/jq -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
-          else
-            CURRENT="setup"
-          fi
-
-          # Detect if we're in ALTO source repo (not a consumer project)
-          if [ -f "templates/CLAUDE.md.dev" ]; then
-            echo "ERROR: Cannot switch orchestrator modes in the ALTO source repo."
-            echo ""
-            echo "You're developing ALTO itself. Mode switching is for consumer projects."
-            echo "In the ALTO repo, you work directly with the source files."
-            exit 1
-          fi
-
-          if [ -z "$TARGET" ]; then
-            echo "ALTO Switch"
-            echo "==========="
-            echo ""
-            echo "Current orchestrator: $CURRENT"
-            echo ""
-            echo "Usage: alto-switch <orchestrator>"
-            echo ""
-            echo "Available orchestrators:"
-            echo "  setup  - Human-interactive (feature definition, configuration, cleanup)"
-            echo "  build  - Autonomous execution (architecture, planning, execution, replan)"
-            echo "  dev    - ALTO development (single alto-dev agent with dev-guide skill)"
-            exit 0
-          fi
-
-          if [ "$TARGET" != "setup" ] && [ "$TARGET" != "build" ] && [ "$TARGET" != "dev" ]; then
-            echo "Error: Invalid orchestrator '$TARGET'"
-            echo "Valid options: setup, build, dev"
-            exit 1
-          fi
-
-          if [ "$TARGET" = "$CURRENT" ]; then
-            echo "Already using '$TARGET' orchestrator."
-            exit 0
-          fi
-
-          # Check devenv.nix exists
-          if [ ! -f "devenv.nix" ]; then
-            echo "Error: devenv.nix not found in current directory"
-            exit 1
-          fi
-
-          echo "Switching from '$CURRENT' to '$TARGET'..."
-
-          # Update devenv.nix - update existing or add new line
-          if grep -q 'alto\.orchestrator\s*=' devenv.nix; then
-            ${pkgs.gnused}/bin/sed -i 's/alto\.orchestrator\s*=\s*[^;]*/alto.orchestrator = "'"$TARGET"'"/' devenv.nix
-            echo "Updated devenv.nix: alto.orchestrator = \"$TARGET\""
-          else
-            # Add after opening brace
-            ${pkgs.gnused}/bin/sed -i 's/^{$/{\n  alto.orchestrator = "'"$TARGET"'";/' devenv.nix
-            echo "Added to devenv.nix: alto.orchestrator = \"$TARGET\""
-          fi
-
-          # Also update runs/orchestrator.json for tooling that reads mode at runtime
-          if [ -d "$RUNS_DIR" ]; then
-            cat > "$RUNS_DIR/orchestrator.json" << ORCH_EOF
-{
-  "orchestrator": "$TARGET",
-  "updated_at": "$(date -Iseconds)"
-}
-ORCH_EOF
-          fi
-
-          # Copy the correct CLAUDE.md for the new mode
-          ALTO_SRC="${altoSrc}"
-          if [ -f "$ALTO_SRC/templates/CLAUDE.md.$TARGET" ]; then
-            rm -f CLAUDE.md 2>/dev/null || true
-            cp "$ALTO_SRC/templates/CLAUDE.md.$TARGET" CLAUDE.md
-            echo "Updated CLAUDE.md for $TARGET mode"
-          fi
-
-          echo ""
-          echo "Switched to $TARGET mode."
-          echo ""
-
-          # Automatically start alto
-          exec alto
+          export RUNS_DIR="${cfg.runsDir}"
+          export ALTO_SRC="${altoSrc}"
+          export JQ_BIN="${pkgs.jq}/bin/jq"
+          export SED_BIN="${pkgs.gnused}/bin/sed"
+          exec "${altoSrc}/scripts/alto-switch.sh" "$@"
         '';
         description = "Switch orchestrator mode and start Claude";
       };
@@ -876,57 +533,9 @@ ORCH_EOF
       # Shell wrapper for automatic session resume per mode
       alto = {
         exec = ''
-          set -e
-
-          # Handle mode switching: alto dev, alto setup, alto build, alto switch X
-          case "$1" in
-            setup|build|dev)
-              exec alto-switch "$1"
-              ;;
-            switch)
-              shift
-              exec alto-switch "$@"
-              ;;
-          esac
-
-          RUNS_DIR="${cfg.runsDir}"
-
-          # Not an ALTO project? Just run claude
-          if [ ! -f "$RUNS_DIR/orchestrator.json" ]; then
-            exec claude "$@"
-          fi
-
-          # Read current mode
-          CURRENT_MODE=$(${pkgs.jq}/bin/jq -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
-
-          # Check for existing session
-          MODES_FILE="$RUNS_DIR/sessions/modes.json"
-          SESSION_ID=""
-
-          if [ -f "$MODES_FILE" ]; then
-            SESSION_ID=$(${pkgs.jq}/bin/jq -r ".[\"$CURRENT_MODE\"].session_id // empty" "$MODES_FILE" 2>/dev/null || true)
-          fi
-
-          # Default prompt if none provided
-          if [ $# -eq 0 ]; then
-            PROMPT="hi"
-          else
-            PROMPT="$*"
-          fi
-
-          if [ -n "$SESSION_ID" ]; then
-            # Validate session exists
-            if [ -d "$HOME/.claude/session-env/$SESSION_ID" ]; then
-              echo "Resuming $CURRENT_MODE session..."
-              exec claude --resume "$SESSION_ID" "$PROMPT"
-            else
-              echo "Previous session expired. Starting fresh $CURRENT_MODE session..."
-              ${pkgs.jq}/bin/jq ".[\"$CURRENT_MODE\"] = null" "$MODES_FILE" > "$MODES_FILE.tmp" && mv "$MODES_FILE.tmp" "$MODES_FILE"
-            fi
-          fi
-
-          echo "Starting new $CURRENT_MODE session..."
-          exec claude "$PROMPT"
+          export RUNS_DIR="${cfg.runsDir}"
+          export JQ_BIN="${pkgs.jq}/bin/jq"
+          exec "${altoSrc}/scripts/alto.sh" "$@"
         '';
         description = "Start Claude with automatic session resume per mode";
       };
@@ -1200,139 +809,21 @@ ORCH_EOF
     # Deploy ALTO files using tasks (runs before shell entry)
     tasks."alto:deploy" = {
       exec = ''
-        ALTO_SRC="${altoSrc}"
-        RUNS_DIR="${cfg.runsDir}"
-
-        # Create .claude directory for hooks and skills
-        mkdir -p .claude/hooks .claude/skills
-
-        # Copy hook scripts (referenced by native hook commands)
-        cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
-
-        # Remove old skills before copying (they're read-only from nix store)
-        rm -rf .claude/skills/* 2>/dev/null || true
-
-        # Copy skills available to all orchestrators
-        cp -r "$ALTO_SRC"/skills/alto-switch .claude/skills/ 2>/dev/null || true
-
-        # Copy shared ALTO skills (setup and build orchestrators)
-        ${lib.optionalString (cfg.orchestrator != "dev") ''
-          cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
-        ''}
-
-        # Copy dev-specific skills (dev orchestrator only)
-        ${lib.optionalString (cfg.orchestrator == "dev") ''
-          cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/prompt-writing .claude/skills/ 2>/dev/null || true
-        ''}
-
-        ${lib.optionalString cfg.includeSpawnerSkills ''
-          cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
-        ''}
-
-        # Ensure .claude files are writable (they come read-only from nix store)
-        chmod -R +w .claude/ 2>/dev/null || true
-
-        # Create runs directory structure
-        mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools,logs}
-
-        # Write debug config for hooks to read
-        cat > "$RUNS_DIR/debug-config.json" << 'DEBUG_EOF'
-{
-  "debug": ${lib.boolToString cfg.debug}
-}
-DEBUG_EOF
-
-        # Initialize state.json if not exists
-        if [ ! -f "$RUNS_DIR/state.json" ]; then
-          cat > "$RUNS_DIR/state.json" << 'STATE_EOF'
-{
-  "protocol": "alto-v1",
-  "run_branch": null,
-  "phase": null,
-  "current_task_id": null,
-  "current_role": null,
-  "completed_task_ids": [],
-  "last_handoff": null,
-  "estimated_tasks": null,
-  "replan_every": null,
-  "needs_architect": false,
-  "updated_at": null
-}
-STATE_EOF
-        fi
-
-        # Initialize sessions/modes.json if not exists
-        if [ ! -f "$RUNS_DIR/sessions/modes.json" ]; then
-          echo '{"setup": null, "build": null, "dev": null}' > "$RUNS_DIR/sessions/modes.json"
-        fi
-
-        # Initialize arbiter config (always overwrite to keep in sync)
-        cat > "$RUNS_DIR/arbiter/config.json" << 'ARBITER_EOF'
-{
-  "max_lines_changed_without_human": ${toString cfg.arbiter.maxLinesChanged},
-  "max_files_changed_without_human": ${toString cfg.arbiter.maxFilesChanged},
-  "token_checkpoint_interval": ${toString cfg.arbiter.tokenCheckpointInterval},
-  "task_checkpoint_interval": ${toString cfg.arbiter.taskCheckpointInterval},
-  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
-}
-ARBITER_EOF
-
-        # Initialize arbiter state if not exists
-        if [ ! -f "$RUNS_DIR/arbiter/state.json" ]; then
-          cat > "$RUNS_DIR/arbiter/state.json" << 'ARBSTATE_EOF'
-{
-  "last_checkpoint_at": null,
-  "tokens_since_checkpoint": 0,
-  "tasks_since_checkpoint": 0,
-  "checkpoint_count": 0
-}
-ARBSTATE_EOF
-        fi
-
-        # Write planning config (always overwrite to keep in sync)
-        cat > "$RUNS_DIR/planning-config.json" << 'PLANNING_EOF'
-{
-  "require_approval": ${lib.boolToString cfg.planning.requireApproval},
-  "replan_strategy": "${cfg.planning.replanStrategy}",
-  "fixed_batch_size": ${toString cfg.planning.fixedBatchSize},
-  "architect_model": "${cfg.planning.architectModel}",
-  "planner_model": "${cfg.planning.plannerModel}"
-}
-PLANNING_EOF
-
-        # Initialize verification config if not exists (user can modify mid-session)
-        if [ ! -f "$RUNS_DIR/verification-config.json" ]; then
-          cat > "$RUNS_DIR/verification-config.json" << 'VERIFY_EOF'
-{
-  "*.ts": {},
-  "*.tsx": {},
-  "*.py": {},
-  "*.go": {}
-}
-VERIFY_EOF
-        fi
-
-        # Write orchestrator config (always overwrite to keep in sync)
-        cat > "$RUNS_DIR/orchestrator.json" << 'ORCH_EOF'
-{
-  "orchestrator": "${cfg.orchestrator}",
-  "updated_at": "$(date -Iseconds)"
-}
-ORCH_EOF
-
-        # Copy orchestrator-specific CLAUDE.md (always overwrite to match orchestrator)
-        # setup = human-interactive, build = autonomous execution
-        # Remove first to handle read-only files from previous deploys
-        rm -f CLAUDE.md 2>/dev/null || true
-        cp "$ALTO_SRC/templates/CLAUDE.md.${cfg.orchestrator}" CLAUDE.md 2>/dev/null || true
-
-        echo "ALTO deployed"
+        export ALTO_SRC="${altoSrc}"
+        export RUNS_DIR="${cfg.runsDir}"
+        export ORCHESTRATOR="${cfg.orchestrator}"
+        export DEBUG_ENABLED="${lib.boolToString cfg.debug}"
+        export INCLUDE_SPAWNER_SKILLS="${lib.boolToString cfg.includeSpawnerSkills}"
+        export ARBITER_MAX_LINES="${toString cfg.arbiter.maxLinesChanged}"
+        export ARBITER_MAX_FILES="${toString cfg.arbiter.maxFilesChanged}"
+        export ARBITER_TOKEN_INTERVAL="${toString cfg.arbiter.tokenCheckpointInterval}"
+        export ARBITER_TASK_INTERVAL="${toString cfg.arbiter.taskCheckpointInterval}"
+        export PLANNING_REQUIRE_APPROVAL="${lib.boolToString cfg.planning.requireApproval}"
+        export PLANNING_REPLAN_STRATEGY="${cfg.planning.replanStrategy}"
+        export PLANNING_FIXED_BATCH_SIZE="${toString cfg.planning.fixedBatchSize}"
+        export PLANNING_ARCHITECT_MODEL="${cfg.planning.architectModel}"
+        export PLANNING_PLANNER_MODEL="${cfg.planning.plannerModel}"
+        exec "${altoSrc}/scripts/alto-deploy.sh"
       '';
       # Run before shell entry
       before = [ "devenv:enterShell" ];
