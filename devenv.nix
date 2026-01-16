@@ -1270,17 +1270,19 @@ ORCH_EOF
       before = [ "devenv:enterShell" ];
     };
 
-    # Wrapper function to auto-restart Claude on mode switch
-    enterShell = ''
-      claude() {
-        command claude "$@"
-        if [ -f /tmp/alto-restart-requested ]; then
+    # Wrapper script to auto-restart Claude on mode switch
+    # Users run `c` instead of `claude` to get auto-restart behavior
+    scripts.c = {
+      exec = ''
+        claude "$@"
+        while [ -f /tmp/alto-restart-requested ]; do
           rm -f /tmp/alto-restart-requested
           echo "Restarting Claude with new configuration..."
-          exec devenv shell claude
-        fi
-      }
-    '';
+          devenv shell -- claude
+        done
+      '';
+      description = "Run Claude with auto-restart support";
+    };
 
     # ALTO repo config - Claude edits this line to switch modes
     alto.orchestrator = lib.mkDefault "setup";  # "setup" | "build" | "dev"
