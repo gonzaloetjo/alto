@@ -7,10 +7,24 @@ All notable changes to ALTO.
 ### Changed
 - **devenv.nix optimizations** based on devenv 1.2-1.11 best practices:
   - Task caching with `status` check for `alto:deploy` - skips if orchestrator unchanged
-  - Use `config.devenv.root` for monorepo support (devenv 1.10+)
   - Add `env` block for common environment variables (`ALTO_SRC`, `ALTO_RUNS_DIR`, etc.)
   - Add Claude Code commands (`/alto-status`, `/alto-logs`, `/alto-clean`)
-  - Fix MCP server to use proper root path
+- **Script runtime packages** - Scripts declare dependencies via `packages` attribute:
+  - `alto` - jq
+  - `alto-switch` - jq, gnused
+  - `alto-status` - jq
+  - `alto-logs` - jq
+  - Packages scoped to scripts, not polluting global environment
+- **Simplified scripts** - Removed JQ_BIN/SED_BIN environment variable indirection:
+  - Scripts now use `jq` and `sed` directly (provided via runtime packages)
+
+### Fixed
+- **altoSrc resolution for consumer projects** - Changed from `config.devenv.root or ./.` to `./.`
+  - `config.devenv.root` was incorrectly resolving to consumer project path
+  - `./.` correctly resolves to ALTO flake source when imported as module
+- **env var type conversion** - `ALTO_SRC = toString altoSrc` (Nix paths need string conversion)
+- **claude.code.commands format** - Changed from attribute sets to simple strings (devenv API)
+- **mcpServers env removed** - Removed `env = { DEVENV_ROOT = altoSrc }` (auto-detected)
 - **Script extraction from devenv.nix** - Moved complex bash logic to external files:
   - `scripts/alto.sh` - Main entry point with session resume (55 lines)
   - `scripts/alto-switch.sh` - Mode switching (91 lines)

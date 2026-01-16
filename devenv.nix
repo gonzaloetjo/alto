@@ -2,9 +2,8 @@
 
 let
   cfg = config.alto;
-  # Use config.devenv.root for monorepo support (devenv 1.10+)
-  # Falls back to ./. for compatibility
-  altoSrc = config.devenv.root or ./.;
+  # ALTO source directory - ./. resolves to the flake's source when imported
+  altoSrc = ./.;
 
   # Helper to read agent file and strip YAML frontmatter
   # Agent files have format: ---\nfrontmatter\n---\ncontent
@@ -382,7 +381,7 @@ in
 
     # Common environment variables available to all scripts and hooks
     env = {
-      ALTO_SRC = altoSrc;
+      ALTO_SRC = toString altoSrc;
       ALTO_RUNS_DIR = cfg.runsDir;
       ALTO_ORCHESTRATOR = cfg.orchestrator;
       ALTO_DEBUG = lib.boolToString cfg.debug;
@@ -515,6 +514,7 @@ STATE_EOF
           export RUNS_DIR="${cfg.runsDir}"
           exec "${altoSrc}/scripts/alto-logs.sh" "$@"
         '';
+        packages = [ pkgs.jq ];
         description = "Query ALTO event logs (debug mode)";
       };
 
@@ -525,6 +525,7 @@ STATE_EOF
           export ORCHESTRATOR="${cfg.orchestrator}"
           exec "${altoSrc}/scripts/alto-status.sh" "$@"
         '';
+        packages = [ pkgs.jq ];
         description = "Show ALTO status";
       };
 
@@ -533,10 +534,9 @@ STATE_EOF
         exec = ''
           export RUNS_DIR="${cfg.runsDir}"
           export ALTO_SRC="${altoSrc}"
-          export JQ_BIN="${pkgs.jq}/bin/jq"
-          export SED_BIN="${pkgs.gnused}/bin/sed"
           exec "${altoSrc}/scripts/alto-switch.sh" "$@"
         '';
+        packages = [ pkgs.jq pkgs.gnused ];
         description = "Switch orchestrator mode and start Claude";
       };
 
@@ -544,9 +544,9 @@ STATE_EOF
       alto = {
         exec = ''
           export RUNS_DIR="${cfg.runsDir}"
-          export JQ_BIN="${pkgs.jq}/bin/jq"
           exec "${altoSrc}/scripts/alto.sh" "$@"
         '';
+        packages = [ pkgs.jq ];
         description = "Start Claude with automatic session resume per mode";
       };
     };
@@ -586,24 +586,14 @@ STATE_EOF
         type = "stdio";
         command = "devenv";
         args = [ "mcp" ];
-        env = { DEVENV_ROOT = altoSrc; };
       };
     };
 
     # Expose alto scripts as Claude Code slash commands
     claude.code.commands = {
-      alto-status = {
-        exec = "alto-status";
-        description = "Show ALTO status (phase, tasks, orchestrator)";
-      };
-      alto-logs = {
-        exec = "alto-logs --metrics";
-        description = "Show ALTO event metrics (debug mode)";
-      };
-      alto-clean = {
-        exec = "alto-clean";
-        description = "Clean previous run artifacts";
-      };
+      alto-status = "alto-status";
+      alto-logs = "alto-logs --metrics";
+      alto-clean = "alto-clean";
     };
 
     # Hooks - deployed based on orchestrator selection

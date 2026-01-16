@@ -3,14 +3,13 @@
 # Environment variables:
 #   RUNS_DIR - Directory for ALTO runtime state
 #   ALTO_SRC - Path to ALTO source directory
-#   JQ_BIN - Path to jq binary
-#   SED_BIN - Path to sed binary
+# Runtime packages (via devenv): jq, gnused
 
 TARGET="$1"
 
 # Read current mode from orchestrator.json (runtime value, not nix-time)
 if [ -f "$RUNS_DIR/orchestrator.json" ]; then
-  CURRENT=$("$JQ_BIN" -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
+  CURRENT=$(jq -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
 else
   CURRENT="setup"
 fi
@@ -60,11 +59,11 @@ echo "Switching from '$CURRENT' to '$TARGET'..."
 
 # Update devenv.nix - update existing or add new line
 if grep -q 'alto\.orchestrator\s*=' devenv.nix; then
-  "$SED_BIN" -i 's/alto\.orchestrator\s*=\s*[^;]*/alto.orchestrator = "'"$TARGET"'"/' devenv.nix
+  sed -i 's/alto\.orchestrator\s*=\s*[^;]*/alto.orchestrator = "'"$TARGET"'"/' devenv.nix
   echo "Updated devenv.nix: alto.orchestrator = \"$TARGET\""
 else
   # Add after opening brace
-  "$SED_BIN" -i 's/^{$/{\n  alto.orchestrator = "'"$TARGET"'";/' devenv.nix
+  sed -i 's/^{$/{\n  alto.orchestrator = "'"$TARGET"'";/' devenv.nix
   echo "Added to devenv.nix: alto.orchestrator = \"$TARGET\""
 fi
 

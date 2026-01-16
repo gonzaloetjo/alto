@@ -2,7 +2,7 @@
 # ALTO main entry point - Start Claude with automatic session resume per mode
 # Environment variables:
 #   RUNS_DIR - Directory for ALTO runtime state
-#   JQ_BIN - Path to jq binary
+# Runtime packages (via devenv): jq
 
 set -e
 
@@ -23,14 +23,14 @@ if [ ! -f "$RUNS_DIR/orchestrator.json" ]; then
 fi
 
 # Read current mode
-CURRENT_MODE=$("$JQ_BIN" -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
+CURRENT_MODE=$(jq -r '.orchestrator // "setup"' "$RUNS_DIR/orchestrator.json")
 
 # Check for existing session
 MODES_FILE="$RUNS_DIR/sessions/modes.json"
 SESSION_ID=""
 
 if [ -f "$MODES_FILE" ]; then
-  SESSION_ID=$("$JQ_BIN" -r ".[\"$CURRENT_MODE\"].session_id // empty" "$MODES_FILE" 2>/dev/null || true)
+  SESSION_ID=$(jq -r ".[\"$CURRENT_MODE\"].session_id // empty" "$MODES_FILE" 2>/dev/null || true)
 fi
 
 # Default prompt if none provided
@@ -47,7 +47,7 @@ if [ -n "$SESSION_ID" ]; then
     exec claude --resume "$SESSION_ID" "$PROMPT"
   else
     echo "Previous session expired. Starting fresh $CURRENT_MODE session..."
-    "$JQ_BIN" ".[\"$CURRENT_MODE\"] = null" "$MODES_FILE" > "$MODES_FILE.tmp" && mv "$MODES_FILE.tmp" "$MODES_FILE"
+    jq ".[\"$CURRENT_MODE\"] = null" "$MODES_FILE" > "$MODES_FILE.tmp" && mv "$MODES_FILE.tmp" "$MODES_FILE"
   fi
 fi
 
