@@ -375,18 +375,44 @@ in
   };
 
   config = {
-    # Ensure python3, jq, and yq are available for hooks and test harness
-    packages = [ pkgs.python3 pkgs.jq pkgs.yq-go ];
+    # Ensure python3, jq, yq, and nodejs are available for hooks, test harness, and alto-cli
+    packages = [ pkgs.python3 pkgs.jq pkgs.yq-go pkgs.nodejs_20 ];
 
     # ALTO scripts
     scripts = {
+      # ALTO CLI - main entry point with instant mode switching
+      alto = {
+        exec = ''
+          ALTO_CLI_DIR="${altoSrc}/alto-cli"
+
+          # Check if alto-cli is built
+          if [ ! -d "$ALTO_CLI_DIR/dist" ] && [ ! -d "$ALTO_CLI_DIR/node_modules" ]; then
+            echo "Building alto-cli for first run..."
+            (cd "$ALTO_CLI_DIR" && npm install && npm run build) || {
+              echo "Error: Failed to build alto-cli"
+              echo "Try running: cd $ALTO_CLI_DIR && npm install && npm run build"
+              exit 1
+            }
+          fi
+
+          # Run alto-cli with tsx for development or node for production
+          if [ -d "$ALTO_CLI_DIR/dist" ]; then
+            node "$ALTO_CLI_DIR/dist/index.js" "$@"
+          else
+            npx tsx "$ALTO_CLI_DIR/src/index.ts" "$@"
+          fi
+        '';
+        description = "ALTO CLI with instant mode switching";
+      };
+
       # First-time project setup info
       alto-setup = {
         exec = ''
           echo "ALTO Setup"
           echo "=========="
           echo ""
-          echo "Run 'claude' to start."
+          echo "Run 'alto' to start with instant mode switching."
+          echo "Or run 'claude' for standard Claude Code."
           echo "ALTO will create objective.md and guide you through setup."
         '';
         description = "Show ALTO setup instructions";
@@ -467,6 +493,26 @@ STATE_EOF
         '';
         description = "Clean previous run artifacts";
       };
+
+      # Initialize a test project (also available as scripts/alto-init-test.sh)
+      alto-init-test = {
+        exec = ''
+          ${altoSrc}/scripts/alto-init-test.sh "$@"
+        '';
+        description = "Create/update a test project that imports local ALTO";
+      };
+
+      # Nuke everything - full reset of ALTO state
+      alto-nuke = {
+        exec = ''
+          echo "Nuking ALTO state..."
+          rm -rf .claude/ runs/ CLAUDE.md objective.md 2>/dev/null || true
+          echo "Reloading environment..."
+          direnv reload 2>/dev/null || echo "Run 'direnv reload' or re-enter the directory"
+        '';
+        description = "Full reset - removes .claude/, runs/, CLAUDE.md, objective.md";
+      };
+
 
 
       # Test harness for meta-development
@@ -820,12 +866,21 @@ JSON_EOF
             echo "Added to devenv.nix: alto.orchestrator = \"$TARGET\""
           fi
 
+          # Also update runs/orchestrator.json so alto CLI picks up the change immediately
+          RUNS_DIR="${cfg.runsDir}"
+          mkdir -p "$RUNS_DIR"
+          cat > "$RUNS_DIR/orchestrator.json" << ORCH_EOF
+{
+  "orchestrator": "$TARGET",
+  "updated_at": "$(date -Iseconds)"
+}
+ORCH_EOF
+
           echo ""
-          echo "Switched to $TARGET mode. Type one of:"
-          echo "  /resume $TARGET   (if you have a session named \"$TARGET\")"
-          echo "  /exit             (then run 'claude' to start fresh)"
+          echo "Switched to $TARGET mode."
+          echo "Run 'alto' to start in $TARGET mode."
         '';
-        description = "Switch orchestrator mode (edits devenv.nix)";
+        description = "Switch orchestrator mode (edits devenv.nix and runs/orchestrator.json)";
       };
     };
 
@@ -1100,37 +1155,30 @@ JSON_EOF
         ALTO_SRC="${altoSrc}"
         RUNS_DIR="${cfg.runsDir}"
 
-        # Create .claude directory for hooks and skills
-        mkdir -p .claude/hooks .claude/skills
+        # Create .claude directory structure
+        # Note: .claude/agents/ is managed by devenv:files via claude.code.agents
+        mkdir -p .claude/hooks .claude/skills .claude/templates
 
-        # Copy hook scripts (referenced by native hook commands)
+        # Copy ALL hook scripts (alto-cli does runtime filtering)
         cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
+
+        # Copy ALL templates (alto-cli loads based on current mode)
+        rm -rf .claude/templates/* 2>/dev/null || true
+        cp "$ALTO_SRC"/templates/CLAUDE.md.* .claude/templates/ 2>/dev/null || true
+        cp "$ALTO_SRC"/templates/ARCHITECTURE.md.template .claude/templates/ 2>/dev/null || true
 
         # Remove old skills before copying (they're read-only from nix store)
         rm -rf .claude/skills/* 2>/dev/null || true
 
-        # Copy skills available to all orchestrators
-        cp -r "$ALTO_SRC"/skills/alto-switch .claude/skills/ 2>/dev/null || true
+        # Copy ALL skills (for alto-cli runtime access)
+        for skill_dir in "$ALTO_SRC"/skills/*/; do
+          if [ -d "$skill_dir" ]; then
+            cp -r "$skill_dir" .claude/skills/ 2>/dev/null || true
+          fi
+        done
 
-        # Copy shared ALTO skills (setup and build orchestrators)
-        ${lib.optionalString (cfg.orchestrator != "dev") ''
-          cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
-        ''}
-
-        # Copy dev-specific skills (dev orchestrator only)
-        ${lib.optionalString (cfg.orchestrator == "dev") ''
-          cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
-          cp -r "$ALTO_SRC"/skills/prompt-writing .claude/skills/ 2>/dev/null || true
-        ''}
-
-        ${lib.optionalString cfg.includeSpawnerSkills ''
-          cp -r "$ALTO_SRC"/skills/spawner .claude/skills/ 2>/dev/null || true
-        ''}
+        # Note: spawner skills are included via the loop above if cfg.includeSpawnerSkills
+        # (they exist in skills/spawner/ directory)
 
         # Ensure .claude files are writable (they come read-only from nix store)
         chmod -R +w .claude/ 2>/dev/null || true

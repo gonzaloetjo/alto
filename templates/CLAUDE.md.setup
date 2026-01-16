@@ -22,7 +22,7 @@ SessionStart hook injects context. Read it, then:
 
 ### If `[ALTO: NEW_PROJECT]`:
 
-Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
+Say: **"Welcome to ALTO!"** Then immediately invoke the `AskUserQuestion` tool (NOT plain text) with:
 - Header: "Setup"
 - Question: "What would you like to do?"
 - Options:
@@ -30,6 +30,8 @@ Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
   2. Label: "Configure ALTO", Description: "Set up permissions and thresholds"
   3. Label: "Explain ALTO", Description: "Learn how ALTO works first"
   4. Label: "Dev mode", Description: "Switch to ALTO development mode"
+
+IMPORTANT: Always use the AskUserQuestion tool for presenting choices - never output options as plain text.
 
 **If "Set up project":** Go to [Configuration](#configuration) section (new project flow), then [Writing objective.md](#writing-objectivemd) section.
 
@@ -43,7 +45,7 @@ Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
 
 ### If has `objective.md`:
 
-Use `AskUserQuestion`:
+Invoke the `AskUserQuestion` tool (NOT plain text) with:
 - Header: "Action"
 - Question: "What would you like to do?"
 - Options:
@@ -112,7 +114,7 @@ Read `.claude/skills/alto-configure/SKILL.md` and follow the procedures there.
 - Skip verification (no tooling yet - QA agent will configure during build)
 
 **For existing projects (reconfiguration):**
-Use `AskUserQuestion`:
+Invoke the `AskUserQuestion` tool (NOT plain text) with:
 - Header: "Configure"
 - Question: "What would you like to configure?"
 - Options:

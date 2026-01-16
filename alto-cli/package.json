@@ -1,0 +1,29 @@
+{
+  "name": "alto-cli",
+  "version": "0.1.0",
+  "description": "ALTO CLI wrapper using Claude Agent SDK for instant mode switching",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "alto": "./bin/alto"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "commander": "^12.0.0",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

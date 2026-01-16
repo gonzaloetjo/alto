@@ -5,6 +5,15 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **ALTO CLI** (`alto-cli/`):
+  - TypeScript CLI using Claude Agent SDK for instant mode switching
+  - `/switch <mode>` command for instant mode switch without shell restart
+  - `/status`, `/clear`, `/exit` internal commands
+  - Per-mode session persistence in `runs/sessions/{mode}.json`
+  - Runtime agent/hook filtering (not build-time)
+  - Python hook spawning via `child_process`
+  - `alto` devenv script to run alto-cli
+  - All agents, hooks, and templates now deployed to `.claude/` for runtime access
 - **Mode switching**:
   - `alto-switch <mode>` script - updates devenv.nix orchestrator setting
   - `alto-switch` skill - guides user through mode switch (uses `/exit` and `/resume`)

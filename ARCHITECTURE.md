@@ -108,7 +108,55 @@ To switch to dev mode: edit `default = "dev"` in devenv.nix, run `alto-restart`.
 
 ### Switching Modes
 
+**Option 1: Shell-based (requires restart)**
 Edit `devenv.nix` to set `alto.orchestrator`, then run `alto-restart`.
+
+**Option 2: ALTO CLI (instant switch)**
+Use the `alto` command with `/switch`:
+
+```bash
+alto              # Start ALTO CLI in current mode
+```
+
+Inside the ALTO CLI:
+```
+/switch build     # Instant switch to build mode
+/switch setup     # Instant switch to setup mode
+/switch dev       # Instant switch to dev mode
+/status           # Show current mode and session
+/clear            # Clear current session
+/exit             # Exit ALTO CLI
+```
+
+The ALTO CLI maintains separate sessions per mode, enabling instant context switching.
+
+### ALTO CLI Architecture
+
+The `alto` command is a TypeScript wrapper using the Claude Agent SDK:
+
+```
+alto-cli/
+├── src/
+│   ├── index.ts          # CLI entry (commander)
+│   ├── alto.ts           # Main orchestration class
+│   ├── config/
+│   │   ├── agents.ts     # Parse agent .md → AgentDefinition
+│   │   ├── hooks.ts      # Spawn Python hooks via child_process
+│   │   └── loader.ts     # Load mode config from runs/
+│   ├── session/
+│   │   └── manager.ts    # Per-mode session persistence
+│   └── repl/
+│       ├── input.ts      # AsyncIterable<SDKUserMessage>
+│       └── output.ts     # Message formatting
+└── bin/
+    └── alto              # Shebang entry
+```
+
+**Key Features:**
+- **Runtime filtering**: Agents/hooks filtered by mode at runtime (not build-time)
+- **Session persistence**: Each mode has its own session in `runs/sessions/{mode}.json`
+- **Python hook spawning**: Existing hooks run via `child_process.spawn`
+- **SDK integration**: Uses `@anthropic-ai/claude-agent-sdk` for query streaming
 
 ---
 

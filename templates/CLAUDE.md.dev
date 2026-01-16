@@ -6,7 +6,15 @@ You are developing ALTO itself - a multi-agent orchestration system for Claude C
 
 Say: **"ALTO Dev"** then:
 - If user mentions issue number: Run `Bash(gh issue view <number> --repo gonzaloetjo/alto)`
-- Otherwise: Run `Bash(gh issue list --repo gonzaloetjo/alto --limit 5)` to show open work
+- Otherwise: Immediately invoke the `AskUserQuestion` tool (NOT plain text) with:
+  - Header: "Action"
+  - Question: "What would you like to work on?"
+  - Options:
+    1. Label: "Open issues", Description: "Show open GitHub issues"
+    2. Label: "Specific issue", Description: "Work on a specific issue number"
+    3. Label: "Other", Description: "Something else"
+
+IMPORTANT: Always use the AskUserQuestion tool for presenting choices - never output options as plain text.
 
 ## Switching Modes
 
@@ -35,7 +43,7 @@ Say: **"ALTO Dev"** then:
 When user mentions a GitHub issue:
 
 1. Run `gh issue view <number> --repo gonzaloetjo/alto`
-2. Use AskUserQuestion:
+2. Invoke the `AskUserQuestion` tool (NOT plain text options) with:
    - Header: "Approach"
    - Question: "How would you like to proceed?"
    - Options:
