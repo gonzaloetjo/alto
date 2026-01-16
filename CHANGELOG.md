@@ -5,6 +5,14 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Auto-restart on mode switch**:
+  - `c` script - wrapper for `claude` with auto-restart support
+  - When switching modes via `alto-switch` skill, Claude automatically restarts with new config
+  - `alto-update` script - force update ALTO to latest version (fixes Nix cache issues)
+  - `alto-switch` skill (`skills/alto-switch/SKILL.md`) - procedure for switching orchestrator modes
+- **Template improvements**:
+  - `?ref=main` added to alto input URL for proper cache invalidation
+  - `alto-update` auto-adds `?ref=main` to existing projects missing it
 - **Debug mode with event logging** (Issue #30):
   - `alto.debug` option (default false) - enables verbose event logging
   - Events logged to `runs/logs/events.jsonl` when enabled

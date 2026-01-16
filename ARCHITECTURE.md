@@ -212,6 +212,8 @@ ALTO provides shell scripts for common operations:
 
 | Script | Purpose |
 |--------|---------|
+| `c` | Run Claude with auto-restart support (use instead of `claude`) |
+| `alto-update` | Force update ALTO to latest version (fixes Nix cache issues) |
 | `alto-setup` | First-time project initialization (creates objective.md) |
 | `alto-status` | Show current phase, branch, completed tasks, orchestrator mode |
 | `alto-switch` | Show how to switch between setup/build orchestrators |
@@ -222,12 +224,10 @@ ALTO provides shell scripts for common operations:
 
 Usage:
 ```bash
-devenv shell
-alto-setup      # New project
+direnv allow    # Activate environment (keeps native shell)
+c               # Start Claude with auto-restart
+alto-update     # Update ALTO to latest version
 alto-status     # Check state (includes orchestrator mode)
-alto-switch     # See how to switch orchestrators
-alto-new-run    # Start new feature run
-alto-restart    # Apply config changes (run from within Claude)
 ```
 
 ---
@@ -441,6 +441,7 @@ Skills are reusable procedures and rules that agents and orchestrators reference
 | `alto-protocol` | reference | Task/state/handoff formats | setup, build |
 | `alto-feature-setup` | technique | Interactive feature setup | setup, build |
 | `alto-configure` | technique | Configuration procedures (thresholds, permissions, verification) | setup, build |
+| `alto-switch` | technique | Switch orchestrator modes (setup/build/dev) | all |
 | `scope-discipline` | discipline | Prevent over-engineering | setup, build |
 | `alto-dev-guide` | reference | Documentation URLs and patterns for ALTO development | dev |
 | `writing-alto-skills` | technique | Skill authoring methodology | dev |
