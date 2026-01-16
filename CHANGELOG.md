@@ -16,6 +16,12 @@ All notable changes to ALTO.
   - Scripts receive Nix config values via environment variables
 
 ### Added
+- **CONFIGURATION.md** - Comprehensive guide to all ALTO configuration options:
+  - Static options (devenv.nix) vs runtime options (runs/*.json)
+  - Arbiter thresholds, permissions, verification hooks, planning settings
+  - Per-agent permission configuration
+  - When to configure (setup vs build vs dev mode)
+  - Quick reference table for common adjustments
 - **Mode switching**:
   - `alto-switch <mode>` script - updates devenv.nix orchestrator setting
   - `alto-switch` skill - guides user through mode switch (uses `/exit` and `/resume`)
