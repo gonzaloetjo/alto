@@ -1293,19 +1293,25 @@ ORCH_EOF
     # Force update ALTO to latest version (bypasses Nix cache)
     scripts.alto-update = {
       exec = ''
+        set -e
         echo "Updating ALTO..."
 
         # Ensure ?ref=main is in devenv.yaml for proper cache invalidation
         if grep -q 'github:gonzaloetjo/alto$' devenv.yaml 2>/dev/null; then
-          echo "Adding ?ref=main to alto input for proper updates..."
+          echo "Adding ?ref=main to alto input..."
           ${pkgs.gnused}/bin/sed -i 's|github:gonzaloetjo/alto$|github:gonzaloetjo/alto?ref=main|' devenv.yaml
+        else
+          echo "devenv.yaml already has ?ref=main (good)"
         fi
 
+        echo "Removing .devenv and devenv.lock..."
         rm -rf .devenv devenv.lock
-        echo "Fetching latest ALTO..."
+
+        echo "Running devenv update..."
         devenv update
+
         echo ""
-        echo "Done. Run 'direnv reload' or 'devenv shell' to use updated ALTO."
+        echo "Done. Run 'direnv reload' to use updated ALTO."
       '';
       description = "Force update ALTO (removes lock, clears cache)";
     };
