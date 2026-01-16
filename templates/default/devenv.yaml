@@ -6,7 +6,7 @@ inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
   alto:
-    url: github:gonzaloetjo/alto
+    url: github:gonzaloetjo/alto?ref=main
     flake: false  # Critical: use native devenv imports, not flake modules
 
 imports:
