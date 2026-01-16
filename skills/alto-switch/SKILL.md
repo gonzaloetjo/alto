@@ -12,7 +12,7 @@ ALTO has three orchestrator modes: `setup`, `build`, `dev`.
 
 ## Process
 
-1. `Edit(devenv.nix)` - find `alto.orchestrator = "X"` and change `"X"` to desired mode
+1. `Edit(devenv.nix)` - find line `alto.orchestrator = lib.mkDefault "X"` and change `"X"` to desired mode (`setup`, `build`, or `dev`)
 
 2. Run this restart command:
 ```bash
