@@ -8,24 +8,30 @@ triggers:
 
 # Mode Switching
 
-ALTO has three orchestrator modes: `setup`, `build`, `dev`.
+## Steps
 
-## Process
+1. Run `alto-switch <mode>` to update devenv.nix
+2. Tell user exactly what to type next:
+   - If they have a named session: `/resume <mode>`
+   - Otherwise: `/exit` then `claude`
 
-Run the switch command:
+## Example Response
 
-```bash
-alto-switch <mode>
+After running `alto-switch dev`:
+```
+Switched to dev mode. Type one of:
+  /resume dev     (if you have a session named "dev")
+  /exit           (then run `claude` to start fresh)
 ```
 
-Where `<mode>` is one of: `setup`, `build`, `dev`
+## Naming Sessions (optional)
 
-The script updates devenv.nix and triggers a restart automatically.
+Users can name sessions with `/rename <mode>` to enable quick switching via `/resume`.
 
-## Quick Reference
+## Modes
 
-| From | To | When |
-|------|------|------|
-| setup | build | objective.md ready, start autonomous execution |
-| build | setup | Feature complete, define next feature |
-| any | dev | Developing ALTO itself |
+| Mode | Purpose |
+|------|---------|
+| setup | Feature definition, configuration |
+| build | Autonomous execution |
+| dev | ALTO development |

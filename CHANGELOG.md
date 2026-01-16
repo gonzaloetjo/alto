@@ -5,11 +5,11 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
-- **Auto-restart on mode switch**:
-  - `c` script - wrapper for `claude` with auto-restart support
-  - When switching modes via `alto-switch` skill, Claude automatically restarts with new config
+- **Mode switching**:
+  - `alto-switch <mode>` script - updates devenv.nix orchestrator setting
+  - `alto-switch` skill - guides user through mode switch (uses `/exit` and `/resume`)
   - `alto-update` script - force update ALTO to latest version (fixes Nix cache issues)
-  - `alto-switch` skill (`skills/alto-switch/SKILL.md`) - procedure for switching orchestrator modes
+  - `alto-reset.sh` - bootstrap script for broken installs (curl-able from GitHub)
 - **Template improvements**:
   - `?ref=main` added to alto input URL for proper cache invalidation
   - `alto-update` auto-adds `?ref=main` to existing projects missing it

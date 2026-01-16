@@ -468,47 +468,6 @@ STATE_EOF
         description = "Clean previous run artifacts";
       };
 
-      # Restart Claude with fresh devenv config
-      alto-restart = {
-        exec = ''
-          # SAFEGUARD: Block in dev mode to prevent self-restart while modifying ALTO
-          CURRENT_ORCH="${cfg.orchestrator}"
-          if [ "$CURRENT_ORCH" = "dev" ]; then
-            echo "ERROR: alto-restart is disabled in dev mode."
-            echo ""
-            echo "Restarting while modifying ALTO can cause unpredictable behavior."
-            echo "Changes apply on next session. End this session and start fresh."
-            exit 1
-          fi
-
-          # Find Claude's PID (parent of this bash process)
-          CLAUDE_PID=$(ps -o ppid= -p $$ | tr -d ' ')
-
-          if [ -z "$CLAUDE_PID" ] || [ "$CLAUDE_PID" = "1" ]; then
-            echo "Error: Could not find Claude process"
-            exit 1
-          fi
-
-          echo "Restarting Claude with fresh configuration..."
-          echo "Session will continue automatically."
-
-          # Spawn background process to:
-          # 1. Wait for this script to return to Claude
-          # 2. Kill Claude
-          # 3. Reload devenv and restart Claude with --continue
-          nohup sh -c "
-            sleep 0.5
-            kill $CLAUDE_PID 2>/dev/null
-            sleep 0.2
-            cd \"$PWD\"
-            exec devenv shell claude -- --continue
-          " > /tmp/alto-restart.log 2>&1 &
-
-          # Give background process time to start
-          sleep 0.1
-        '';
-        description = "Restart Claude with fresh devenv configuration";
-      };
 
       # Test harness for meta-development
       # WARNING: Uses --dangerously-skip-permissions for automated testing.
@@ -862,16 +821,11 @@ JSON_EOF
           fi
 
           echo ""
-          echo "Triggering restart..."
-          touch /tmp/alto-restart-requested
-
-          # Kill Claude process (parent of this bash)
-          CLAUDE_PID=$(ps -o ppid= -p $$ | tr -d ' ')
-          if [ -n "$CLAUDE_PID" ] && [ "$CLAUDE_PID" != "1" ]; then
-            kill -TERM "$CLAUDE_PID" 2>/dev/null
-          fi
+          echo "Switched to $TARGET mode. Type one of:"
+          echo "  /resume $TARGET   (if you have a session named \"$TARGET\")"
+          echo "  /exit             (then run 'claude' to start fresh)"
         '';
-        description = "Switch between orchestrators (modifies devenv.nix and restarts)";
+        description = "Switch orchestrator mode (edits devenv.nix)";
       };
     };
 
@@ -1274,20 +1228,6 @@ ORCH_EOF
       '';
       # Run before shell entry
       before = [ "devenv:enterShell" ];
-    };
-
-    # Wrapper script to auto-restart Claude on mode switch
-    # Users run `c` instead of `claude` to get auto-restart behavior
-    scripts.c = {
-      exec = ''
-        claude "$@"
-        while [ -f /tmp/alto-restart-requested ]; do
-          rm -f /tmp/alto-restart-requested
-          echo "Restarting Claude with new configuration..."
-          devenv shell -- claude
-        done
-      '';
-      description = "Run Claude with auto-restart support";
     };
 
     # Force update ALTO to latest version (bypasses Nix cache)

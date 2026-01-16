@@ -212,22 +212,21 @@ ALTO provides shell scripts for common operations:
 
 | Script | Purpose |
 |--------|---------|
-| `c` | Run Claude with auto-restart support (use instead of `claude`) |
 | `alto-update` | Force update ALTO to latest version (fixes Nix cache issues) |
+| `alto-switch` | Switch orchestrator mode (edits devenv.nix) |
 | `alto-setup` | First-time project initialization (creates objective.md) |
 | `alto-status` | Show current phase, branch, completed tasks, orchestrator mode |
-| `alto-switch` | Show how to switch between setup/build orchestrators |
 | `alto-new-run` | Create new run branch, reset state to ARCHITECTURE |
 | `alto-clean` | Clean previous run artifacts (tasks, pending.json) |
 | `alto-feature` | Quick guide for starting a new feature |
-| `alto-restart` | Restart Claude with fresh devenv config (applies config changes) |
 
 Usage:
 ```bash
-direnv allow    # Activate environment (keeps native shell)
-c               # Start Claude with auto-restart
-alto-update     # Update ALTO to latest version
-alto-status     # Check state (includes orchestrator mode)
+direnv allow        # Activate environment (keeps native shell)
+claude              # Start Claude
+alto-update         # Update ALTO to latest version
+alto-switch dev     # Switch to dev mode (then /exit and restart claude)
+alto-status         # Check state (includes orchestrator mode)
 ```
 
 ---
@@ -742,3 +741,38 @@ ALTO creates `run/XXX` branches for each feature run.
 - **Abandon** — force-delete incomplete runs
 
 See [Feature Completion](#feature-completion) for the transition flow.
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ Terminal                                                        │
+  ├─────────────────────────────────────────────────────────────────┤
+  │ $ devenv shell                                                  │
+  │ ALTO deployed                                                   │
+  │                                                                 │
+  │ $ alto                                                          │
+  │ ╭─ ALTO ─────────────────────────────────────────────────────╮  │
+  │ │ Mode: setup | Session: abc123                              │  │
+  │ ╰────────────────────────────────────────────────────────────╯  │
+  │                                                                 │
+  │ > Help me write objective.md for a todo app                     │
+  │                                                                 │
+  │ I'll help you define your feature. Let me ask some questions... │
+  │ [uses alto-feature-finder agent]                                │
+  │                                                                 │
+  │ > /switch build                                                 │
+  │                                                                 │
+  │ ╭─ Switching ────────────────────────────────────────────────╮  │
+  │ │ ✓ Saved setup session (abc123)                             │  │
+  │ │ ✓ Loading build mode                                       │  │
+  │ │ ✓ Resumed build session (def456)                           │  │
+  │ ╰────────────────────────────────────────────────────────────╯  │
+  │                                                                 │
+  │ ╭─ ALTO ─────────────────────────────────────────────────────╮  │
+  │ │ Mode: build | Session: def456                              │  │
+  │ ╰────────────────────────────────────────────────────────────╯  │
+  │                                                                 │
+  │ > Start building                                                │
+  │                                                                 │
+  │ Resuming from ARCHITECTURE phase. Let me review objective.md... │
+  │ [has access to alto-planner, alto-backend, etc.]                │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
