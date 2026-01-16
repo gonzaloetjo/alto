@@ -1284,6 +1284,17 @@ ORCH_EOF
       description = "Run Claude with auto-restart support";
     };
 
+    # Force update ALTO to latest version (bypasses Nix cache)
+    scripts.alto-update = {
+      exec = ''
+        echo "Updating ALTO..."
+        rm -f devenv.lock
+        nix-collect-garbage -d 2>/dev/null || true
+        echo "Lock removed. Run 'devenv shell' to rebuild with latest ALTO."
+      '';
+      description = "Force update ALTO (removes lock, clears cache)";
+    };
+
     # ALTO repo config - Claude edits this line to switch modes
     alto.orchestrator = lib.mkDefault "setup";  # "setup" | "build" | "dev"
 
