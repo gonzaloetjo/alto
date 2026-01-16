@@ -22,7 +22,7 @@ nohup sh -c "
   kill $CLAUDE_PID 2>/dev/null
   sleep 0.2
   cd '$PWD'
-  exec devenv shell claude -- --continue
+  exec devenv shell claude
 " > /tmp/alto-restart.log 2>&1 &
 sleep 0.1
 echo "Restarting..."
