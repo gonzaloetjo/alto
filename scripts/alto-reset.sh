@@ -21,9 +21,17 @@ else
   echo "      OK"
 fi
 
-# Step 2: Reset devenv.nix to clean state (preserve custom config)
+# Step 2: Reset devenv.nix if corrupted or fix issues
 echo "[2/5] Checking devenv.nix..."
-if grep -q 'lib.mkDefault' devenv.nix 2>/dev/null; then
+if [ ! -s "devenv.nix" ] || ! grep -q '^{' devenv.nix 2>/dev/null; then
+  echo "      devenv.nix is empty or corrupted, resetting..."
+  cat > devenv.nix << 'DEVENV_EOF'
+{ pkgs, ... }:
+{
+  # Switch modes with: alto-switch <mode>
+}
+DEVENV_EOF
+elif grep -q 'lib.mkDefault' devenv.nix 2>/dev/null; then
   echo "      Fixing lib.mkDefault issue..."
   sed -i 's/lib\.mkDefault "\([^"]*\)"/"\1"/' devenv.nix
   # Remove lib from function args if not used elsewhere
