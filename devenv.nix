@@ -1291,27 +1291,31 @@ ORCH_EOF
     };
 
     # Force update ALTO to latest version (bypasses Nix cache)
+    # If this script is broken, run: bash <(curl -fsSL https://raw.githubusercontent.com/gonzaloetjo/alto/main/scripts/alto-reset.sh)
     scripts.alto-update = {
       exec = ''
         set -e
-        echo "Updating ALTO..."
+        echo "=== ALTO Update ==="
 
-        # Ensure ?ref=main is in devenv.yaml for proper cache invalidation
+        # Ensure ?ref=main is in devenv.yaml
         if grep -q 'github:gonzaloetjo/alto$' devenv.yaml 2>/dev/null; then
-          echo "Adding ?ref=main to alto input..."
+          echo "[1/4] Adding ?ref=main to devenv.yaml..."
           ${pkgs.gnused}/bin/sed -i 's|github:gonzaloetjo/alto$|github:gonzaloetjo/alto?ref=main|' devenv.yaml
         else
-          echo "devenv.yaml already has ?ref=main (good)"
+          echo "[1/4] devenv.yaml OK"
         fi
 
-        echo "Removing .devenv and devenv.lock..."
+        echo "[2/4] Removing .devenv and devenv.lock..."
         rm -rf .devenv devenv.lock
 
-        echo "Running devenv update..."
+        echo "[3/4] Prefetching latest ALTO from GitHub..."
+        nix flake prefetch github:gonzaloetjo/alto --refresh 2>/dev/null || true
+
+        echo "[4/4] Running devenv update..."
         devenv update
 
         echo ""
-        echo "Done. Run 'direnv reload' to use updated ALTO."
+        echo "Done! Run 'direnv reload' to activate."
       '';
       description = "Force update ALTO (removes lock, clears cache)";
     };
