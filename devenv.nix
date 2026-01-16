@@ -468,6 +468,24 @@ STATE_EOF
         description = "Clean previous run artifacts";
       };
 
+      # Initialize a test project (also available as scripts/alto-init-test.sh)
+      alto-init-test = {
+        exec = ''
+          ${altoSrc}/scripts/alto-init-test.sh "$@"
+        '';
+        description = "Create/update a test project that imports local ALTO";
+      };
+
+      # Nuke everything - full reset of ALTO state
+      alto-nuke = {
+        exec = ''
+          echo "Nuking ALTO state..."
+          rm -rf .claude/ runs/ CLAUDE.md objective.md 2>/dev/null || true
+          echo "Reloading environment..."
+          direnv reload 2>/dev/null || echo "Run 'direnv reload' or re-enter the directory"
+        '';
+        description = "Full reset - removes .claude/, runs/, CLAUDE.md, objective.md";
+      };
 
       # Test harness for meta-development
       # WARNING: Uses --dangerously-skip-permissions for automated testing.
@@ -820,12 +838,22 @@ JSON_EOF
             echo "Added to devenv.nix: alto.orchestrator = \"$TARGET\""
           fi
 
+          # Also update runs/orchestrator.json for tooling that reads mode at runtime
+          RUNS_DIR="${cfg.runsDir}"
+          if [ -d "$RUNS_DIR" ]; then
+            cat > "$RUNS_DIR/orchestrator.json" << ORCH_EOF
+{
+  "orchestrator": "$TARGET",
+  "updated_at": "$(date -Iseconds)"
+}
+ORCH_EOF
+          fi
+
           echo ""
-          echo "Switched to $TARGET mode. Type one of:"
-          echo "  /resume $TARGET   (if you have a session named \"$TARGET\")"
-          echo "  /exit             (then run 'claude' to start fresh)"
+          echo "Switched to $TARGET mode."
+          echo "Run '/exit' then 'claude' to start with new mode."
         '';
-        description = "Switch orchestrator mode (edits devenv.nix)";
+        description = "Switch orchestrator mode (edits devenv.nix and runs/orchestrator.json)";
       };
     };
 
