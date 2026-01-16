@@ -851,19 +851,25 @@ JSON_EOF
 
           echo "Switching from '$CURRENT' to '$TARGET'..."
 
-          # Update devenv.nix - handle both quoted and unquoted formats
+          # Update devenv.nix - update existing or add new line
           if grep -q 'alto\.orchestrator\s*=' devenv.nix; then
-            ${pkgs.gnused}/bin/sed -i 's/alto\.orchestrator\s*=\s*"[^"]*"/alto.orchestrator = "'"$TARGET"'"/' devenv.nix
+            ${pkgs.gnused}/bin/sed -i 's/alto\.orchestrator\s*=\s*[^;]*/alto.orchestrator = "'"$TARGET"'"/' devenv.nix
             echo "Updated devenv.nix: alto.orchestrator = \"$TARGET\""
           else
-            echo "Warning: Could not find alto.orchestrator in devenv.nix"
-            echo "Please add manually: alto.orchestrator = \"$TARGET\";"
-            exit 1
+            # Add after opening brace
+            ${pkgs.gnused}/bin/sed -i 's/^{$/{\n  alto.orchestrator = "'"$TARGET"'";/' devenv.nix
+            echo "Added to devenv.nix: alto.orchestrator = \"$TARGET\""
           fi
 
           echo ""
-          echo "Running alto-restart to apply changes..."
-          alto-restart
+          echo "Triggering restart..."
+          touch /tmp/alto-restart-requested
+
+          # Kill Claude process (parent of this bash)
+          CLAUDE_PID=$(ps -o ppid= -p $$ | tr -d ' ')
+          if [ -n "$CLAUDE_PID" ] && [ "$CLAUDE_PID" != "1" ]; then
+            kill -TERM "$CLAUDE_PID" 2>/dev/null
+          fi
         '';
         description = "Switch between orchestrators (modifies devenv.nix and restarts)";
       };
