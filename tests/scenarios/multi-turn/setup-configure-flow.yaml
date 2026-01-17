@@ -1,0 +1,75 @@
+# Setup Orchestrator: Configure Flow
+# Tests the configuration path in setup mode
+
+name: setup-configure-flow
+description: Test configuration workflow with Write tool verification
+type: multi-turn
+
+orchestrator: setup
+timeout_seconds: 600
+
+# Start with an objective so we get the "has objective" flow
+initial_state:
+  objective_md: |
+    # Objective: Test Project
+
+    ## Overview
+    A test project for configuration testing.
+
+    ## Features
+
+    ### 1. Test Feature
+    A simple test feature.
+
+    **Definition of Done:**
+    - [ ] Feature implemented
+
+turns:
+  - name: "initial-menu"
+    prompt: "hi"
+    timeout_seconds: 120
+    expect:
+      response_contains_any:
+        - "What would you like to do"
+        - "Start building"
+        - "Configure"
+      tool_called: "AskUserQuestion"
+    user_response:
+      select_option: "Configure ALTO"
+      text_fallback: "3"
+
+  - name: "configure-selection"
+    prompt: null
+    timeout_seconds: 120
+    expect:
+      response_contains_any:
+        - "configure"
+        - "threshold"
+        - "permission"
+        - "setting"
+      response_not_contains:
+        - "error"
+        - "failed"
+    user_response:
+      select_option: "Thresholds"
+      text_fallback: "1"
+
+  - name: "threshold-config"
+    prompt: "Set task checkpoint interval to 3 tasks"
+    timeout_seconds: 120
+    expect:
+      response_contains_any:
+        - "threshold"
+        - "checkpoint"
+        - "interval"
+        - "configured"
+        - "3"
+      tools:
+        - name: "Write"
+          strictness: required
+      response_not_contains:
+        - "error"
+
+final_assertions:
+  files_exist:
+    - runs/arbiter/config.json

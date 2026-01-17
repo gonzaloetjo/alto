@@ -5,6 +5,41 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Enhanced protocol test verification** (`alto-test-multi`):
+  - **State machine validation** (Phase 1):
+    - `VALID_TRANSITIONS` constant defining allowed phase transitions
+    - Phase history tracking across turns
+    - `phase_transition_valid` assertion validates all transitions
+    - `state.phase_in` assertion checks phase is one of allowed values
+    - `state.completed_tasks_min` assertion verifies minimum completed tasks
+  - **Tool verification with strictness levels** (Phase 2):
+    - `tools` array with `strictness: soft|required|strict`
+    - `soft` (default): warning only if not called
+    - `required`: fail if tool not called
+    - `strict`: fail if not called OR params don't match
+    - `params.command_contains` and `params.file_path` matchers
+    - `tool_sequence` assertion verifies tool call order
+  - **Handoff verification** (Phase 3):
+    - `handoff.exists` assertion checks handoff file present
+    - `handoff.has_sections` verifies required markdown sections
+    - `handoff.min_length` ensures minimum content length
+  - **Metric assertions** (Phase 4):
+    - `metrics.turn_duration_max_seconds` enforces timing limits
+  - **Negative assertions** (Phase 5):
+    - `response_not_contains` fails if forbidden text found
+    - `tool_not_called` fails if specified tool was used
+    - `files_not_exist` in final_assertions
+    - `file_not_contains` in final_assertions
+  - **Initial state seeding** (Phase 6):
+    - `initial_state.state_json` pre-seeds runs/state.json
+    - `initial_state.arbiter_config` pre-seeds runs/arbiter/config.json
+    - `initial_state.verification_config` pre-seeds runs/verification-config.json
+    - `initial_state.planning_config` pre-seeds runs/planning-config.json
+  - **New test scenarios**:
+    - `build-phase-transitions.yaml` - validates state machine across 3 turns
+    - `build-handoff-structure.yaml` - verifies handoff file format
+    - `setup-configure-flow.yaml` - tests configuration path with Write verification
+    - `build-blocked-recovery.yaml` - tests recovery from BLOCKED state
 - **Multi-turn protocol test infrastructure** (`alto-test-multi`):
   - Test harness for running multi-turn ALTO orchestrator tests
   - Creates isolated test directories with devenv pointing to local ALTO

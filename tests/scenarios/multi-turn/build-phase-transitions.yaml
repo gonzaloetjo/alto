@@ -1,0 +1,79 @@
+# Build Orchestrator: Phase Transitions
+# Tests state machine validation across multiple turns
+
+name: build-phase-transitions
+description: Verify state machine transitions follow valid paths
+type: multi-turn
+
+orchestrator: build
+timeout_seconds: 900
+
+initial_state:
+  objective_md: |
+    # Objective: Counter CLI
+
+    ## Overview
+    Create a Python CLI that counts from 1 to 5.
+
+    ## Features
+
+    ### 1. Counter Command
+    Print numbers 1-5 when run.
+
+    **Definition of Done:**
+    - [ ] counter.py exists
+    - [ ] Running `python counter.py` prints 1 through 5
+
+    ## Testing & Verification
+    - Run `python counter.py` to verify output
+
+  arbiter_config:
+    task_checkpoint_interval: 1
+    milestone_checkpoint_interval: 1
+
+turns:
+  - name: "start-planning"
+    prompt: "Read objective.md and create a plan. Do NOT implement yet - just plan."
+    timeout_seconds: 180
+    expect:
+      response_contains_any:
+        - "plan"
+        - "task"
+        - "milestone"
+      phase_transition_valid: true
+      state:
+        phase_in: ["ARCHITECTURE", "PLANNING"]
+
+  - name: "begin-implementation"
+    prompt: "Begin implementing the first task. Create counter.py."
+    timeout_seconds: 240
+    expect:
+      response_contains_any:
+        - "counter"
+        - "created"
+        - "implementing"
+      phase_transition_valid: true
+      tools:
+        - name: "Write"
+          strictness: required
+
+  - name: "verify-completion"
+    prompt: "Run the verification to confirm counter.py works correctly."
+    timeout_seconds: 120
+    expect:
+      response_contains_any:
+        - "1"
+        - "5"
+        - "works"
+        - "success"
+      phase_transition_valid: true
+      metrics:
+        turn_duration_max_seconds: 120
+
+final_assertions:
+  files_exist:
+    - counter.py
+  file_contains:
+    counter.py:
+      - "print"
+  phase_transition_valid: true

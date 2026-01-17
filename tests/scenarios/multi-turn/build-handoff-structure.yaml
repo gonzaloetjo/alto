@@ -1,0 +1,67 @@
+# Build Orchestrator: Handoff Structure
+# Tests handoff file format and content requirements
+
+name: build-handoff-structure
+description: Verify handoff files have required sections and structure
+type: multi-turn
+
+orchestrator: build
+timeout_seconds: 600
+
+initial_state:
+  objective_md: |
+    # Objective: Greeter Module
+
+    ## Overview
+    Create a Python module with a greeting function.
+
+    ## Features
+
+    ### 1. Greeting Function
+    A function that returns a greeting message.
+
+    **Definition of Done:**
+    - [ ] greeter.py exists with greet() function
+    - [ ] Function returns "Hello, World!"
+
+    ## Testing & Verification
+    - Import and call greet() function
+
+turns:
+  - name: "implement-feature"
+    prompt: "Read objective.md and implement the greeting function. Create proper handoff documentation."
+    timeout_seconds: 300
+    expect:
+      response_contains_any:
+        - "greet"
+        - "Hello"
+        - "created"
+        - "function"
+      tools:
+        - name: "Write"
+          strictness: required
+      # Don't require handoff on first turn - may happen on second
+
+  - name: "complete-and-handoff"
+    prompt: "Complete the implementation and write a handoff document summarizing what was done."
+    timeout_seconds: 180
+    expect:
+      response_contains_any:
+        - "complete"
+        - "handoff"
+        - "summary"
+        - "done"
+      handoff:
+        exists: true
+        has_sections:
+          - "## Summary"
+        min_length: 50
+
+final_assertions:
+  files_exist:
+    - greeter.py
+  file_contains:
+    greeter.py:
+      - "def"
+      - "greet"
+      - "Hello"
