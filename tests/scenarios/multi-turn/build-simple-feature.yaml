@@ -1,0 +1,61 @@
+# Build Orchestrator: Simple Feature
+# Tests the build orchestrator with a pre-defined objective
+
+name: build-simple-feature
+description: Test build orchestrator executing a simple feature
+type: multi-turn
+
+orchestrator: build
+timeout_seconds: 900
+
+# Provide a ready-to-build objective
+initial_state:
+  objective_md: |
+    # Objective: Hello World CLI
+
+    ## Overview
+    Create a simple Python CLI that prints a greeting.
+
+    ## Features
+
+    ### 1. Greeting Command
+    Print "Hello, ALTO!" when run.
+
+    **Definition of Done:**
+    - [ ] hello.py exists
+    - [ ] Running `python hello.py` prints "Hello, ALTO!"
+
+    ## Testing & Verification
+    - Run `python hello.py` to verify output
+
+turns:
+  - name: "start-build"
+    prompt: "Read objective.md and build the project. The plan is pre-approved - proceed directly to implementation."
+    timeout_seconds: 300
+    expect:
+      response_contains_any:
+        - "hello"
+        - "python"
+        - "created"
+        - "implementation"
+        - "complete"
+      # Note: state check removed - simple tasks may complete in one turn
+
+  - name: "verify-completion"
+    prompt: "Run the verification command to confirm the feature works."
+    timeout_seconds: 120
+    expect:
+      response_contains_any:
+        - "Hello"
+        - "ALTO"
+        - "success"
+        - "passed"
+        - "works"
+
+final_assertions:
+  files_exist:
+    - hello.py
+  file_contains:
+    hello.py:
+      - "Hello"
+      - "ALTO"

@@ -5,6 +5,19 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Multi-turn protocol test infrastructure** (`alto-test-multi`):
+  - Test harness for running multi-turn ALTO orchestrator tests
+  - Creates isolated test directories with devenv pointing to local ALTO
+  - Session resumption via `--resume` for multi-turn conversations
+  - Tool usage tracking via `runs/tools/usage.jsonl`
+  - Soft checks for probabilistic behaviors (AskUserQuestion detection)
+  - Plain text menu fallback for when Claude doesn't use AskUserQuestion
+  - Two validated scenarios:
+    - `setup-new-project.yaml` - 4-turn flow from welcome to objective.md creation
+    - `build-simple-feature.yaml` - 2-turn flow for simple feature implementation
+  - Usage: `alto-test-multi --scenario setup-new-project --keep --verbose`
+  - Fixes: proper pyyaml via `withPackages`, bash -c for shell plugin isolation, explicit prompt priority
+- **AskUserQuestion logging** in `tool-record.py` for protocol testing verification
 - **Comprehensive test framework** for ALTO development:
   - **Layer 1: Quick validation** (`alto-validate`) - Syntax checks in <5s:
     - Nix syntax (`nix-instantiate --parse`)

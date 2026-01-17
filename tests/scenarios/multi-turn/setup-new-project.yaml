@@ -1,0 +1,66 @@
+# Setup Orchestrator: New Project Flow
+# Tests the complete setup flow for a new project without objective.md
+
+name: setup-new-project-flow
+description: Test complete setup flow from welcome to objective.md creation
+type: multi-turn
+
+orchestrator: setup
+timeout_seconds: 600
+
+# No initial_state - forces NEW_PROJECT flow (template objective.md)
+
+turns:
+  - name: "initial-greeting"
+    prompt: "hi"
+    expect:
+      response_contains:
+        - "Welcome to ALTO"
+      response_contains_any:
+        - "What would you like to do"
+        - "Set up project"
+        - "Configure ALTO"
+      # AskUserQuestion is probabilistic - soft check only
+      tool_called: "AskUserQuestion"
+    user_response:
+      select_option: "Set up project"
+      text_fallback: "1"
+
+  - name: "project-definition-start"
+    prompt: null  # Uses response from previous turn
+    expect:
+      response_contains_any:
+        - "what"
+        - "build"
+        - "describe"
+        - "project"
+    user_response:
+      text: "A simple todo list CLI application in Python"
+
+  - name: "feature-discussion"
+    prompt: null
+    expect:
+      response_contains_any:
+        - "feature"
+        - "requirement"
+        - "Definition of Done"
+        - "todo"
+    user_response:
+      text: "Just two features: add tasks and list tasks. That's it."
+
+  - name: "finalize-objective"
+    prompt: "Write the objective.md file now with those features."
+    expect:
+      response_contains_any:
+        - "objective"
+        - "created"
+        - "written"
+
+final_assertions:
+  files_exist:
+    - objective.md
+  file_contains:
+    objective.md:
+      - "todo"
+      - "add"
+      - "list"

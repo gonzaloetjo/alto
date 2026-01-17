@@ -99,6 +99,15 @@ def main():
     elif tool_name in ("Read", "Write", "Edit"):
         record["file_path"] = tool_input.get("file_path", "")
 
+    # For AskUserQuestion, log the question and options (for protocol testing)
+    elif tool_name == "AskUserQuestion":
+        questions = tool_input.get("questions", [])
+        if questions:
+            record["question"] = questions[0].get("question", "")
+            record["options"] = [
+                opt.get("label", "") for opt in questions[0].get("options", [])
+            ]
+
     # Write log
     out_dir = project_dir / "runs" / "tools"
     out_dir.mkdir(parents=True, exist_ok=True)

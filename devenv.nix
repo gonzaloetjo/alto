@@ -567,6 +567,18 @@ STATE_EOF
         packages = [ pkgs.python3Packages.pytest ];
         description = "Run ALTO test suite";
       };
+
+      # Multi-turn protocol test runner
+      alto-test-multi = {
+        exec = let
+          python = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
+        in ''
+          export ALTO_SRC="${altoSrc}"
+          export PYTHONPATH="${altoSrc}/hooks:$PYTHONPATH"
+          exec ${python}/bin/python3 "${altoSrc}/scripts/alto-test-multi.py" "$@"
+        '';
+        description = "Run multi-turn ALTO protocol tests";
+      };
     };
 
     # Enable Claude Code integration
