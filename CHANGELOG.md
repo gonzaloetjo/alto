@@ -4,6 +4,27 @@ All notable changes to ALTO.
 
 ## [Unreleased]
 
+### Added
+- **Comprehensive test framework** for ALTO development:
+  - **Layer 1: Quick validation** (`alto-validate`) - Syntax checks in <5s:
+    - Nix syntax (`nix-instantiate --parse`)
+    - Python syntax (`py_compile`)
+    - Bash syntax (`bash -n`)
+    - Agent/skill frontmatter validation
+  - **Layer 2: pytest unit tests** - 94 tests covering hook utilities:
+    - `test_hook_utils.py` - JSON I/O, state, debug mode, event logging, health check
+    - `test_handoff_validate.py` - Handoff validation, file locations, state consistency
+    - `test_skill_validate.py` - Frontmatter parsing, word count, section detection
+    - `test_arbiter_scheduler.py` - Token summing, git numstat, timestamp counting
+    - `test_tool_record.py` - Exit code extraction, check command detection
+    - `test_changelog_check.py` - Key file pattern matching
+  - `scripts/alto-validate.sh` - Quick validation runner
+  - `scripts/validate-frontmatter.py` - YAML frontmatter validator for agents/skills
+  - `scripts/alto-test.sh` - Combined test runner (validation + pytest)
+  - `tests/conftest.py` - pytest fixtures (`tmp_project`, `debug_project`, etc.)
+  - Added `pytest` to devenv packages
+  - Added `alto-validate` and `alto-test` scripts to devenv
+
 ### Changed
 - **devenv.nix optimizations** based on devenv 1.2-1.11 best practices:
   - Task caching with `status` check for `alto:deploy` - skips if orchestrator unchanged

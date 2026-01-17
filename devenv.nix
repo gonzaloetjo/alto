@@ -376,8 +376,8 @@ in
   };
 
   config = {
-    # Ensure python3, jq, and yq are available for hooks and test harness
-    packages = [ pkgs.python3 pkgs.jq pkgs.yq-go ];
+    # Ensure python3, jq, yq, and pytest are available for hooks and test harness
+    packages = [ pkgs.python3 pkgs.python3Packages.pytest pkgs.jq pkgs.yq-go ];
 
     # Common environment variables available to all scripts and hooks
     env = {
@@ -548,6 +548,24 @@ STATE_EOF
         '';
         packages = [ pkgs.jq ];
         description = "Start Claude with automatic session resume per mode";
+      };
+
+      # Quick validation (syntax checks, frontmatter)
+      alto-validate = {
+        exec = ''
+          exec "${altoSrc}/scripts/alto-validate.sh" "$@"
+        '';
+        description = "Run quick ALTO validation checks";
+      };
+
+      # Full test suite (validation + pytest)
+      alto-test = {
+        exec = ''
+          export ALTO_SRC="${altoSrc}"
+          exec "${altoSrc}/scripts/alto-test.sh" "$@"
+        '';
+        packages = [ pkgs.python3Packages.pytest ];
+        description = "Run ALTO test suite";
       };
     };
 
