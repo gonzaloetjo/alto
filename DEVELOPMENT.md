@@ -123,15 +123,56 @@ See `.claude/skills/writing-alto-skills/SKILL.md` for full schema documentation.
 
 **WARNING:** Do NOT run `devenv shell` in the ALTO repo itself. It creates consumer agents in `.claude/` that conflict with tracked dev agents.
 
+### Test Layers
+
+| Layer | Command | Purpose | Speed |
+|-------|---------|---------|-------|
+| Syntax | `alto-validate` | Nix/Python/Bash syntax, frontmatter | <5s |
+| Unit | `pytest tests/` | Hook utilities, validators | ~10s |
+| Protocol | `alto-test-multi --scenario X` | Multi-turn orchestrator flows | ~$0.08/turn |
+
 ### Quick Syntax Checks
 
 ```bash
-# Nix syntax
-nix-instantiate --parse devenv.nix > /dev/null && echo "OK"
+# Run all syntax checks
+devenv shell -- alto-validate
 
-# Python syntax
+# Or manually:
+nix-instantiate --parse devenv.nix > /dev/null && echo "OK"
 python3 -m py_compile hooks/*.py && echo "OK"
 ```
+
+### Protocol Testing (Multi-Turn)
+
+Tests orchestrator protocols by simulating human interaction across multiple conversation turns. Each test creates an isolated temp directory, runs Claude with `--print`, and verifies responses/state.
+
+**From ALTO source directory:**
+
+```bash
+# Run a scenario with verbose output
+devenv shell -- alto-test-multi --scenario build-blocked-recovery --verbose
+
+# Keep test directory after run (for debugging)
+devenv shell -- alto-test-multi --scenario setup-new-project --keep --verbose
+
+# JSON output (for CI)
+devenv shell -- alto-test-multi --scenario build-simple-feature --json
+```
+
+**Available Scenarios:**
+
+| Scenario | Turns | Cost | What It Tests |
+|----------|-------|------|---------------|
+| `setup-new-project` | 4 | ~$0.32 | Full setup flow: welcome → "Set up project" → describe project → write objective.md |
+| `build-simple-feature` | 2 | ~$0.16 | Build orchestrator executes a simple feature from pre-defined objective.md |
+| `build-phase-transitions` | 3 | ~$0.24 | State machine validation: plan → implement → verify, checks all phase transitions are valid |
+| `build-handoff-structure` | 2 | ~$0.16 | Verifies handoff files have required sections (## Summary, etc.) and minimum length |
+| `setup-configure-flow` | 3 | ~$0.24 | Configuration path: has objective → "Configure ALTO" → "Thresholds" → verify Write tool used |
+| `build-blocked-recovery` | 2 | ~$0.16 | Pre-seeds BLOCKED state, verifies orchestrator detects and recovers from blocked state |
+
+**Full suite:** ~16 turns, ~$1.30
+
+See `tests/scenarios/multi-turn/README.md` for scenario YAML format and all assertion types.
 
 ### Local Integration Test
 
