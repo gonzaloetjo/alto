@@ -1,11 +1,6 @@
 ---
 name: alto-dev-guide
-type: reference
-triggers:
-  - editing devenv.nix
-  - editing hooks/*.py
-  - editing agents/*.md
-  - checking Claude Code hook/agent syntax
+description: Use when developing ALTO itself - editing devenv.nix, hooks/*.py, agents/*.md, or checking Claude Code hook/agent syntax. Reference guide with documentation URLs and patterns.
 ---
 
 # ALTO Development Guide

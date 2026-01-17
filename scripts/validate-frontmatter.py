@@ -1,31 +1,24 @@
 #!/usr/bin/env python3
 """
 Validate YAML frontmatter in agent and skill files.
-Checks required fields and enum values.
+
+Skills use official Claude Code format (name + description).
+See: https://github.com/obra/superpowers/blob/main/skills/writing-skills/SKILL.md
 """
 
 import re
 import sys
 from pathlib import Path
 
-# Valid enum values
+# Valid enum values for agents
 VALID_MODELS = ["opus", "sonnet", "haiku"]
-VALID_SKILL_TYPES = ["discipline", "technique", "reference"]
 VALID_PERMISSION_MODES = ["plan", "acceptEdits", "default"]
 
-# Word limits by skill type
-WORD_LIMITS = {
-    "discipline": 300,
-    "technique": 500,
-    "reference": 800,
-}
-
-# Required sections by skill type
-REQUIRED_SECTIONS = {
-    "discipline": ["hard rule", "warning signs"],
-    "technique": [],
-    "reference": [],
-}
+# Skill limits (from superpowers best practices)
+MAX_NAME_LENGTH = 64
+MAX_DESCRIPTION_LENGTH = 1024
+MAX_SKILL_WORDS = 500  # Warning threshold
+RECOMMENDED_SKILL_WORDS = 200  # For frequently-loaded skills
 
 
 def parse_frontmatter(content: str) -> tuple[dict, str]:
@@ -80,11 +73,6 @@ def count_words(text: str) -> int:
     return len(text.split())
 
 
-def find_sections(content: str) -> list[str]:
-    """Find all ## headings in content."""
-    return [m.group(1).lower() for m in re.finditer(r"^## (.+)$", content, re.MULTILINE)]
-
-
 def validate_agent(file_path: Path) -> list[str]:
     """Validate an agent file. Returns list of issues."""
     issues = []
@@ -119,9 +107,14 @@ def validate_agent(file_path: Path) -> list[str]:
     return issues
 
 
-def validate_skill(file_path: Path, alto_src: Path | None = None) -> list[str]:
-    """Validate a skill file. Returns list of issues."""
-    issues = []
+def validate_skill(file_path: Path, alto_src: Path | None = None) -> tuple[list[str], list[str]]:
+    """Validate a skill file.
+
+    Returns (errors, warnings) tuple.
+    Uses official Claude Code format: name + description only.
+    """
+    errors = []
+    warnings = []
     content = file_path.read_text()
 
     # Get relative path for better error messages
@@ -134,57 +127,77 @@ def validate_skill(file_path: Path, alto_src: Path | None = None) -> list[str]:
         rel_path = file_path
 
     if not content.startswith("---"):
-        issues.append(f"{rel_path}: Missing YAML frontmatter")
-        return issues
+        errors.append(f"{rel_path}: Missing YAML frontmatter")
+        return errors, warnings
 
     frontmatter, body = parse_frontmatter(content)
 
-    # Check required fields
+    # === Required fields (official format) ===
+
+    # name is required
     if "name" not in frontmatter:
-        issues.append(f"{rel_path}: Missing 'name' in frontmatter")
+        errors.append(f"{rel_path}: Missing 'name' in frontmatter")
+    else:
+        name = frontmatter["name"]
+        # Name should use only letters, numbers, hyphens
+        if not re.match(r'^[a-zA-Z0-9-]+$', name):
+            errors.append(f"{rel_path}: name '{name}' should use only letters, numbers, and hyphens")
+        if len(name) > MAX_NAME_LENGTH:
+            errors.append(f"{rel_path}: name exceeds {MAX_NAME_LENGTH} chars ({len(name)})")
 
-    if "type" not in frontmatter:
-        issues.append(f"{rel_path}: Missing 'type' in frontmatter")
-    elif frontmatter.get("type") not in VALID_SKILL_TYPES:
-        issues.append(
-            f"{rel_path}: Invalid type '{frontmatter.get('type')}' "
-            f"(expected: {', '.join(VALID_SKILL_TYPES)})"
-        )
+    # description is required (this is how Claude discovers skills)
+    if "description" not in frontmatter:
+        errors.append(f"{rel_path}: Missing 'description' in frontmatter (required for skill discovery)")
+    else:
+        desc = frontmatter["description"]
+        if len(desc) > MAX_DESCRIPTION_LENGTH:
+            errors.append(f"{rel_path}: description exceeds {MAX_DESCRIPTION_LENGTH} chars ({len(desc)})")
 
-    if "triggers" not in frontmatter:
-        issues.append(f"{rel_path}: Missing 'triggers' in frontmatter")
-
-    skill_type = frontmatter.get("type", "technique")
-
-    # Check word count
-    word_count = count_words(body)
-    limit = WORD_LIMITS.get(skill_type, 500)
-    if word_count > limit:
-        issues.append(
-            f"{rel_path}: Word count {word_count} exceeds {limit} limit for type '{skill_type}'"
-        )
-
-    # Check required sections
-    sections = find_sections(body)
-    for required in REQUIRED_SECTIONS.get(skill_type, []):
-        if required not in sections:
-            issues.append(
-                f"{rel_path}: Missing required section '## {required.title()}' for type '{skill_type}'"
+        # Superpowers best practice: description should start with "Use when"
+        desc_lower = desc.lower()
+        if not (desc_lower.startswith("use when") or desc_lower.startswith("use for") or
+                desc_lower.startswith("guide for") or desc_lower.startswith("use to")):
+            warnings.append(
+                f"{rel_path}: description should start with 'Use when...' to describe triggering conditions"
             )
 
-    return issues
+    # === Deprecated fields (ALTO legacy) ===
+
+    if "type" in frontmatter:
+        warnings.append(
+            f"{rel_path}: 'type' field is deprecated - Claude Code ignores it. "
+            "Document skill type in body instead."
+        )
+
+    if "triggers" in frontmatter:
+        warnings.append(
+            f"{rel_path}: 'triggers' field is deprecated - Claude Code ignores it. "
+            "Put triggering conditions in 'description' field."
+        )
+
+    # === Content quality checks (warnings) ===
+
+    word_count = count_words(body)
+    if word_count > MAX_SKILL_WORDS:
+        warnings.append(
+            f"{rel_path}: {word_count} words exceeds recommended {MAX_SKILL_WORDS}. "
+            "Consider moving heavy content to references/ subdir."
+        )
+
+    return errors, warnings
 
 
 def main():
     alto_src = Path(__file__).parent.parent
-    all_issues = []
+    all_errors = []
+    all_warnings = []
 
     # Validate agents
     agents_dir = alto_src / "agents"
     if agents_dir.exists():
         for agent_file in agents_dir.glob("*.md"):
-            issues = validate_agent(agent_file)
-            all_issues.extend(issues)
+            errors = validate_agent(agent_file)
+            all_errors.extend(errors)
 
     # Validate skills in multiple locations
     skill_dirs = [
@@ -195,18 +208,30 @@ def main():
     for skill_dir in skill_dirs:
         if skill_dir.exists():
             for skill_file in skill_dir.glob("*/SKILL.md"):
-                issues = validate_skill(skill_file, alto_src)
-                all_issues.extend(issues)
+                errors, warnings = validate_skill(skill_file, alto_src)
+                all_errors.extend(errors)
+                all_warnings.extend(warnings)
 
     # Print results
-    if all_issues:
-        print("Frontmatter validation errors:")
-        for issue in all_issues:
-            print(f"  - {issue}")
-        sys.exit(1)
-    else:
-        print("All frontmatter valid")
-        sys.exit(0)
+    exit_code = 0
+
+    if all_errors:
+        print("Frontmatter validation ERRORS:")
+        for error in all_errors:
+            print(f"  ✗ {error}")
+        exit_code = 1
+
+    if all_warnings:
+        print("\nFrontmatter validation WARNINGS:")
+        for warning in all_warnings:
+            print(f"  ! {warning}")
+
+    if not all_errors and not all_warnings:
+        print("All frontmatter valid ✓")
+    elif not all_errors:
+        print("\nNo errors (warnings only)")
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

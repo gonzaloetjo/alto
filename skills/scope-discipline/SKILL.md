@@ -1,10 +1,6 @@
 ---
 name: scope-discipline
-type: discipline
-triggers:
-  - implementing features
-  - editing source code
-  - responding to task handoffs
+description: Use when implementing features, editing source code, or responding to task handoffs. Enforces doing exactly what was requested - no scope creep, no "while I'm here" additions.
 ---
 
 # Scope Discipline

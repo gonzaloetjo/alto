@@ -1,10 +1,6 @@
 ---
 name: alto-configure
-type: technique
-triggers:
-  - when setup orchestrator handles "Configure ALTO" selection
-  - when build orchestrator handles "Reconfigure" at checkpoint or feature completion
-  - when user requests ALTO configuration changes
+description: Use when configuring ALTO settings including arbiter thresholds, permissions, or verification hooks. Applies during setup orchestrator "Configure ALTO" selection, build orchestrator checkpoints, or when user requests configuration changes.
 ---
 
 # ALTO Configuration

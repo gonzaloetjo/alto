@@ -1,9 +1,6 @@
 ---
 name: alto-switch
-type: technique
-triggers:
-  - when switching orchestrator modes
-  - when user requests dev/build/setup mode
+description: Use when switching ALTO orchestrator modes (dev/build/setup). Guides mode transitions and session management via the alto command.
 ---
 
 # Mode Switching

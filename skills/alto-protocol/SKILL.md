@@ -1,12 +1,6 @@
 ---
 name: alto-protocol
-type: reference
-triggers:
-  - working with runs/state.json
-  - creating runs/handoffs/*.md
-  - reading runs/tasks/*.md
-  - writing runs/plan.md
-  - checking runs/milestones.md format
+description: Use when working with ALTO protocol files - runs/state.json, runs/handoffs/*.md, runs/tasks/*.md, runs/plan.md, or runs/milestones.md. Reference for file formats and state machine.
 ---
 
 # ALTO Protocol

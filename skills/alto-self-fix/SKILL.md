@@ -1,10 +1,6 @@
 ---
 name: alto-self-fix
-type: technique
-triggers:
-  - running /alto-self-fix
-  - "solve issue through ALTO"
-  - "use ALTO self-fix"
+description: Use when ALTO needs to fix itself via GitHub issues. Procedural workflow for running /alto-self-fix or solving issues through ALTO's self-improvement process.
 ---
 
 # ALTO Self-Fix Procedure

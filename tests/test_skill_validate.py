@@ -1,29 +1,25 @@
 """
-Tests for hooks/skill-validate.py functions.
+Tests for scripts/validate-frontmatter.py skill validation functions.
+
+Uses official Claude Code format (name + description).
 """
 
-import json
 from pathlib import Path
 
 import pytest
 
-# Import will use conftest.py path setup
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-
-# Use importlib to handle the hyphenated filename
+# Import validate-frontmatter.py
 import importlib.util
 spec = importlib.util.spec_from_file_location(
-    "skill_validate",
-    Path(__file__).parent.parent / "hooks" / "skill-validate.py"
+    "validate_frontmatter",
+    Path(__file__).parent.parent / "scripts" / "validate-frontmatter.py"
 )
-skill_validate = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(skill_validate)
+validate_frontmatter = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(validate_frontmatter)
 
-parse_frontmatter = skill_validate.parse_frontmatter
-count_words = skill_validate.count_words
-find_sections = skill_validate.find_sections
-validate_skill = skill_validate.validate_skill
+parse_frontmatter = validate_frontmatter.parse_frontmatter
+count_words = validate_frontmatter.count_words
+validate_skill = validate_frontmatter.validate_skill
 
 
 class TestParseFrontmatter:
@@ -33,7 +29,7 @@ class TestParseFrontmatter:
         """Should parse simple key-value frontmatter."""
         content = """---
 name: test-skill
-type: discipline
+description: Use when testing validation
 ---
 
 # Content here
@@ -41,7 +37,7 @@ type: discipline
         frontmatter, body = parse_frontmatter(content)
 
         assert frontmatter["name"] == "test-skill"
-        assert frontmatter["type"] == "discipline"
+        assert frontmatter["description"] == "Use when testing validation"
         assert "# Content here" in body
 
     def test_returns_empty_when_no_frontmatter(self):
@@ -98,52 +94,27 @@ More text here.
         assert count_words("") == 0
 
 
-class TestFindSections:
-    """Tests for find_sections function."""
-
-    def test_finds_h2_sections(self):
-        """Should find all ## headings."""
-        content = """
-# Title
-
-## First Section
-
-Content.
-
-## Second Section
-
-More content.
-
-## Third Section
-"""
-        sections = find_sections(content)
-
-        assert sections == ["first section", "second section", "third section"]
-
-    def test_returns_empty_when_no_sections(self):
-        """Should return empty list when no ## headings."""
-        content = "# Just a title\n\nNo sections here."
-
-        sections = find_sections(content)
-
-        assert sections == []
-
-    def test_normalizes_to_lowercase(self):
-        """Should return lowercase section names."""
-        content = "## Hard Rule\n\n## Warning Signs"
-
-        sections = find_sections(content)
-
-        assert sections == ["hard rule", "warning signs"]
-
-
 class TestValidateSkill:
     """Tests for validate_skill function."""
 
-    def test_valid_discipline_skill(self, sample_skill_file: Path):
-        """Should return no issues for valid discipline skill."""
-        issues = validate_skill(sample_skill_file)
-        assert issues == []
+    def test_valid_skill_official_format(self, tmp_path: Path):
+        """Should return no errors for valid skill with official format."""
+        skill_dir = tmp_path / "skills" / "test-skill"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text("""---
+name: test-skill
+description: Use when testing the validation system
+---
+
+# Test Skill
+
+This is a test skill for validation.
+""")
+
+        errors, warnings = validate_skill(skill_file)
+        assert errors == []
+        assert warnings == []
 
     def test_missing_name(self, tmp_path: Path):
         """Should detect missing name field."""
@@ -151,181 +122,194 @@ class TestValidateSkill:
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("""---
-type: discipline
-triggers:
-  - test
+description: Use when testing
 ---
 
 # Test
-
-## Hard Rule
-Test
-
-## Warning Signs
-Test
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        assert any("Missing 'name'" in i for i in issues)
+        assert any("Missing 'name'" in e for e in errors)
 
-    def test_missing_type(self, tmp_path: Path):
-        """Should detect missing type field."""
+    def test_missing_description(self, tmp_path: Path):
+        """Should detect missing description field."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("""---
 name: test-skill
-triggers:
-  - test
 ---
 
 # Test
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        assert any("Missing 'type'" in i for i in issues)
+        assert any("Missing 'description'" in e for e in errors)
 
-    def test_missing_triggers(self, tmp_path: Path):
-        """Should detect missing triggers field."""
+    def test_name_with_invalid_characters(self, tmp_path: Path):
+        """Should detect name with invalid characters."""
+        skill_dir = tmp_path / "skills" / "test"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text("""---
+name: test_skill (v2)
+description: Use when testing
+---
+
+# Test
+""")
+
+        errors, warnings = validate_skill(skill_file)
+
+        assert any("only letters, numbers, and hyphens" in e for e in errors)
+
+    def test_name_too_long(self, tmp_path: Path):
+        """Should detect name exceeding max length."""
+        skill_dir = tmp_path / "skills" / "test"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        long_name = "a" * 70  # Exceeds 64 char limit
+        skill_file.write_text(f"""---
+name: {long_name}
+description: Use when testing
+---
+
+# Test
+""")
+
+        errors, warnings = validate_skill(skill_file)
+
+        assert any("exceeds 64 chars" in e for e in errors)
+
+    def test_description_not_starting_with_use_when(self, tmp_path: Path):
+        """Should warn if description doesn't start with 'Use when'."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("""---
 name: test-skill
-type: discipline
+description: This skill helps with testing
 ---
 
 # Test
-
-## Hard Rule
-Test
-
-## Warning Signs
-Test
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        # Note: the actual message includes the colon: "Missing 'triggers:'"
-        assert any("triggers" in i.lower() for i in issues)
+        assert errors == []  # Not an error, just a warning
+        assert any("should start with" in w for w in warnings)
 
-    def test_discipline_missing_hard_rule(self, tmp_path: Path):
-        """Should detect missing Hard Rule section for discipline."""
+    def test_deprecated_type_field(self, tmp_path: Path):
+        """Should warn about deprecated type field."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("""---
 name: test-skill
+description: Use when testing
 type: discipline
-triggers:
-  - test
 ---
 
 # Test
-
-## Warning Signs
-Test
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        assert any("Hard Rule" in i for i in issues)
+        assert errors == []
+        assert any("'type' field is deprecated" in w for w in warnings)
 
-    def test_discipline_missing_warning_signs(self, tmp_path: Path):
-        """Should detect missing Warning Signs section for discipline."""
+    def test_deprecated_triggers_field(self, tmp_path: Path):
+        """Should warn about deprecated triggers field."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("""---
 name: test-skill
-type: discipline
+description: Use when testing
 triggers:
-  - test
+  - testing
 ---
 
 # Test
-
-## Hard Rule
-Test
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        assert any("Warning Signs" in i for i in issues)
+        assert errors == []
+        assert any("'triggers' field is deprecated" in w for w in warnings)
 
-    def test_word_count_exceeds_limit(self, tmp_path: Path):
-        """Should detect when word count exceeds limit."""
+    def test_word_count_warning(self, tmp_path: Path):
+        """Should warn when word count exceeds limit."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
 
-        # Discipline has 300 word limit
-        lots_of_words = " ".join(["word"] * 400)
+        # Create content with >500 words
+        lots_of_words = " ".join(["word"] * 600)
         skill_file.write_text(f"""---
 name: test-skill
-type: discipline
-triggers:
-  - test
+description: Use when testing
 ---
 
 # Test
 
-## Hard Rule
 {lots_of_words}
-
-## Warning Signs
-Test
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        assert any("Word count" in i for i in issues)
+        assert errors == []
+        assert any("exceeds recommended 500" in w for w in warnings)
 
-    def test_technique_no_required_sections(self, tmp_path: Path):
-        """Should not require specific sections for technique type."""
+    def test_description_starting_with_use_for(self, tmp_path: Path):
+        """Should accept description starting with 'Use for'."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("""---
 name: test-skill
-type: technique
-triggers:
-  - test
+description: Use for testing validation systems
 ---
 
 # Test
-
-Just some content.
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        # Should not have section-related issues
-        assert not any("section" in i.lower() for i in issues)
+        assert errors == []
+        # Should not warn about description format
+        assert not any("should start with" in w for w in warnings)
 
-    def test_reference_higher_word_limit(self, tmp_path: Path):
-        """Should allow more words for reference type."""
+    def test_description_starting_with_guide_for(self, tmp_path: Path):
+        """Should accept description starting with 'Guide for'."""
         skill_dir = tmp_path / "skills" / "test"
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
-
-        # Reference has 800 word limit, use 600 words
-        words = " ".join(["word"] * 600)
-        skill_file.write_text(f"""---
+        skill_file.write_text("""---
 name: test-skill
-type: reference
-triggers:
-  - test
+description: Guide for creating effective skills
 ---
 
 # Test
-
-{words}
 """)
 
-        issues = validate_skill(skill_file)
+        errors, warnings = validate_skill(skill_file)
 
-        # Should not have word count issue
-        assert not any("Word count" in i for i in issues)
+        assert errors == []
+        assert not any("should start with" in w for w in warnings)
+
+    def test_missing_frontmatter(self, tmp_path: Path):
+        """Should error on missing frontmatter."""
+        skill_dir = tmp_path / "skills" / "test"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text("""# Test
+
+No frontmatter here.
+""")
+
+        errors, warnings = validate_skill(skill_file)
+
+        assert any("Missing YAML frontmatter" in e for e in errors)

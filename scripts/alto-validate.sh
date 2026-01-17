@@ -49,16 +49,17 @@ else
 fi
 
 # 2. Python syntax check
+# Use -B to prevent writing .pyc files (fails on read-only Nix store)
 echo ""
 echo "Checking Python syntax..."
 for pyfile in "$ALTO_SRC"/hooks/*.py; do
     if [ -f "$pyfile" ]; then
         basename=$(basename "$pyfile")
-        if python3 -m py_compile "$pyfile" 2>/dev/null; then
+        if python3 -B -m py_compile "$pyfile" 2>/dev/null; then
             check_pass "$basename"
         else
             check_fail "$basename has syntax errors"
-            python3 -m py_compile "$pyfile" 2>&1 | head -3
+            python3 -B -m py_compile "$pyfile" 2>&1 | head -3
         fi
     fi
 done
@@ -67,11 +68,11 @@ done
 for pyfile in "$ALTO_SRC"/scripts/*.py; do
     if [ -f "$pyfile" ]; then
         basename=$(basename "$pyfile")
-        if python3 -m py_compile "$pyfile" 2>/dev/null; then
+        if python3 -B -m py_compile "$pyfile" 2>/dev/null; then
             check_pass "$basename"
         else
             check_fail "$basename has syntax errors"
-            python3 -m py_compile "$pyfile" 2>&1 | head -3
+            python3 -B -m py_compile "$pyfile" 2>&1 | head -3
         fi
     fi
 done

@@ -1,10 +1,6 @@
 ---
 name: alto-feature-setup
-type: technique
-triggers:
-  - running /alto-feature-setup
-  - updating objective.md for new feature
-  - running alto-new-run
+description: Use when starting a new feature - running /alto-feature-setup, updating objective.md, or running alto-new-run. Interactive workflow for feature initialization.
 ---
 
 # ALTO Feature Setup

@@ -1,10 +1,6 @@
 ---
 name: prompt-writing
-type: discipline
-triggers:
-  - editing templates/CLAUDE.md.*
-  - editing agents/*.md
-  - editing skills/*/SKILL.md
+description: Use when writing or editing ALTO prompts - templates/CLAUDE.md.*, agents/*.md, or skills/*/SKILL.md. Rules for explicit tool references, paths, and user interactions.
 ---
 
 # Prompt Writing Discipline

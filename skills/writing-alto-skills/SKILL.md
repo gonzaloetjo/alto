@@ -1,10 +1,6 @@
 ---
 name: writing-alto-skills
-type: technique
-triggers:
-  - creating skills/*/SKILL.md
-  - editing skills/*/SKILL.md
-  - creating agents/*.md
+description: Use when creating or editing ALTO skills (skills/*/SKILL.md) or agents (agents/*.md). Guide for skill structure, frontmatter format, and content organization.
 ---
 
 # Writing ALTO Skills
