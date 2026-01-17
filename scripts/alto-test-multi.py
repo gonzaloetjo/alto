@@ -844,6 +844,38 @@ imports:
                 shutil.rmtree(self.test_dir, ignore_errors=True)
 
 
+def run_single_scenario(
+    scenario_path: Path,
+    alto_src: Path,
+    keep_dir: bool,
+    verbose: bool,
+    json_output: bool,
+) -> dict:
+    """Run a single scenario and return results."""
+    runner = MultiTurnRunner(
+        scenario_path=scenario_path,
+        alto_src=alto_src,
+        keep_dir=keep_dir,
+        verbose=verbose,
+    )
+
+    result = runner.run_scenario()
+
+    if json_output:
+        # Clean results for JSON output (remove large response bodies)
+        clean_results = []
+        for r in result["results"]:
+            clean_results.append({
+                "turn_name": r["turn_name"],
+                "exit_code": r["exit_code"],
+                "duration": r["duration"],
+                "tool_calls": len(r["tool_calls"]),
+            })
+        result["results"] = clean_results
+
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run multi-turn ALTO test scenarios",
@@ -853,6 +885,7 @@ Examples:
   alto-test-multi --scenario setup-new-project
   alto-test-multi --scenario build-simple-feature --keep --verbose
   alto-test-multi --scenario-file ./my-scenario.yaml --json
+  alto-test-multi --all --verbose
         """,
     )
     parser.add_argument(
@@ -863,6 +896,11 @@ Examples:
         "--scenario-file",
         type=Path,
         help="Path to scenario YAML file",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run all scenarios in tests/scenarios/multi-turn/",
     )
     parser.add_argument(
         "--keep",
@@ -889,39 +927,97 @@ Examples:
         print(f"Error: ALTO_SRC not found at {alto_src}", file=sys.stderr)
         sys.exit(1)
 
-    # Find scenario file
+    scenarios_dir = alto_src / "tests" / "scenarios" / "multi-turn"
+
+    # Run all scenarios
+    if args.all:
+        scenario_files = sorted(scenarios_dir.glob("*.yaml"))
+        if not scenario_files:
+            print(f"Error: No scenarios found in {scenarios_dir}", file=sys.stderr)
+            sys.exit(1)
+
+        all_results = []
+        total_turns = 0
+        total_failures = 0
+        passed = 0
+        failed = 0
+
+        print(f"\n{'#'*60}")
+        print(f"# ALTO Protocol Test Suite")
+        print(f"# Scenarios: {len(scenario_files)}")
+        print(f"{'#'*60}\n")
+
+        for scenario_path in scenario_files:
+            result = run_single_scenario(
+                scenario_path=scenario_path,
+                alto_src=alto_src,
+                keep_dir=args.keep,
+                verbose=args.verbose,
+                json_output=args.json,
+            )
+            all_results.append(result)
+            total_turns += result["turns"]
+            total_failures += len(result["failures"])
+            if result["success"]:
+                passed += 1
+            else:
+                failed += 1
+
+        # Print summary
+        print(f"\n{'#'*60}")
+        print(f"# SUITE SUMMARY")
+        print(f"{'#'*60}")
+        print(f"  Scenarios: {len(scenario_files)}")
+        print(f"  Passed:    {passed}")
+        print(f"  Failed:    {failed}")
+        print(f"  Turns:     {total_turns}")
+        print(f"  Failures:  {total_failures}")
+        print(f"{'#'*60}\n")
+
+        # List failed scenarios
+        if failed > 0:
+            print("Failed scenarios:")
+            for r in all_results:
+                if not r["success"]:
+                    print(f"  - {r['scenario']}")
+                    for f in r["failures"]:
+                        print(f"      [{f['turn']}] {f['message']}")
+            print()
+
+        if args.json:
+            print(json.dumps({
+                "suite": True,
+                "scenarios": len(scenario_files),
+                "passed": passed,
+                "failed": failed,
+                "total_turns": total_turns,
+                "total_failures": total_failures,
+                "results": all_results,
+            }, indent=2))
+
+        sys.exit(0 if failed == 0 else 1)
+
+    # Find single scenario file
     if args.scenario_file:
         scenario_path = args.scenario_file
     elif args.scenario:
-        scenario_path = alto_src / "tests" / "scenarios" / "multi-turn" / f"{args.scenario}.yaml"
+        scenario_path = scenarios_dir / f"{args.scenario}.yaml"
     else:
-        parser.error("Must provide --scenario or --scenario-file")
+        parser.error("Must provide --scenario, --scenario-file, or --all")
 
     if not scenario_path.exists():
         print(f"Error: Scenario not found: {scenario_path}", file=sys.stderr)
         sys.exit(1)
 
-    # Run scenario
-    runner = MultiTurnRunner(
+    result = run_single_scenario(
         scenario_path=scenario_path,
         alto_src=alto_src,
         keep_dir=args.keep,
         verbose=args.verbose,
+        json_output=args.json,
     )
 
-    result = runner.run_scenario()
-
     if args.json:
-        # Clean results for JSON output (remove large response bodies)
-        clean_results = []
-        for r in result["results"]:
-            clean_results.append({
-                "turn_name": r["turn_name"],
-                "exit_code": r["exit_code"],
-                "duration": r["duration"],
-                "tool_calls": len(r["tool_calls"]),
-            })
-        result["results"] = clean_results
         print(json.dumps(result, indent=2))
 
     sys.exit(0 if result["success"] else 1)

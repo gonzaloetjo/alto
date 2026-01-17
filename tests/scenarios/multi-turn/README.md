@@ -5,17 +5,20 @@ These scenarios test ALTO's orchestrator protocols by simulating human interacti
 ## Running Scenarios
 
 ```bash
-# From ALTO source directory (requires devenv shell)
+# Run ALL scenarios (full test suite)
+devenv shell -- alto-test-multi --all --verbose
+
+# Run a single scenario
 devenv shell -- alto-test-multi --scenario setup-new-project
 
 # Run with verbose output and keep test directory
 devenv shell -- alto-test-multi --scenario build-blocked-recovery --keep --verbose
 
 # Output as JSON (for CI)
-devenv shell -- alto-test-multi --scenario build-simple-feature --json
+devenv shell -- alto-test-multi --all --json
 ```
 
-**Cost:** Each turn costs ~$0.08 (Claude API). A 3-turn scenario costs ~$0.24.
+**Cost:** Each turn costs ~$0.08 (Claude API). Full suite (~16 turns) costs ~$1.30.
 
 ## Scenario Format
 

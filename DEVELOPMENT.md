@@ -149,14 +149,17 @@ Tests orchestrator protocols by simulating human interaction across multiple con
 **From ALTO source directory:**
 
 ```bash
-# Run a scenario with verbose output
+# Run ALL scenarios (full test suite)
+devenv shell -- alto-test-multi --all --verbose
+
+# Run a single scenario
 devenv shell -- alto-test-multi --scenario build-blocked-recovery --verbose
 
 # Keep test directory after run (for debugging)
 devenv shell -- alto-test-multi --scenario setup-new-project --keep --verbose
 
 # JSON output (for CI)
-devenv shell -- alto-test-multi --scenario build-simple-feature --json
+devenv shell -- alto-test-multi --all --json
 ```
 
 **Available Scenarios:**
