@@ -37,6 +37,9 @@ All notable changes to ALTO.
   - `alto-validate.sh` uses `-B` flag for Python syntax checks (fixes read-only Nix store errors)
   - `validate-frontmatter.py` returns errors vs warnings separately
   - Skill tests updated for new (errors, warnings) return format
+- **Dev mode hooks** - Added `skill-validate` PostToolUse hook to dev orchestrator:
+  - Validates agent/skill frontmatter after Write|Edit operations
+  - Now matches setup/build functionality for ALTO development
 - **devenv.nix optimizations** based on devenv 1.2-1.11 best practices:
   - Task caching with `status` check for `alto:deploy` - skips if orchestrator unchanged
   - Add `env` block for common environment variables (`ALTO_SRC`, `ALTO_RUNS_DIR`, etc.)

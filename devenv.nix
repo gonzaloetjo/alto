@@ -616,7 +616,7 @@ STATE_EOF
 
     # Hooks - deployed based on orchestrator selection
     # Shared hooks are deployed to setup/build orchestrators
-    # Dev mode has minimal hooks (just changelog-check)
+    # Dev mode has minimal hooks (changelog-check + skill-validate)
     claude.code.hooks = lib.mkMerge [
       # Dev-only hooks (minimal for ALTO development)
       (lib.mkIf (cfg.orchestrator == "dev") {
@@ -625,6 +625,12 @@ STATE_EOF
           hookType = "PreToolUse";
           matcher = "Bash";
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/changelog-check.py";
+        };
+        # PostToolUse hook for skill validation (validates agent/skill frontmatter)
+        skill-validate = {
+          hookType = "PostToolUse";
+          matcher = "Write|Edit";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/hooks/skill-validate.py";
         };
       })
 
