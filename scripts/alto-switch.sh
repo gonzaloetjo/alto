@@ -84,6 +84,31 @@ if [ -f "$ALTO_SRC/templates/CLAUDE.md.$TARGET" ]; then
   echo "Updated CLAUDE.md for $TARGET mode"
 fi
 
+# Redeploy skills for the new mode
+rm -rf .claude/skills/* 2>/dev/null || true
+
+# Skills available to all orchestrators
+cp -r "$ALTO_SRC"/skills/alto-switch .claude/skills/ 2>/dev/null || true
+
+# Shared ALTO skills (setup and build)
+if [ "$TARGET" != "dev" ]; then
+  cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
+fi
+
+# Dev-specific skills
+if [ "$TARGET" = "dev" ]; then
+  cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/prompt-writing .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/alto-test-protocol .claude/skills/ 2>/dev/null || true
+fi
+
+echo "Redeployed skills for $TARGET mode"
+
 echo ""
 echo "Switched to $TARGET mode."
 echo ""

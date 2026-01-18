@@ -42,6 +42,7 @@ if [ "$ORCHESTRATOR" = "dev" ]; then
   cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/prompt-writing .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/alto-test-protocol .claude/skills/ 2>/dev/null || true
 fi
 
 if [ "$INCLUDE_SPAWNER_SKILLS" = "true" ]; then

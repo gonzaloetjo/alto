@@ -5,6 +5,12 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Protocol self-testing workflow** (`/alto-test-protocol` skill):
+  - Three modes: Find issues, Classify + suggest, Full fix
+  - Uses existing alto-test-multi infrastructure with --keep
+  - AI analyzes test artifacts (state.json, handoffs, tool usage)
+  - Finds protocol issues beyond mechanical assertions
+  - Classifies by severity, suggests fixes, implements via /alto-self-fix
 - **Enhanced protocol test verification** (`alto-test-multi`):
   - **State machine validation** (Phase 1):
     - `VALID_TRANSITIONS` constant defining allowed phase transitions
@@ -102,6 +108,7 @@ All notable changes to ALTO.
   - Scripts now use `jq` and `sed` directly (provided via runtime packages)
 
 ### Fixed
+- **writing-alto-skills body updated** - Was still documenting deprecated `type`/`triggers` fields; now documents official Claude Code format (`name` + `description`)
 - **altoSrc resolution for consumer projects** - Changed from `config.devenv.root or ./.` to `./.`
   - `config.devenv.root` was incorrectly resolving to consumer project path
   - `./.` correctly resolves to ALTO flake source when imported as module

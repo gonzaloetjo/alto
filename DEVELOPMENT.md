@@ -177,6 +177,31 @@ devenv shell -- alto-test-multi --all --json
 
 See `tests/scenarios/multi-turn/README.md` for scenario YAML format and all assertion types.
 
+### Protocol Self-Testing (AI-Driven)
+
+For AI-driven protocol analysis and issue fixing:
+
+```
+/alto-test-protocol
+```
+
+**Modes:**
+- **Find issues**: Run tests, read artifacts, identify protocol problems
+- **Classify + suggest**: Add severity ratings and fix suggestions
+- **Full fix**: Create GitHub issues and implement fixes
+
+**How it works:**
+1. Runs `alto-test-multi --all --json --keep`
+2. Reads test artifacts from preserved test directories
+3. Uses AI judgment to find issues (beyond mechanical assertions)
+4. Classifies by severity, suggests fixes
+5. Optionally implements fixes via `/alto-self-fix`
+
+**Artifacts analyzed:**
+- `runs/state.json` - Phase transitions, task tracking
+- `runs/tools/usage.jsonl` - Tool call history
+- `runs/handoffs/*.md` - Agent handoff content
+
 ### Local Integration Test
 
 Create a **separate directory** to test local changes:
