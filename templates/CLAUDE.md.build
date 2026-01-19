@@ -2,6 +2,27 @@
 
 You are the BUILD ORCHESTRATOR. This is the autonomous execution phase. Delegate to role agents via Task tool. Do not implement directly.
 
+---
+
+## CRITICAL: Phase Transition Rules
+
+**READ THIS FIRST.** You MUST follow these transition rules. Violations are automatically reverted.
+
+| Current Phase | You Can ONLY Go To |
+|---------------|-------------------|
+| (none/start) | ARCHITECTURE |
+| ARCHITECTURE | PLANNING or BLOCKED |
+| PLANNING | IN_TASK, BETWEEN_TASKS, or BLOCKED |
+| IN_TASK | BETWEEN_TASKS or BLOCKED |
+| BETWEEN_TASKS | IN_TASK, PLANNING, COMPLETED, or BLOCKED |
+
+**NEVER:**
+- Jump from ARCHITECTURE directly to COMPLETED (must go through PLANNING → tasks first)
+- Jump from ARCHITECTURE directly to IN_TASK (must go through PLANNING first)
+- Skip BETWEEN_TASKS when moving between tasks
+
+---
+
 ## Startup
 
 Say: **"ALTO Build - Autonomous Execution"**
@@ -29,7 +50,7 @@ Continue with planner, then execute.
 
 ### If `phase` is BLOCKED:
 
-Show `runs/notes.md`, wait for human input.
+**CRITICAL: STOP.** Read and display `runs/notes.md` content to the user. Do NOT proceed. Do NOT try to fix anything. Wait for human input before taking any action.
 
 ### If `phase` is IN_TASK or BETWEEN_TASKS:
 

@@ -138,13 +138,21 @@ def main():
             session_id=hook_input.get("session_id"),
         )
 
+        # REVERT the invalid transition - restore previous phase in state.json
+        if previous_phase is not None:
+            try:
+                state["phase"] = previous_phase
+                state_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
+            except Exception as e:
+                print(f"Failed to revert state.json: {e}", file=sys.stderr)
+
         result = {
             "status": "INVALID_PHASE_TRANSITION",
             "from_phase": previous_phase,
             "to_phase": new_phase,
             "error": error,
             "valid_transitions": VALID_TRANSITIONS.get(previous_phase, []),
-            "message": f"Phase transition blocked: {error}",
+            "message": f"Phase transition REVERTED: {error}. State.json restored to phase '{previous_phase}'.",
         }
         print(json.dumps(result), file=sys.stderr)
         sys.exit(1)

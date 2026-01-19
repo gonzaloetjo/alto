@@ -7,7 +7,7 @@ All notable changes to ALTO.
 ### Added
 - **Deterministic validation hooks** (build mode):
   - `task-validate.py` - Validates planner task files (frontmatter fields, valid role, task_id matches filename, DoD section)
-  - `phase-validate.py` - Enforces valid state.json phase transitions (tracks previous phase in `.phase-tracker`)
+  - `phase-validate.py` - Enforces valid state.json phase transitions (tracks previous phase in `.phase-tracker`, **reverts invalid transitions**)
   - `review-validate.py` - Validates reviewer output (APPROVED/REJECTED status, Reason section for rejections)
   - `handoff-template.py` - Auto-creates handoff template when `current_handoff` is set in state.json
 - **Structured output skills** for exact file formats:
@@ -104,8 +104,10 @@ All notable changes to ALTO.
   - `alto-planner` references `task-writing` skill
   - `alto-reviewer` references `review-writing` skill
 - **Protocol updates**:
-  - `CLAUDE.md.build` now includes valid phase transitions table and hook-based template creation
-  - `CLAUDE.md.setup` emphasizes required greeting ("REQUIRED OUTPUT")
+  - `CLAUDE.md.build` has "CRITICAL: Phase Transition Rules" section at top with explicit NEVER rules
+  - `CLAUDE.md.build` BLOCKED state handler now says "CRITICAL: STOP" with explicit wait instructions
+  - `CLAUDE.md.setup` has "CRITICAL: First Response Rules" section at top requiring immediate greeting + menu
+  - `CLAUDE.md.setup` startup menus restructured with code blocks for clarity
   - `alto-configure` skill includes explicit JSON examples for Write tool
   - `handoff-validate.py` uses stricter section matching (exact headers only)
 - **Skills migrated to official Claude Code format**:
