@@ -151,10 +151,16 @@ The following diagram shows BUILD mode. Setup mode has only the `alto-feature-fi
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          HOOKS (out-of-band)                             │
 │                                                                          │
-│  PostToolUse ────────▶ tool-record.py ────────▶ runs/tools/usage.jsonl   │
+│  PostToolUse ───────┬▶ tool-record.py ────────▶ runs/tools/usage.jsonl   │
+│                     ├▶ handoff-template.py ───▶ runs/handoffs/*.md       │
+│                     ├▶ task-validate.py ──────▶ (validates task files)   │
+│                     └▶ phase-validate.py ─────▶ (validates transitions)  │
 │                                                                          │
 │  Stop / SubagentStop┬▶ usage-record.py ───────▶ runs/usage/usage.jsonl   │
 │                     └▶ arbiter-scheduler.py ──▶ runs/arbiter/pending.json│
+│                                                                          │
+│  SubagentStop ──────┬▶ handoff-validate.py ───▶ (validates handoffs)     │
+│                     └▶ review-validate.py ────▶ (validates reviews)      │
 │                                                                          │
 │  PermissionRequest ──▶ permission-record.py ───▶ runs/permissions/*.jsonl│
 │                                                                          │
@@ -287,13 +293,20 @@ hooks/
 ├── session-start.py         # Session initialization (SessionStart) - shared
 ├── session-summary.py       # Session summary generation (SessionEnd) - shared
 ├── arbiter-scheduler.py     # Triggers arbiter on thresholds (build only)
-├── handoff-validate.py      # Handoff validation (build only)
+├── handoff-template.py      # Auto-creates handoff template when current_handoff set (build only)
+├── handoff-validate.py      # Validates handoff sections on SubagentStop (build only)
+├── task-validate.py         # Validates task file frontmatter on Write/Edit (build only)
+├── phase-validate.py        # Validates state.json phase transitions (build only)
+├── review-validate.py       # Validates reviewer output on SubagentStop (build only)
 └── verify-dynamic.py        # Dynamic verification from JSON config (build only)
 
 skills/
 ├── alto-protocol/           # Protocol definition (task/state/handoff formats)
 ├── alto-feature-setup/      # Interactive feature setup guide
 ├── alto-configure/          # Shared configuration procedures (setup/build)
+├── handoff-writing/         # Exact handoff format for role agents (build only)
+├── task-writing/            # Exact task file format for planner (build only)
+├── review-writing/          # Exact review format for reviewer (build only)
 ├── scope-discipline/        # Prevent over-engineering discipline
 ├── alto-dev-guide/          # Dev mode: documentation URLs and patterns
 └── writing-alto-skills/     # Dev mode: skill authoring methodology
@@ -376,9 +389,11 @@ The build orchestrator is defined in `CLAUDE.md` (copied from `templates/CLAUDE.
    * Run verification steps from task's "How to Verify" section
 
 7. Handoff:
-   * Role agent **edits** pre-created `runs/handoffs/task-XXX.md` (path from `state.json` → `current_handoff`)
+   * Role agent **edits** `runs/handoffs/task-XXX.md` (auto-created by `handoff-template` hook when `current_handoff` is set)
+   * Must use exact section headers: `## Summary`, `## Files Touched`, `## How to Verify`
    * Post-agents derive their path: `task-XXX.md` → `task-XXX-{agent}.md`
    * If task specifies post agents → invoke them in order (e.g., qa → simplifier → gitops)
+   * `handoff-validate` hook validates sections on SubagentStop
 
 8. Update Progress:
    * If task completes an objective item → mark [x] in objective.md
@@ -447,6 +462,9 @@ Skills are reusable procedures and rules that agents and orchestrators reference
 | `alto-feature-setup` | technique | Interactive feature setup | setup, build |
 | `alto-configure` | technique | Configuration procedures (thresholds, permissions, verification) | setup, build |
 | `alto-switch` | technique | Switch orchestrator modes (setup/build/dev) | all |
+| `handoff-writing` | reference | Exact handoff format (required sections, post-agent paths) | build |
+| `task-writing` | reference | Exact task file format (frontmatter, required sections) | build |
+| `review-writing` | reference | Exact review format (APPROVED/REJECTED status) | build |
 | `scope-discipline` | discipline | Prevent over-engineering | setup, build |
 | `alto-dev-guide` | reference | Documentation URLs and patterns for ALTO development | dev |
 | `writing-alto-skills` | technique | Skill authoring methodology | dev |
@@ -521,13 +539,29 @@ Task body includes:
 
 ## Handoff Contract
 
-After each task, the executing role agent must write a handoff containing:
+After each task, the executing role agent must **edit** the pre-created handoff template (auto-created by `handoff-template` hook when `current_handoff` is set in state.json).
 
-* Summary of changes
-* Files touched
-* Interfaces/contracts changed (API endpoints, DB migrations, etc.)
-* How to verify (commands + runtime steps)
-* Next steps / risks
+**Required sections** (validated by `handoff-validate` hook):
+
+```markdown
+## Summary
+Brief description of what was accomplished (2-4 sentences).
+
+## Files Touched
+- path/to/file1.py - Added X function
+- path/to/file2.ts - Fixed Y bug
+
+## How to Verify
+- Run `npm test` to verify tests pass
+- Run `python script.py` to check output
+```
+
+**Post-agents** derive their handoff path from `current_handoff`:
+- `current_handoff`: `runs/handoffs/task-001.md`
+- QA handoff: `runs/handoffs/task-001-qa.md`
+- Gitops handoff: `runs/handoffs/task-001-gitops.md`
+
+See `skills/handoff-writing/SKILL.md` for full format reference.
 
 This enables deterministic context passing between role agents without relying on long chat history.
 

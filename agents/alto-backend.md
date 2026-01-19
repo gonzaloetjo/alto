@@ -4,7 +4,7 @@ description: Implements backend tasks only. Use for API, ingestion, DB, workers,
 tools: Read, Grep, Glob, LS, Edit, Bash
 model: sonnet
 permissionMode: acceptEdits
-skills: alto-protocol
+skills: alto-protocol, handoff-writing
 ---
 
 You are the BACKEND agent.
@@ -30,19 +30,17 @@ Follow these shared practices:
 1. Read the task file completely
 2. Implement according to Definition of Done
 3. Run verification steps from task's "How to Verify" section (existing tests should pass)
-4. Edit handoff file (path in `runs/state.json` → `current_handoff`)
+4. Edit handoff file using `.claude/skills/handoff-writing/SKILL.md` format (path in `runs/state.json` → `current_handoff`)
 
 **Note:** Tests for new code are written by `alto-qa` after your implementation.
 
 ## Output
 **Edit** the pre-created handoff at `current_handoff` (from state.json).
 
-Fill in:
-- Summary of changes
-- Files touched (list paths)
-- Interfaces changed (APIs, DB schemas, MQTT topics)
-- How to verify (commands to run)
-- Risks or follow-ups
+Use **exactly** these section headers (required by validation):
+- `## Summary` - Brief description of what was accomplished
+- `## Files Touched` - List paths with brief change description
+- `## How to Verify` - Commands to run to verify the implementation
 
 ## Constraints
 - ONLY edit files listed in task's `allowed_paths`

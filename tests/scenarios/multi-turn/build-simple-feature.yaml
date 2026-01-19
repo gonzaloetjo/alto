@@ -28,6 +28,24 @@ initial_state:
     ## Testing & Verification
     - Run `python hello.py` to verify output
 
+  # Pre-seed state in IN_TASK phase for direct implementation
+  state_json:
+    protocol: alto-v1
+    run_branch: run/test-001
+    phase: IN_TASK
+    current_task_id: task-001
+    current_role: alto-backend
+    current_handoff: runs/handoffs/task-001.md
+    completed_task_ids: []
+    estimated_tasks: 1
+    replan_every: 1
+
+  # Skip approval prompts
+  planning_config:
+    require_approval: false
+    replan_strategy: none
+    fixed_batch_size: 5
+
 turns:
   - name: "start-build"
     prompt: "Read objective.md and build the project. The plan is pre-approved - proceed directly to implementation."

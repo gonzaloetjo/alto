@@ -17,13 +17,31 @@ Use `AskUserQuestion`:
   2. Label: "Balanced (Recommended)", Description: "2000 lines, 50 files, checkpoint every 3 tasks"
   3. Label: "Autonomous", Description: "5000 lines, 100 files, checkpoint every 5 tasks"
 
-**After user answers**, write `runs/arbiter/config.json`:
+**After user answers**, use Write tool to create `runs/arbiter/config.json`:
 
 | Selection | max_lines | max_files | task_interval |
 |-----------|-----------|-----------|---------------|
 | Conservative | 500 | 20 | 2 |
 | Balanced | 2000 | 50 | 3 |
 | Autonomous | 5000 | 100 | 5 |
+
+**JSON format (use Write tool with this exact structure):**
+```json
+{
+  "max_lines_changed": <max_lines>,
+  "max_files_changed": <max_files>,
+  "task_checkpoint_interval": <task_interval>
+}
+```
+
+Example for "Balanced":
+```json
+{
+  "max_lines_changed": 2000,
+  "max_files_changed": 50,
+  "task_checkpoint_interval": 3
+}
+```
 
 ## Permissions
 
@@ -52,7 +70,27 @@ Read `runs/verification-config.json`, display current config, then use `AskUserQ
   3. Label: "Edit command", Description: "Change existing command"
   4. Label: "Remove pattern", Description: "Remove file type verification"
 
-**Orchestrator writes** the JSON file after user answers.
+**Use Write tool** to update `runs/verification-config.json` after user answers.
+
+**JSON format:**
+```json
+{
+  "<glob-pattern>": {
+    "<check-type>": "<command>"
+  }
+}
+```
+
+Example:
+```json
+{
+  "*.ts": { "typecheck": "npx tsc --noEmit", "lint": "npm run lint" },
+  "*.py": { "lint": "ruff check {file}" },
+  "*.test.ts": { "test": "npm test -- --related" }
+}
+```
+
+Check types: `lint`, `typecheck`, `test`, `format`
 
 ## New Projects
 

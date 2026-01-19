@@ -70,6 +70,28 @@ claude.code.hooks.<name> = {
 
 Hook scripts receive JSON on stdin, print to stdout (for SessionStart context).
 
+### Validation Hooks (Build Mode)
+
+ALTO uses deterministic hooks to validate agent outputs without LLM overhead:
+
+| Hook | Trigger | Validates |
+|------|---------|-----------|
+| `task-validate.py` | PostToolUse on `runs/tasks/*.md` | Frontmatter fields, valid role, DoD section |
+| `phase-validate.py` | PostToolUse on `runs/state.json` | Valid phase transitions (blocks invalid) |
+| `handoff-validate.py` | SubagentStop for role agents | Required sections in handoff files |
+| `review-validate.py` | SubagentStop for `alto-reviewer` | APPROVED/REJECTED status format |
+| `handoff-template.py` | PostToolUse on `runs/state.json` | Auto-creates handoff when `current_handoff` set |
+
+**Phase transitions enforced:**
+```
+ARCHITECTURE → PLANNING, BLOCKED
+PLANNING → IN_TASK, BETWEEN_TASKS, BLOCKED
+IN_TASK → BETWEEN_TASKS, BLOCKED
+BETWEEN_TASKS → IN_TASK, PLANNING, COMPLETED, BLOCKED
+```
+
+Corresponding skills (`handoff-writing`, `task-writing`, `review-writing`) provide exact formats.
+
 ### Debug Mode & Event Logging
 
 Enable verbose event logging for testing and meta-development:
@@ -96,24 +118,23 @@ alto-logs --raw | jq   # Pipe to jq
 
 ### Skill Schema
 
-Skills use YAML frontmatter with structured fields:
+Skills use the official Claude Code frontmatter format:
 
 ```yaml
 ---
 name: skill-name
-type: discipline | technique | reference
-triggers:
-  - editing path/to/file.md
-  - running /command-name
+description: Use when [triggering conditions]. [What the skill does].
 ---
 ```
 
-| Field | Purpose |
-|-------|---------|
-| `type` | `discipline` (rules), `technique` (how-to), `reference` (lookup) |
-| `triggers` | Concrete file paths or commands (NOT workflow summaries) |
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Skill identifier (kebab-case) |
+| `description` | Yes | Starts with "Use when..." describing trigger conditions |
 
-**Word limits by type:** discipline <300, technique <500, reference <800
+**Note:** `type` and `triggers` fields are deprecated (Claude Code ignores them).
+
+**Word limit:** ~500 words recommended. Validation warns above this.
 
 **Validation:** `hooks/skill-validate.py` checks on Write/Edit to `skills/*/SKILL.md`.
 

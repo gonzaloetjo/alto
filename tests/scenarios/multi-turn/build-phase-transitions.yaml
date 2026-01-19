@@ -27,9 +27,27 @@ initial_state:
     ## Testing & Verification
     - Run `python counter.py` to verify output
 
+  # Pre-seed state at ARCHITECTURE phase for transition testing
+  state_json:
+    protocol: alto-v1
+    run_branch: run/test-001
+    phase: ARCHITECTURE
+    current_task_id: null
+    current_role: null
+    current_handoff: null
+    completed_task_ids: []
+    estimated_tasks: null
+    replan_every: null
+
   arbiter_config:
     task_checkpoint_interval: 1
     milestone_checkpoint_interval: 1
+
+  # Skip approval prompts for automated testing
+  planning_config:
+    require_approval: false
+    replan_strategy: auto
+    fixed_batch_size: 5
 
 turns:
   - name: "start-planning"

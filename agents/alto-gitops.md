@@ -4,7 +4,7 @@ description: Handles branch/commit/push hygiene. Use after a task passes checks.
 tools: Read, Grep, Glob, LS, Bash
 model: opus
 permissionMode: default
-skills: alto-protocol
+skills: alto-protocol, handoff-writing
 ---
 
 You are the GITOPS agent.
@@ -53,10 +53,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 4. Do NOT push - commits stay local until user requests push
 
 ## Handoff Output
-Derive your handoff path from `current_handoff` in state.json:
+Derive your handoff path per `.claude/skills/handoff-writing/SKILL.md` Post-Agent section:
 - `current_handoff`: `runs/handoffs/task-005.md` → yours: `runs/handoffs/task-005-gitops.md`
 
-Include:
-- Commit hash
-- Files committed (summary)
-- Branch name
+Use **exactly** these section headers (required by validation):
+- `## Summary` - Commit hash, branch name, what was committed
+- `## Files Touched` - Files included in commit (summary)
+- `## How to Verify` - `git log -1` or `git show <hash>`

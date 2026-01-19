@@ -67,6 +67,22 @@ Go to Feature Completion section.
 | COMPLETED | Feature done, show options |
 | DEBUG | Human testing, fix issues directly |
 
+### Valid Phase Transitions
+
+Only these transitions are allowed:
+
+| From | Valid Next Phases |
+|------|-------------------|
+| ARCHITECTURE | PLANNING, BLOCKED |
+| PLANNING | IN_TASK, BETWEEN_TASKS, BLOCKED |
+| IN_TASK | BETWEEN_TASKS, BLOCKED |
+| BETWEEN_TASKS | IN_TASK, PLANNING, COMPLETED, BLOCKED |
+| BLOCKED | ARCHITECTURE, PLANNING, IN_TASK, BETWEEN_TASKS (after human input) |
+| COMPLETED | DEBUG, ARCHITECTURE (new feature) |
+| DEBUG | COMPLETED |
+
+**CRITICAL:** Never skip phases. ARCHITECTURE must go to PLANNING before tasks. IN_TASK must go through BETWEEN_TASKS before next task or completion.
+
 ---
 
 ## Boot (New Run)
@@ -123,11 +139,11 @@ Repeat until `alto-status` shows `>>> FEATURE COMPLETE <<<`:
 
 3. **Start task:**
    - Read task file from `runs/tasks/`
-   - Set `current_handoff = "runs/handoffs/<task_id>.md"`
-   - Pre-create handoff template (read `.claude/skills/alto-protocol/SKILL.md` → "Handoff Template")
+   - Set `current_handoff = "runs/handoffs/<task_id>.md"` in state.json
    - Update state.json: `phase = "IN_TASK"`, `current_role`, `current_handoff`
+   - (Hook auto-creates handoff template when state.json is saved)
 
-4. **Execute** — Invoke role agent via Task tool. Agent edits handoff at `current_handoff`.
+4. **Execute** — Invoke role agent via Task tool. Agent uses `.claude/skills/handoff-writing/SKILL.md` for handoff format.
 
 5. **Post agents** — Run task's `post` array (e.g., alto-qa, alto-gitops)
 

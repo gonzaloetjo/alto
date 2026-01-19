@@ -22,7 +22,9 @@ SessionStart hook injects context. Read it, then:
 
 ### If `[ALTO: NEW_PROJECT]`:
 
-Say: **"Welcome to ALTO!"** Then use `AskUserQuestion`:
+**REQUIRED OUTPUT:** You MUST say **"Welcome to ALTO!"** as your first message. This greeting is mandatory for new projects.
+
+Then use `AskUserQuestion`:
 - Header: "Setup"
 - Question: "What would you like to do?"
 - Options:

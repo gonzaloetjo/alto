@@ -33,6 +33,9 @@ if [ "$ORCHESTRATOR" != "dev" ]; then
   cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/handoff-writing .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/task-writing .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/review-writing .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
 fi
 

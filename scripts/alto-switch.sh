@@ -45,8 +45,9 @@ if [ "$TARGET" != "setup" ] && [ "$TARGET" != "build" ] && [ "$TARGET" != "dev" 
 fi
 
 if [ "$TARGET" = "$CURRENT" ]; then
-  echo "Already using '$TARGET' orchestrator."
-  exit 0
+  echo "Already in '$TARGET' mode."
+  # Start alto (same as after successful switch)
+  exec alto
 fi
 
 # Check devenv.nix exists
@@ -95,6 +96,9 @@ if [ "$TARGET" != "dev" ]; then
   cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/handoff-writing .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/task-writing .claude/skills/ 2>/dev/null || true
+  cp -r "$ALTO_SRC"/skills/review-writing .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
 fi
 

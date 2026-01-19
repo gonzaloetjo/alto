@@ -5,6 +5,24 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Deterministic validation hooks** (build mode):
+  - `task-validate.py` - Validates planner task files (frontmatter fields, valid role, task_id matches filename, DoD section)
+  - `phase-validate.py` - Enforces valid state.json phase transitions (tracks previous phase in `.phase-tracker`)
+  - `review-validate.py` - Validates reviewer output (APPROVED/REJECTED status, Reason section for rejections)
+  - `handoff-template.py` - Auto-creates handoff template when `current_handoff` is set in state.json
+- **Structured output skills** for exact file formats:
+  - `handoff-writing` - Required sections for role agents: `## Summary`, `## Files Touched`, `## How to Verify`
+  - `task-writing` - Required frontmatter for planner: `task_id`, `title`, `role`, `allowed_paths`, `handoff`
+  - `review-writing` - Required status format for reviewer: `**Status:** APPROVED` or `**Status:** REJECTED`
+- **Valid phase transitions** enforced by hook:
+  - `None → ARCHITECTURE` (initial)
+  - `ARCHITECTURE → PLANNING, BLOCKED`
+  - `PLANNING → IN_TASK, BETWEEN_TASKS, BLOCKED`
+  - `IN_TASK → BETWEEN_TASKS, BLOCKED`
+  - `BETWEEN_TASKS → IN_TASK, PLANNING, COMPLETED, BLOCKED`
+  - `BLOCKED → ARCHITECTURE, PLANNING, IN_TASK, BETWEEN_TASKS`
+  - `COMPLETED → DEBUG, ARCHITECTURE`
+  - `DEBUG → COMPLETED`
 - **Protocol self-testing workflow** (`/alto-test-protocol` skill):
   - Three modes: Find issues, Classify + suggest, Full fix
   - Uses existing alto-test-multi infrastructure with --keep
@@ -80,6 +98,16 @@ All notable changes to ALTO.
   - Added `alto-validate` and `alto-test` scripts to devenv
 
 ### Changed
+- **Agent updates for structured output**:
+  - Role agents (`alto-backend`, `alto-frontend`) reference `handoff-writing` skill
+  - Post-agents (`alto-qa`, `alto-docs`, `alto-gitops`, `code-simplifier`) reference `handoff-writing` skill
+  - `alto-planner` references `task-writing` skill
+  - `alto-reviewer` references `review-writing` skill
+- **Protocol updates**:
+  - `CLAUDE.md.build` now includes valid phase transitions table and hook-based template creation
+  - `CLAUDE.md.setup` emphasizes required greeting ("REQUIRED OUTPUT")
+  - `alto-configure` skill includes explicit JSON examples for Write tool
+  - `handoff-validate.py` uses stricter section matching (exact headers only)
 - **Skills migrated to official Claude Code format**:
   - Frontmatter now uses `name` + `description` (official format)
   - Removed deprecated `type` and `triggers` fields (Claude Code ignores them)
@@ -108,6 +136,7 @@ All notable changes to ALTO.
   - Scripts now use `jq` and `sed` directly (provided via runtime packages)
 
 ### Fixed
+- **Test scenarios pre-seed state_json** - Build mode tests now pre-seed `runs/state.json` via `initial_state.state_json` for state machine engagement
 - **writing-alto-skills body updated** - Was still documenting deprecated `type`/`triggers` fields; now documents official Claude Code format (`name` + `description`)
 - **altoSrc resolution for consumer projects** - Changed from `config.devenv.root or ./.` to `./.`
   - `config.devenv.root` was incorrectly resolving to consumer project path
