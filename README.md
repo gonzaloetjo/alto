@@ -10,12 +10,30 @@
 
 ---
 
-## Highlights
+## Context Distribution
 
-- **Session persistence** — State survives across Claude Code sessions
-- **Human review gates** — Arbiter blocks when thresholds are exceeded
-- **Structured handoffs** — Context preserved between agents
-- **Git audit trail** — Run branches and checkpoint reports
+ALTO routes tasks based on where they fall along two axes:
+
+### The Axes
+
+**Determinism ↔ Judgment**
+- **Deterministic:** Predictable, repeatable logic. Same input, same output.
+- **Judgment:** Nuanced reasoning or creative synthesis. No fixed answer.
+
+**Context Scope**
+- **None:** The task is self-contained and requires zero project knowledge.
+- **Full:** The task requires understanding of the entire codebase and architecture.
+
+### Routing Logic
+
+Tasks are assigned to an executor based on their coordinates within these axes:
+
+| Executor | Logic Type | Context Level |
+| --- | --- | --- |
+| **Code** | Deterministic | None |
+| **Skill** | Judgment | Minimal (task spec only) |
+| **Agent** | Judgment | Partial (task + state/handoffs) |
+| **Orchestrator** | Judgment | Full (codebase exploration) |
 
 ---
 
