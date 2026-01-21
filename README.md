@@ -12,7 +12,7 @@
 
 ## Context Distribution
 
-ALTO routes tasks based on where they fall along two axes:
+ALTO routes tasks based on where they fall along three axes:
 
 ```
 Deterministic ◀──────────────────────────────────────▶ Judgment
@@ -20,14 +20,17 @@ same input = same output                        requires inference
 
 No Context ◀──────────────────────────────────────▶ Full Context
 self-contained                       needs information understanding
+
+Atomic ◀──────────────────────────────────────▶ Compound
+single operation                      multiple operations, aware of changes
 ```
 
-### Routing
+### Routing Examples
 
-- **Code** - Deterministic, no context
-- **Skill** - Judgment, minimal context (task spec only)
-- **Agent** - Judgment, partial context (task + state/handoffs)
-- **Orchestrator** - Judgment, full context (codebase exploration)
+- **Code** - Deterministic, no context, atomic
+- **Skill** - Judgment, minimal context, atomic
+- **Agent** - Judgment, partial context, compound
+- **Orchestrator** - Judgment, full context, compound
 
 ---
 
