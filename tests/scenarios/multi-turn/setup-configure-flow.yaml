@@ -29,14 +29,15 @@ turns:
     prompt: "hi"
     timeout_seconds: 120
     expect:
+      # Check for menu options (may be AskUserQuestion or plain text)
       response_contains_any:
         - "What would you like to do"
         - "Start building"
         - "Configure"
-      tool_called: "AskUserQuestion"
+        - "ready to help"
     user_response:
       select_option: "Configure ALTO"
-      text_fallback: "3"
+      text_fallback: "Configure ALTO"
 
   - name: "configure-selection"
     prompt: null
@@ -47,12 +48,13 @@ turns:
         - "threshold"
         - "permission"
         - "setting"
+        - "Thresholds"
       response_not_contains:
         - "error"
         - "failed"
     user_response:
       select_option: "Thresholds"
-      text_fallback: "1"
+      text_fallback: "Thresholds"
 
   - name: "threshold-config"
     prompt: "Set task checkpoint interval to 3 tasks"

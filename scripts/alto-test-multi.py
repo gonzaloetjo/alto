@@ -31,17 +31,17 @@ class MultiTurnRunner:
     """Runs multi-turn ALTO test scenarios."""
 
     # Valid phase transitions for state machine validation
+    # MUST match hooks/phase-validate.py VALID_TRANSITIONS exactly
     # Any phase can transition to BLOCKED (handled specially in validation)
-    # BLOCKED can transition to recovery states (IN_TASK, BETWEEN_TASKS, PLANNING)
     VALID_TRANSITIONS: dict[str | None, set[str]] = {
-        None: {"ARCHITECTURE", "PLANNING"},
-        "ARCHITECTURE": {"PLANNING"},
-        "PLANNING": {"IN_TASK"},
-        "IN_TASK": {"BETWEEN_TASKS"},
-        "BETWEEN_TASKS": {"IN_TASK", "PLANNING", "COMPLETED"},
-        "COMPLETED": {"DEBUG"},
+        None: {"ARCHITECTURE"},  # Initial state can only go to ARCHITECTURE
+        "ARCHITECTURE": {"PLANNING", "BLOCKED"},
+        "PLANNING": {"IN_TASK", "BETWEEN_TASKS", "BLOCKED"},
+        "IN_TASK": {"BETWEEN_TASKS", "BLOCKED"},
+        "BETWEEN_TASKS": {"IN_TASK", "PLANNING", "COMPLETED", "BLOCKED"},
+        "BLOCKED": {"ARCHITECTURE", "PLANNING", "IN_TASK", "BETWEEN_TASKS"},  # After human input
+        "COMPLETED": {"DEBUG", "ARCHITECTURE"},  # DEBUG or new feature
         "DEBUG": {"COMPLETED"},
-        "BLOCKED": {"IN_TASK", "BETWEEN_TASKS", "PLANNING", "COMPLETED"},
     }
 
     def __init__(
@@ -220,7 +220,22 @@ imports:
             runs_dir.mkdir(parents=True, exist_ok=True)
             state_content = initial_state["state_json"]
             if isinstance(state_content, dict):
+                # Also seed .phase-tracker for hook validation
+                phase = state_content.get("phase")
+                if phase:
+                    (runs_dir / ".phase-tracker").write_text(phase)
+                    self._log(f"Applied initial .phase-tracker: {phase}")
                 state_content = json.dumps(state_content, indent=2)
+            else:
+                # Try to parse JSON string to extract phase
+                try:
+                    parsed = json.loads(state_content)
+                    phase = parsed.get("phase")
+                    if phase:
+                        (runs_dir / ".phase-tracker").write_text(phase)
+                        self._log(f"Applied initial .phase-tracker: {phase}")
+                except json.JSONDecodeError:
+                    pass
             (runs_dir / "state.json").write_text(state_content)
             self._log("Applied initial state.json")
 

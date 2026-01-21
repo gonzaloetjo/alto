@@ -51,13 +51,14 @@ initial_state:
 
 turns:
   - name: "start-planning"
-    prompt: "Read objective.md and create a plan. Do NOT implement yet - just plan."
+    prompt: "You are in ARCHITECTURE phase. Read objective.md, explore the codebase, and create milestones. Then transition to PLANNING phase and create task files. Do NOT implement code yet."
     timeout_seconds: 180
     expect:
       response_contains_any:
         - "plan"
         - "task"
         - "milestone"
+        - "architecture"
       phase_transition_valid: true
       state:
         phase_in: ["ARCHITECTURE", "PLANNING"]

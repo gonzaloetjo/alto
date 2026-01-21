@@ -690,6 +690,12 @@ STATE_EOF
           matcher = "Write";
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
         };
+        # AskUserQuestion recording for protocol tests
+        tool-record-askuserquestion = {
+          hookType = "PostToolUse";
+          matcher = "AskUserQuestion";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+        };
 
         # PermissionRequest hook
         permission-record = {

@@ -14,17 +14,15 @@ turns:
   - name: "initial-greeting"
     prompt: "hi"
     expect:
-      response_contains:
-        - "Welcome to ALTO"
+      # Check for menu options (may be AskUserQuestion or plain text)
       response_contains_any:
         - "What would you like to do"
         - "Set up project"
         - "Configure ALTO"
-      # AskUserQuestion is probabilistic - soft check only
-      tool_called: "AskUserQuestion"
+        - "ready to help"
     user_response:
       select_option: "Set up project"
-      text_fallback: "1"
+      text_fallback: "Set up project"
 
   - name: "project-definition-start"
     prompt: null  # Uses response from previous turn

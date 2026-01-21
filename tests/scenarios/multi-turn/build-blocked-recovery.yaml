@@ -36,16 +36,15 @@ initial_state:
 
 turns:
   - name: "detect-blocked"
-    prompt: "Check the current state and help resolve the blocked situation."
+    prompt: "Check the current state."
     timeout_seconds: 180
     expect:
       response_contains_any:
+        - "BLOCKED"
         - "blocked"
-        - "error"
-        - "resolve"
-        - "issue"
-        - "problem"
-      # Should NOT use Write to fix things - just analyze
+        - "Waiting for human"
+        - "human input"
+      # Should NOT use Write to fix things in BLOCKED state - just stop
       tool_not_called:
         - "Write"
 
