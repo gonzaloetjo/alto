@@ -15,12 +15,15 @@
 ALTO routes tasks based on where they fall along three axes:
 
 ```
+[Input]
+No Context ◀──────────────────────────────────────▶ Full Context
+self-contained                                 context-dependent
+
+[Output]
 Deterministic ◀──────────────────────────────────────▶ Judgment
 same input = same output                        requires inference
 
-No Context ◀──────────────────────────────────────▶ Full Context
-self-contained                       needs information understanding
-
+[Process]
 Atomic ◀──────────────────────────────────────▶ Compound
 single operation                      multiple operations, aware of changes
 ```
