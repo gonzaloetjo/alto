@@ -154,6 +154,114 @@ ARCHITECTURE → PLANNING → BETWEEN_TASKS ⟷ IN_TASK
 
 ---
 
+## Build Mode Diagram
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       BUILD ORCHESTRATOR                                 │
+│                      (CLAUDE.md.build)                                   │
+│                                                                          │
+│  ┌──────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐    │
+│  │ARCHITECT │──▶│PLANNING │──▶│BETWEEN_ │──▶│IN_TASK  │──▶│BLOCKED  │    │
+│  │(orch)    │   │         │   │TASKS    │   │         │   │(human)  │    │
+│  └────┬─────┘   └────┬────┘   └────┬────┘   └────┬────┘   └─────────┘    │
+│       │              │             │             │                       │
+│       │              ▼             ▼             ▼                       │
+│       │         ┌─────────┐   ┌─────────┐   ┌────────────────────────┐   │
+│       │         │ planner │   │ arbiter │   │      ROLE AGENTS       │   │
+│       │         └─────────┘   └─────────┘   │  ┌───────┐ ┌───────┐   │   │
+│       │                                     │  │backend│ │frontend│  │   │
+│       ▼                                     │  └───────┘ └───────┘   │   │
+│  ┌──────────────────┐                       │  ┌───────┐ ┌───────┐   │   │
+│  │ EnterPlanMode    │                       │  │  qa   │ │ docs  │   │   │
+│  │ (if approval on) │                       │  └───────┘ └───────┘   │   │
+│  │                  │                       │  ┌────────┐ ┌────────┐ │   │
+│  │ Outputs:         │                       │  │recorder│ │ gitops │ │   │
+│  │ - milestones.md  │                       │  └────────┘ └────────┘ │   │
+│  │ - decisions.md   │                       │  ┌────────┐ ┌────────┐ │   │
+│  └──────────────────┘                       │  │reviewer│ │enforcer│ │   │
+│                                             │  └────────┘ └────────┘ │   │
+│                                             └────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Hooks (Out-of-Band)
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          HOOKS (out-of-band)                             │
+│                                                                          │
+│  PostToolUse ───────┬▶ tool-record.py ────────▶ runs/tools/usage.jsonl   │
+│                     ├▶ handoff-template.py ───▶ runs/handoffs/*.md       │
+│                     ├▶ task-validate.py ──────▶ (validates task files)   │
+│                     └▶ phase-validate.py ─────▶ (validates transitions)  │
+│                                                                          │
+│  Stop / SubagentStop┬▶ usage-record.py ───────▶ runs/usage/usage.jsonl   │
+│                     └▶ arbiter-scheduler.py ──▶ runs/arbiter/pending.json│
+│                                                                          │
+│  SubagentStop ──────┬▶ handoff-validate.py ───▶ (validates handoffs)     │
+│                     └▶ review-validate.py ────▶ (validates reviews)      │
+│                                                                          │
+│  PermissionRequest ──▶ permission-record.py ───▶ runs/permissions/*.jsonl│
+│                                                                          │
+│  SessionStart ───────▶ session-start.py ──────▶ runs/sessions/starts.jsonl
+│  SessionEnd ─────────▶ session-summary.py ────▶ (summary generation)     │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Execution Loop
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                                                                │
+▼                                                                │
+┌──────────┐  pending?  ┌──────────┐  invoke  ┌──────────┐       │
+│ arbiter  │───────────▶│  check   │─────────▶│ execute  │       │
+│  check   │    no      │ decision │   role   │   task   │       │
+└──────────┘            └────┬─────┘          └────┬─────┘       │
+                             │                     │             │
+                        needs_human?               │             │
+                        yes │ no                   │             │
+                            ▼                      ▼             │
+                      ┌─────────┐           ┌──────────┐         │
+                      │ BLOCKED │           │ handoff  │─────────┘
+                      │ (stop)  │           │ + post   │
+                      └─────────┘           └──────────┘
+```
+
+---
+
+## Task Lifecycle
+
+```
+runs/tasks/task-XXX.md
+       │
+       ▼
+┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
+│ read task  │──▶│invoke role │──▶│ check_cmd  │──▶│   write    │
+│ frontmatter│   │   agent    │   │ until pass │   │  handoff   │
+└────────────┘   └────────────┘   └────────────┘   └─────┬──────┘
+                                                         │
+       ┌─────────────────────────────────────────────────┘
+       │
+       ▼
+┌────────────┐   ┌────────────┐   ┌────────────┐
+│  reviewer  │──▶│  enforcer  │──▶│post agents │
+│(code only) │   │(compliance)│   │(recorder,  │
+│ can reject │   │ can reject │   │ gitops...) │
+└────────────┘   └────────────┘   └─────┬──────┘
+       │                                │
+       │ REJECT                         ▼
+       └──────────▶ back to      runs/handoffs/
+                    role agent   task-XXX.md
+```
+
+---
+
 ## Agents Model
 
 Agents are specialized subprocesses with constrained capabilities:
