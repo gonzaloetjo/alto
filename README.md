@@ -14,26 +14,20 @@
 
 ALTO routes tasks based on where they fall along two axes:
 
-### The Axes
+```
+Deterministic ◀──────────────────────────────────────▶ Judgment
+same input = same output                        requires inference
 
-**Determinism ↔ Judgment**
-- **Deterministic:** Predictable, repeatable logic. Same input, same output.
-- **Judgment:** Nuanced reasoning or creative synthesis. No fixed answer.
+No Context ◀──────────────────────────────────────▶ Full Context
+self-contained                       needs information understanding
+```
 
-**Context Scope**
-- **None:** The task is self-contained and requires zero project knowledge.
-- **Full:** The task requires understanding of the entire codebase and architecture.
+### Routing
 
-### Routing Logic
-
-Tasks are assigned to an executor based on their coordinates within these axes:
-
-| Executor | Logic Type | Context Level |
-| --- | --- | --- |
-| **Code** | Deterministic | None |
-| **Skill** | Judgment | Minimal (task spec only) |
-| **Agent** | Judgment | Partial (task + state/handoffs) |
-| **Orchestrator** | Judgment | Full (codebase exploration) |
+- **Code** - Deterministic, no context
+- **Skill** - Judgment, minimal context (task spec only)
+- **Agent** - Judgment, partial context (task + state/handoffs)
+- **Orchestrator** - Judgment, full context (codebase exploration)
 
 ---
 
