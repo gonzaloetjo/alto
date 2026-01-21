@@ -4,7 +4,93 @@ All notable changes to ALTO.
 
 ## [Unreleased]
 
+### Changed
+- **Documentation restructured** for distinct audiences:
+  - `README.md` (~95 lines) — Minimal usage guide: highlights, quick start, modes, commands
+  - `ARCHITECTURE.md` (~245 lines) — Human-readable design: models, lifecycle, state machine
+  - `AI-CONTEXT.md` (~450 lines) — Full AI agent context: diagrams, formats, flow, file locations
+  - `OPERATIONS.md` (~370 lines) — Operator reference: commands, config, directory structure, troubleshooting
+  - `DEVELOPMENT.md` (~250 lines) — Contributor guide: dev mode, testing, adding agents/skills/hooks
+  - `CONFIGURATION.md` deleted (content merged into OPERATIONS.md)
+- **Consolidated config into `alto.json`**: Single config file at project root replaces three separate files:
+  - `alto.json` now contains `arbiter`, `planning`, and `verification` sections
+  - Hooks read from `alto.json` directly (no fallback to legacy files)
+  - `alto-configure` skill and templates updated to edit `alto.json`
+  - Legacy files (`runs/arbiter/config.json`, `runs/planning-config.json`, `runs/verification-config.json`) no longer created
+
 ### Added
+- **Deterministic validation hooks** (build mode):
+  - `task-validate.py` - Validates planner task files (frontmatter fields, valid role, task_id matches filename, DoD section)
+  - `phase-validate.py` - Enforces valid state.json phase transitions (tracks previous phase in `.phase-tracker`, **reverts invalid transitions**)
+  - `review-validate.py` - Validates reviewer output (APPROVED/REJECTED status, Reason section for rejections)
+  - `handoff-template.py` - Auto-creates handoff template when `current_handoff` is set in state.json
+- **Structured output skills** for exact file formats:
+  - `handoff-writing` - Required sections for role agents: `## Summary`, `## Files Touched`, `## How to Verify`
+  - `task-writing` - Required frontmatter for planner: `task_id`, `title`, `role`, `allowed_paths`, `handoff`
+  - `review-writing` - Required status format for reviewer: `**Status:** APPROVED` or `**Status:** REJECTED`
+- **Valid phase transitions** enforced by hook:
+  - `None → ARCHITECTURE` (initial)
+  - `ARCHITECTURE → PLANNING, BLOCKED`
+  - `PLANNING → IN_TASK, BETWEEN_TASKS, BLOCKED`
+  - `IN_TASK → BETWEEN_TASKS, BLOCKED`
+  - `BETWEEN_TASKS → IN_TASK, PLANNING, COMPLETED, BLOCKED`
+  - `BLOCKED → ARCHITECTURE, PLANNING, IN_TASK, BETWEEN_TASKS`
+  - `COMPLETED → DEBUG, ARCHITECTURE`
+  - `DEBUG → COMPLETED`
+- **Protocol self-testing workflow** (`/alto-test-protocol` skill):
+  - Three modes: Find issues, Classify + suggest, Full fix
+  - Uses existing alto-test-multi infrastructure with --keep
+  - AI analyzes test artifacts (state.json, handoffs, tool usage)
+  - Finds protocol issues beyond mechanical assertions
+  - Classifies by severity, suggests fixes, implements via /alto-self-fix
+- **Enhanced protocol test verification** (`alto-test-multi`):
+  - **State machine validation** (Phase 1):
+    - `VALID_TRANSITIONS` constant defining allowed phase transitions
+    - Phase history tracking across turns
+    - `phase_transition_valid` assertion validates all transitions
+    - `state.phase_in` assertion checks phase is one of allowed values
+    - `state.completed_tasks_min` assertion verifies minimum completed tasks
+  - **Tool verification with strictness levels** (Phase 2):
+    - `tools` array with `strictness: soft|required|strict`
+    - `soft` (default): warning only if not called
+    - `required`: fail if tool not called
+    - `strict`: fail if not called OR params don't match
+    - `params.command_contains` and `params.file_path` matchers
+    - `tool_sequence` assertion verifies tool call order
+  - **Handoff verification** (Phase 3):
+    - `handoff.exists` assertion checks handoff file present
+    - `handoff.has_sections` verifies required markdown sections
+    - `handoff.min_length` ensures minimum content length
+  - **Metric assertions** (Phase 4):
+    - `metrics.turn_duration_max_seconds` enforces timing limits
+  - **Negative assertions** (Phase 5):
+    - `response_not_contains` fails if forbidden text found
+    - `tool_not_called` fails if specified tool was used
+    - `files_not_exist` in final_assertions
+    - `file_not_contains` in final_assertions
+  - **Initial state seeding** (Phase 6):
+    - `initial_state.state_json` pre-seeds runs/state.json
+    - `initial_state.arbiter_config` pre-seeds runs/arbiter/config.json
+    - `initial_state.verification_config` pre-seeds runs/verification-config.json
+    - `initial_state.planning_config` pre-seeds runs/planning-config.json
+  - **New test scenarios**:
+    - `build-phase-transitions.yaml` - validates state machine across 3 turns
+    - `build-handoff-structure.yaml` - verifies handoff file format
+    - `setup-configure-flow.yaml` - tests configuration path with Write verification
+    - `build-blocked-recovery.yaml` - tests recovery from BLOCKED state
+- **Multi-turn protocol test infrastructure** (`alto-test-multi`):
+  - Test harness for running multi-turn ALTO orchestrator tests
+  - Creates isolated test directories with devenv pointing to local ALTO
+  - Session resumption via `--resume` for multi-turn conversations
+  - Tool usage tracking via `runs/tools/usage.jsonl`
+  - Soft checks for probabilistic behaviors (AskUserQuestion detection)
+  - Plain text menu fallback for when Claude doesn't use AskUserQuestion
+  - Two validated scenarios:
+    - `setup-new-project.yaml` - 4-turn flow from welcome to objective.md creation
+    - `build-simple-feature.yaml` - 2-turn flow for simple feature implementation
+  - Usage: `alto-test-multi --scenario setup-new-project --keep --verbose`
+  - Fixes: proper pyyaml via `withPackages`, bash -c for shell plugin isolation, explicit prompt priority
+- **AskUserQuestion logging** in `tool-record.py` for protocol testing verification
 - **Comprehensive test framework** for ALTO development:
   - **Layer 1: Quick validation** (`alto-validate`) - Syntax checks in <5s:
     - Nix syntax (`nix-instantiate --parse`)
@@ -26,6 +112,18 @@ All notable changes to ALTO.
   - Added `alto-validate` and `alto-test` scripts to devenv
 
 ### Changed
+- **Agent updates for structured output**:
+  - Role agents (`alto-backend`, `alto-frontend`) reference `handoff-writing` skill
+  - Post-agents (`alto-qa`, `alto-docs`, `alto-gitops`, `code-simplifier`) reference `handoff-writing` skill
+  - `alto-planner` references `task-writing` skill
+  - `alto-reviewer` references `review-writing` skill
+- **Protocol updates**:
+  - `CLAUDE.md.build` has "CRITICAL: Phase Transition Rules" section at top with explicit NEVER rules
+  - `CLAUDE.md.build` BLOCKED state handler now says "CRITICAL: STOP" with explicit wait instructions
+  - `CLAUDE.md.setup` has "CRITICAL: First Response Rules" section at top requiring immediate greeting + menu
+  - `CLAUDE.md.setup` startup menus restructured with code blocks for clarity
+  - `alto-configure` skill includes explicit JSON examples for Write tool
+  - `handoff-validate.py` uses stricter section matching (exact headers only)
 - **Skills migrated to official Claude Code format**:
   - Frontmatter now uses `name` + `description` (official format)
   - Removed deprecated `type` and `triggers` fields (Claude Code ignores them)
@@ -54,6 +152,8 @@ All notable changes to ALTO.
   - Scripts now use `jq` and `sed` directly (provided via runtime packages)
 
 ### Fixed
+- **Test scenarios pre-seed state_json** - Build mode tests now pre-seed `runs/state.json` via `initial_state.state_json` for state machine engagement
+- **writing-alto-skills body updated** - Was still documenting deprecated `type`/`triggers` fields; now documents official Claude Code format (`name` + `description`)
 - **altoSrc resolution for consumer projects** - Changed from `config.devenv.root or ./.` to `./.`
   - `config.devenv.root` was incorrectly resolving to consumer project path
   - `./.` correctly resolves to ALTO flake source when imported as module

@@ -4,7 +4,7 @@ description: Reviews code quality after role agent completes. Can reject back to
 tools: Read, Grep, Glob, LS
 model: sonnet
 permissionMode: plan
-skills: alto-protocol
+skills: alto-protocol, review-writing
 ---
 
 You are the REVIEWER agent. You validate that the role agent did quality work.
@@ -51,22 +51,16 @@ Automatically after **code roles** complete, before post agents.
 
 ## Output
 
-**If PASS:** Write brief approval to `runs/review/task-{ID}-review.md`
-```markdown
-## Review: task-{ID}
-Status: APPROVED
-- Tests: X passing, properly validate behavior
-- DoD: All items met
-- Quality: No obvious issues
-```
+Write to `runs/review/task-{ID}-review.md` using `.claude/skills/review-writing/SKILL.md` format.
 
-**If REJECT:** Write rejection with specific feedback
-```markdown
-## Review: task-{ID}
-Status: REJECTED
-Reason: [specific issue]
-Action needed: [what role agent must fix]
-```
+**Required elements:**
+- `## Review: task-{ID}` header
+- `**Status:** APPROVED` or `**Status:** REJECTED` (exact format, validated by hook)
+- `## Checks Passed` or `## Checks` section
+
+**For REJECTED - also required:**
+- `## Reason` - specific issue
+- `## Action Required` - what role agent must fix
 
 When rejected, orchestrator will re-invoke the role agent with your feedback.
 

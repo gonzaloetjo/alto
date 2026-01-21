@@ -1,0 +1,72 @@
+# Build Orchestrator: Blocked Recovery
+# Tests recovery from BLOCKED state via initial state seeding
+
+name: build-blocked-recovery
+description: Verify recovery from BLOCKED state with pre-seeded state.json
+type: multi-turn
+
+orchestrator: build
+timeout_seconds: 600
+
+initial_state:
+  objective_md: |
+    # Objective: Recovery Test
+
+    ## Overview
+    Test project for blocked state recovery.
+
+    ## Features
+
+    ### 1. Simple Script
+    Create a simple Python script.
+
+    **Definition of Done:**
+    - [ ] script.py exists
+    - [ ] Script runs without errors
+
+    ## Testing & Verification
+    - Run `python script.py`
+
+  # Pre-seed BLOCKED state to test recovery
+  state_json:
+    phase: "BLOCKED"
+    block_reason: "Test: Simulated error for recovery testing"
+    current_task: "task-001"
+    completed_tasks: []
+
+turns:
+  - name: "detect-blocked"
+    prompt: "Check the current state."
+    timeout_seconds: 180
+    expect:
+      response_contains_any:
+        - "BLOCKED"
+        - "blocked"
+        - "Waiting for human"
+        - "human input"
+      # Should NOT use Write to fix things in BLOCKED state - just stop
+      tool_not_called:
+        - "Write"
+
+  - name: "resolve-and-continue"
+    prompt: "The block was a test. Clear the block and implement script.py that prints 'Recovery successful'"
+    timeout_seconds: 240
+    expect:
+      response_contains_any:
+        - "script"
+        - "created"
+        - "recovery"
+        - "successful"
+      tools:
+        - name: "Write"
+          strictness: required
+      phase_transition_valid: true
+
+final_assertions:
+  files_exist:
+    - script.py
+  file_contains:
+    script.py:
+      - "print"
+  files_not_exist:
+    - runs/arbiter/pending.json

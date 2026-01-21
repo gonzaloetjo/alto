@@ -83,7 +83,7 @@ in
       # Three-tier bash permissions (allow > ask > deny precedence: deny wins)
       allowBash = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [ "ls" "cat" "head" "tail" "grep" "find" "echo" "pwd" "wc" ];
+        default = [ "ls" "ls -la" "cat" "head" "tail" "grep" "find" "echo" "pwd" "wc" ];
         description = "Bash commands to allow without prompting (Tier 1 - auto-allow)";
       };
 
@@ -490,10 +490,17 @@ STATE_EOF
         exec = ''
           echo "Nuking ALTO state..."
           rm -rf .claude/ runs/ CLAUDE.md objective.md 2>/dev/null || true
+
+          # Reset devenv.nix orchestrator to setup (default)
+          if [ -f devenv.nix ]; then
+            echo "Resetting devenv.nix orchestrator to setup..."
+            ${pkgs.gnused}/bin/sed -i 's/alto\.orchestrator = "[^"]*"/alto.orchestrator = "setup"/' devenv.nix
+          fi
+
           echo "Reloading environment..."
           direnv reload 2>/dev/null || echo "Run 'direnv reload' or re-enter the directory"
         '';
-        description = "Full reset - removes .claude/, runs/, CLAUDE.md, objective.md";
+        description = "Full reset - removes .claude/, runs/, CLAUDE.md, objective.md, resets orchestrator to setup";
       };
 
       # Test harness for meta-development
@@ -567,6 +574,18 @@ STATE_EOF
         packages = [ pkgs.python3Packages.pytest ];
         description = "Run ALTO test suite";
       };
+
+      # Multi-turn protocol test runner
+      alto-test-multi = {
+        exec = let
+          python = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
+        in ''
+          export ALTO_SRC="${altoSrc}"
+          export PYTHONPATH="${altoSrc}/hooks:$PYTHONPATH"
+          exec ${python}/bin/python3 "${altoSrc}/scripts/alto-test-multi.py" "$@"
+        '';
+        description = "Run multi-turn ALTO protocol tests";
+      };
     };
 
     # Enable Claude Code integration
@@ -585,7 +604,20 @@ STATE_EOF
       # Per-tool permission rules
       rules = {
         Bash = {
-          allow = map (cmd: "${cmd}:*") cfg.permissions.allowBash;
+          # Base allowBash + dev-specific commands when in dev mode
+          allow = map (cmd: "${cmd}:*") (
+            cfg.permissions.allowBash
+            ++ lib.optionals (cfg.orchestrator == "dev") [
+              "devenv shell"
+              "devenv"
+              "alto-test-multi"
+              "ls -la"
+              "which"
+              "gh"
+              "nix-instantiate"
+              "python3 -m py_compile"
+            ]
+          );
           ask = map (cmd: "${cmd}:*") cfg.permissions.askBash;
           deny = map (cmd: "${cmd}:*") cfg.permissions.denyBash;
         };
@@ -658,6 +690,12 @@ STATE_EOF
           matcher = "Write";
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
         };
+        # AskUserQuestion recording for protocol tests
+        tool-record-askuserquestion = {
+          hookType = "PostToolUse";
+          matcher = "AskUserQuestion";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-record.py";
+        };
 
         # PermissionRequest hook
         permission-record = {
@@ -703,6 +741,27 @@ STATE_EOF
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/verify-dynamic.py";
         };
 
+        # Handoff template auto-creation (triggers when current_handoff is set in state.json)
+        handoff-template = {
+          hookType = "PostToolUse";
+          matcher = "Edit|Write";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-template.py";
+        };
+
+        # Task file validation (validates planner output)
+        task-validate = {
+          hookType = "PostToolUse";
+          matcher = "Edit|Write";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-validate.py";
+        };
+
+        # Phase transition validation (validates state.json changes)
+        phase-validate = {
+          hookType = "PostToolUse";
+          matcher = "Edit|Write";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/phase-validate.py";
+        };
+
         # Arbiter scheduler (triggers checkpoints)
         arbiter-scheduler-stop = {
           hookType = "Stop";
@@ -713,10 +772,16 @@ STATE_EOF
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/arbiter-scheduler.py";
         };
 
-        # Handoff validation
+        # Handoff validation (role agents)
         handoff-validate-subagent = {
           hookType = "SubagentStop";
           command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-validate.py";
+        };
+
+        # Review validation (alto-reviewer)
+        review-validate-subagent = {
+          hookType = "SubagentStop";
+          command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/review-validate.py";
         };
       })
 

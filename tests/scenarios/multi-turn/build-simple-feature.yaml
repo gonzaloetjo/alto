@@ -1,0 +1,79 @@
+# Build Orchestrator: Simple Feature
+# Tests the build orchestrator with a pre-defined objective
+
+name: build-simple-feature
+description: Test build orchestrator executing a simple feature
+type: multi-turn
+
+orchestrator: build
+timeout_seconds: 900
+
+# Provide a ready-to-build objective
+initial_state:
+  objective_md: |
+    # Objective: Hello World CLI
+
+    ## Overview
+    Create a simple Python CLI that prints a greeting.
+
+    ## Features
+
+    ### 1. Greeting Command
+    Print "Hello, ALTO!" when run.
+
+    **Definition of Done:**
+    - [ ] hello.py exists
+    - [ ] Running `python hello.py` prints "Hello, ALTO!"
+
+    ## Testing & Verification
+    - Run `python hello.py` to verify output
+
+  # Pre-seed state in IN_TASK phase for direct implementation
+  state_json:
+    protocol: alto-v1
+    run_branch: run/test-001
+    phase: IN_TASK
+    current_task_id: task-001
+    current_role: alto-backend
+    current_handoff: runs/handoffs/task-001.md
+    completed_task_ids: []
+    estimated_tasks: 1
+    replan_every: 1
+
+  # Skip approval prompts
+  planning_config:
+    require_approval: false
+    replan_strategy: none
+    fixed_batch_size: 5
+
+turns:
+  - name: "start-build"
+    prompt: "Read objective.md and build the project. The plan is pre-approved - proceed directly to implementation."
+    timeout_seconds: 300
+    expect:
+      response_contains_any:
+        - "hello"
+        - "python"
+        - "created"
+        - "implementation"
+        - "complete"
+      # Note: state check removed - simple tasks may complete in one turn
+
+  - name: "verify-completion"
+    prompt: "Run the verification command to confirm the feature works."
+    timeout_seconds: 120
+    expect:
+      response_contains_any:
+        - "Hello"
+        - "ALTO"
+        - "success"
+        - "passed"
+        - "works"
+
+final_assertions:
+  files_exist:
+    - hello.py
+  file_contains:
+    hello.py:
+      - "Hello"
+      - "ALTO"

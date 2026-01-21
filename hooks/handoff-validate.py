@@ -55,11 +55,11 @@ def validate_handoff(project_dir: Path, task_id: str) -> list[str]:
 
     content = handoff_path.read_text(encoding="utf-8")
 
-    # Required sections (case-insensitive check)
+    # Required sections (case-insensitive check, exact headers only)
     required_sections = {
-        "summary": ["## summary", "## task summary", "# summary"],
-        "files": ["## files", "## files touched", "## files changed"],
-        "verify": ["## verify", "## verification", "## how to verify"],
+        "summary": ["## summary"],
+        "files": ["## files touched", "## files"],
+        "verify": ["## how to verify", "## verification"],
     }
 
     content_lower = content.lower()

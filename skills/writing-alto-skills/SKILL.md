@@ -5,76 +5,44 @@ description: Use when creating or editing ALTO skills (skills/*/SKILL.md) or age
 
 # Writing ALTO Skills
 
----
-
-## Frontmatter Schema
+## Frontmatter (Required)
 
 ```yaml
 ---
 name: skill-name
-type: discipline | technique | reference
-triggers:
-  - when [condition 1]
-  - before [action 2]
-word_limit: 300  # optional, default by type
+description: Use when [triggering conditions]. [What the skill does].
 ---
 ```
 
-| Field | Required | Purpose |
-|-------|----------|---------|
-| `name` | Yes | Skill identifier |
-| `type` | Yes | Determines required sections |
-| `triggers` | Yes | When skill activates (NOT workflow) |
-| `word_limit` | No | Target word count |
+| Field | Constraints |
+|-------|-------------|
+| `name` | Letters, numbers, hyphens. Max 64 chars. |
+| `description` | Start with "Use when...". Max 1024 chars. |
 
-### Types
+## Description Examples
 
-| Type | Purpose | Default limit | Required sections |
-|------|---------|---------------|-------------------|
-| `discipline` | Enforce behavior rules | 300 | Hard rule, Warning signs |
-| `technique` | How-to guides | 500 | Process/steps |
-| `reference` | Lookup information | 800 | Quick reference table |
+```yaml
+# Specific triggering conditions
+description: Use when testing ALTO protocol and finding issues. Run protocol tests, analyze artifacts.
 
-## Discipline Skills
-
-For skills that enforce rules (TDD, verification, handoff format):
-
-```markdown
-## Hard Rule
-
-[State the non-negotiable in one line]
-
-## Warning Signs
-
-If you catch yourself thinking:
-- "[rationalization 1]"
-- "[rationalization 2]"
-
-STOP. [What to do instead].
+# File-based triggers
+description: Use when creating or editing ALTO skills (skills/*/SKILL.md) or agents (agents/*.md).
 ```
 
-Build warning signs from **observed failures**, not hypotheticals.
+## Content Guidelines
 
-## Before Merging
+1. **Start with key action** - What should agent do first?
+2. **Numbered steps** for procedures
+3. **Tables** for reference data
+4. **Code blocks** for commands/examples
+5. **Bullets over paragraphs** - Keep prose minimal
 
-Run skill through `alto-dev` subagent:
+**Word limit:** 500 words (excludes code blocks). Validator warns above this.
 
+## Validate Before Commit
+
+```bash
+devenv shell -- alto-validate
 ```
-Test this skill: [paste skill content]
-Scenario: [describe situation that should trigger it]
-```
 
-Observe:
-- Did it read full skill or just triggers?
-- Did it follow the process?
-- What rationalizations did it attempt?
-
-Add counters for any observed failures.
-
-## Validation
-
-Hook checks on commit:
-- [ ] `triggers:` field present (not in description)
-- [ ] Word count under limit for type
-- [ ] Required sections present for type
-- [ ] Description doesn't contain workflow words (then, next, after)
+**Reference:** [superpowers/writing-skills](https://github.com/obra/superpowers/blob/main/skills/writing-skills/SKILL.md)
