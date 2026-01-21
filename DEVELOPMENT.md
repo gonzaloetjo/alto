@@ -1,148 +1,39 @@
 # ALTO Development Guide
 
-Notes for working on ALTO itself.
+Guide for developing ALTO itself.
 
-## Getting Started
+---
 
-Use the `alto-dev` agent which has access to:
-- Read, Write, Edit, Grep, Glob - full file access
-- Bash - run commands, git, testing
-- WebFetch - fetch external documentation
+## Dev Mode
 
-The agent reads `.claude/skills/alto-dev-guide/SKILL.md` first, which contains:
-- Documentation URLs for devenv and Claude Code
-- Quick reference for common patterns
-- ALTO file map
-- Testing workflows
+Dev mode provides a streamlined environment for ALTO development:
 
-The **devenv MCP** is always available for package search and config generation.
+- Single `alto-dev` agent with full access
+- `alto-dev-guide` skill with documentation URLs and patterns
+- `writing-alto-skills` skill for skill authoring
+- Minimal hooks (just `changelog-check`)
 
-## Key Implementation Details
+### Switching to Dev Mode
 
-### SessionStart Hook
-
-`hooks/session-start.py`:
-- Creates `objective.md` template if missing
-- Detects NEW_PROJECT (template placeholders like `[Feature Name]`) vs real content
-- Injects `[ALTO: NEW_PROJECT]` or `[ALTO: phase=X, ...]` signal
-- Claude reads this signal to decide startup flow (see CLAUDE.md Startup section)
-
-### Native Devenv Pattern
-
-- Module is `devenv.nix` at repo root
-- Consumers use `flake: false` + `imports: [alto]` in devenv.yaml
-- No flakes required for consumers
-- See https://devenv.sh/composing-using-imports/
-
-### Deploy Mechanism
-
-`tasks."alto:deploy"` runs before shell entry:
-1. Copies hooks (`hooks/*.py`) to `.claude/hooks/`
-2. Copies skills to `.claude/skills/`
-3. Creates `runs/` directory structure
-4. Initializes `state.json`, `planning-config.json`, arbiter config
-5. Writes `CLAUDE.md` from template
-
-### Agent Configuration
-
-Agents defined in `devenv.nix` under `claude.code.agents`:
-```nix
-claude.code.agents.<name> = {
-  description = "...";
-  tools = [ "Read" "Edit" "Bash" ];
-  model = "opus";  # or "sonnet"
-  prompt = readAgentPrompt "<name>";  # reads from agents/<name>.md
-};
-```
-
-Agent prompts live in `agents/*.md` with YAML frontmatter.
-
-### Hook Configuration
-
-Hooks defined in `devenv.nix` under `claude.code.hooks`:
-```nix
-claude.code.hooks.<name> = {
-  hookType = "SessionStart";  # PostToolUse, Stop, SubagentStop, etc.
-  matcher = "Bash";           # for PostToolUse
-  command = "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/script.py";
-};
-```
-
-Hook scripts receive JSON on stdin, print to stdout (for SessionStart context).
-
-### Validation Hooks (Build Mode)
-
-ALTO uses deterministic hooks to validate agent outputs without LLM overhead:
-
-| Hook | Trigger | Validates |
-|------|---------|-----------|
-| `task-validate.py` | PostToolUse on `runs/tasks/*.md` | Frontmatter fields, valid role, DoD section |
-| `phase-validate.py` | PostToolUse on `runs/state.json` | Valid phase transitions (blocks invalid) |
-| `handoff-validate.py` | SubagentStop for role agents | Required sections in handoff files |
-| `review-validate.py` | SubagentStop for `alto-reviewer` | APPROVED/REJECTED status format |
-| `handoff-template.py` | PostToolUse on `runs/state.json` | Auto-creates handoff when `current_handoff` set |
-
-**Phase transitions enforced:**
-```
-ARCHITECTURE → PLANNING, BLOCKED
-PLANNING → IN_TASK, BETWEEN_TASKS, BLOCKED
-IN_TASK → BETWEEN_TASKS, BLOCKED
-BETWEEN_TASKS → IN_TASK, PLANNING, COMPLETED, BLOCKED
-```
-
-Corresponding skills (`handoff-writing`, `task-writing`, `review-writing`) provide exact formats.
-
-### Debug Mode & Event Logging
-
-Enable verbose event logging for testing and meta-development:
-
-```nix
-alto.debug = true;
-```
-
-**When disabled (default):** No extra logging. Claude Code's built-in OpenTelemetry handles generic metrics (tokens, tool calls, etc.).
-
-**When enabled:** ALTO-specific events logged to `runs/logs/events.jsonl`:
-- `session_start` / `session_end` - Session lifecycle
-- `handoff` - Agent handoffs with success/failure
-
-Query logs with `alto-logs`:
 ```bash
-alto-logs              # Show last 20 events
-alto-logs --metrics    # Aggregated stats
-alto-logs --type handoff --last 50
-alto-logs --raw | jq   # Pipe to jq
+alto dev
 ```
 
-**Note:** Generic tool usage is NOT duplicated to events.jsonl - use Claude Code's `/cost` command or enable OTel export for that data.
+If inside Claude: type `/exit` first, then run `alto dev`.
 
-### Skill Schema
+### What Dev Mode Provides
 
-Skills use the official Claude Code frontmatter format:
+| Feature | Description |
+|---------|-------------|
+| `alto-dev` agent | Full tool access (Read, Write, Edit, Grep, Glob, Bash, WebFetch) |
+| `alto-dev-guide` skill | Documentation URLs, patterns, architecture |
+| `writing-alto-skills` skill | Skill authoring methodology |
+| `changelog-check` hook | Ensures CHANGELOG.md updates |
+| devenv MCP | Package search and config generation |
 
-```yaml
 ---
-name: skill-name
-description: Use when [triggering conditions]. [What the skill does].
----
-```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Skill identifier (kebab-case) |
-| `description` | Yes | Starts with "Use when..." describing trigger conditions |
-
-**Note:** `type` and `triggers` fields are deprecated (Claude Code ignores them).
-
-**Word limit:** ~500 words recommended. Validation warns above this.
-
-**Validation:** `hooks/skill-validate.py` checks on Write/Edit to `skills/*/SKILL.md`.
-
-See `.claude/skills/writing-alto-skills/SKILL.md` for full schema documentation.
-
-## Testing Changes
-
-**WARNING:** Do NOT run `devenv shell` in the ALTO repo itself. It creates consumer agents in `.claude/` that conflict with tracked dev agents.
+## Testing
 
 ### Test Layers
 
@@ -155,7 +46,6 @@ See `.claude/skills/writing-alto-skills/SKILL.md` for full schema documentation.
 ### Quick Syntax Checks
 
 ```bash
-# Run all syntax checks
 devenv shell -- alto-validate
 
 # Or manually:
@@ -163,65 +53,26 @@ nix-instantiate --parse devenv.nix > /dev/null && echo "OK"
 python3 -m py_compile hooks/*.py && echo "OK"
 ```
 
-### Protocol Testing (Multi-Turn)
-
-Tests orchestrator protocols by simulating human interaction across multiple conversation turns. Each test creates an isolated temp directory, runs Claude with `--print`, and verifies responses/state.
-
-**From ALTO source directory:**
+### Unit Tests
 
 ```bash
-# Run ALL scenarios (full test suite)
+pytest tests/ -v
+```
+
+### Protocol Testing (Multi-Turn)
+
+```bash
+# Run ALL scenarios
 devenv shell -- alto-test-multi --all --verbose
 
-# Run a single scenario
+# Single scenario
 devenv shell -- alto-test-multi --scenario build-blocked-recovery --verbose
 
-# Keep test directory after run (for debugging)
+# Keep test directory for debugging
 devenv shell -- alto-test-multi --scenario setup-new-project --keep --verbose
-
-# JSON output (for CI)
-devenv shell -- alto-test-multi --all --json
 ```
 
-**Available Scenarios:**
-
-| Scenario | Turns | Cost | What It Tests |
-|----------|-------|------|---------------|
-| `setup-new-project` | 4 | ~$0.32 | Full setup flow: welcome → "Set up project" → describe project → write objective.md |
-| `build-simple-feature` | 2 | ~$0.16 | Build orchestrator executes a simple feature from pre-defined objective.md |
-| `build-phase-transitions` | 3 | ~$0.24 | State machine validation: plan → implement → verify, checks all phase transitions are valid |
-| `build-handoff-structure` | 2 | ~$0.16 | Verifies handoff files have required sections (## Summary, etc.) and minimum length |
-| `setup-configure-flow` | 3 | ~$0.24 | Configuration path: has objective → "Configure ALTO" → "Thresholds" → verify Write tool used |
-| `build-blocked-recovery` | 2 | ~$0.16 | Pre-seeds BLOCKED state, verifies orchestrator detects and recovers from blocked state |
-
-**Full suite:** ~16 turns, ~$1.30
-
-See `tests/scenarios/multi-turn/README.md` for scenario YAML format and all assertion types.
-
-### Protocol Self-Testing (AI-Driven)
-
-For AI-driven protocol analysis and issue fixing:
-
-```
-/alto-test-protocol
-```
-
-**Modes:**
-- **Find issues**: Run tests, read artifacts, identify protocol problems
-- **Classify + suggest**: Add severity ratings and fix suggestions
-- **Full fix**: Create GitHub issues and implement fixes
-
-**How it works:**
-1. Runs `alto-test-multi --all --json --keep`
-2. Reads test artifacts from preserved test directories
-3. Uses AI judgment to find issues (beyond mechanical assertions)
-4. Classifies by severity, suggests fixes
-5. Optionally implements fixes via `/alto-self-fix`
-
-**Artifacts analyzed:**
-- `runs/state.json` - Phase transitions, task tracking
-- `runs/tools/usage.jsonl` - Tool call history
-- `runs/handoffs/*.md` - Agent handoff content
+**Available Scenarios:** `setup-new-project`, `build-simple-feature`, `build-phase-transitions`, `build-handoff-structure`, `setup-configure-flow`, `build-blocked-recovery`
 
 ### Local Integration Test
 
@@ -231,7 +82,6 @@ Create a **separate directory** to test local changes:
 mkdir -p /tmp/alto-test && cd /tmp/alto-test
 git init
 
-# Point to local ALTO
 cat > devenv.yaml << 'EOF'
 inputs:
   nixpkgs:
@@ -245,52 +95,154 @@ cat > devenv.nix << 'EOF'
 { pkgs, lib, inputs, ... }:
 {
   imports = [ "${inputs.alto}/devenv.nix" ];
-  # ALTO active by default, switch modes with: alto.orchestrator = "build";
 }
 EOF
 
-# Test
 devenv shell -- alto-status
 ```
 
-### Fresh Install Test (from GitHub)
+---
 
-```bash
-mkdir -p /tmp/alto-fresh && cd /tmp/alto-fresh
-nix flake init -t github:gonzaloetjo/alto --refresh
-devenv shell
+## Adding Agents
 
-# Verify
-ls -la .claude/agents/   # Should have agent files
-ls -la .claude/hooks/    # Should have .py files
-ls -la runs/             # Should have state.json
-cat CLAUDE.md            # Should have protocol
+Agents live in `agents/<name>.md` with YAML frontmatter:
+
+```yaml
+---
+name: alto-myagent
+model: sonnet
+tools:
+  - Read
+  - Grep
+  - Glob
+  - LS
+  - Edit
+permissionMode: acceptEdits
+---
+
+# Agent Name
+
+## Purpose
+What this agent does.
+
+## Skills
+- Read `skills/scope-discipline/SKILL.md` — only do what task asks
+
+## Constraints
+- Constraint 1
 ```
 
-### Verify Hooks
+### Required Fields
 
-```bash
-# Start claude, then check logs
-cat runs/sessions/starts.jsonl
+| Field | Values | Description |
+|-------|--------|-------------|
+| `name` | string | Agent identifier |
+| `model` | `opus`, `sonnet`, `haiku` | LLM model |
+| `tools` | array | Available tools |
+| `permissionMode` | `plan`, `acceptEdits`, `default` | Permission behavior |
+
+---
+
+## Adding Skills
+
+Skills live in `skills/<name>/SKILL.md`:
+
+```yaml
+---
+name: my-skill
+description: Use when [conditions]. [What it does].
+---
+
+# Skill Name
+
+## Process
+1. Step one
+2. Step two
 ```
 
-## Common Issues
+### Skill Types
 
-| Problem | Solution |
-|---------|----------|
-| jq escaping in nix | Use `echo "$(jq ...)"` not complex jq strings |
-| Changes not applied | Run `devenv shell` again |
-| Remote changes not applied | Use `--refresh` flag |
-| Hook not running | Check `.claude/settings.json` has hook |
-| Files read-only | Expected - nix store symlinks |
+| Type | Purpose | Word Limit |
+|------|---------|------------|
+| `discipline` | Behavioral rules (Hard Rule, Warning Signs) | 300 |
+| `technique` | How-to procedures | 500 |
+| `reference` | Lookup information | 800 |
 
-### Nix String Escaping
+---
 
-In `''` strings:
-- `''$` → `$` (escape dollar)
-- `'''` → `''` (escape quotes)
-- `\n` → literal `\n` (not newline) - use actual newlines
+## Adding Hooks
 
-## Issues
+Hooks live in `hooks/<name>.py`:
 
-See [GitHub Issues](https://github.com/gonzaloetjo/alto/issues) or run `gh issue list`.
+```python
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+
+from hook_utils import safe_hook, get_runs_dir
+
+@safe_hook("my-hook")
+def main():
+    # Hook logic - errors logged to runs/errors.jsonl
+    pass
+
+if __name__ == "__main__":
+    main()
+```
+
+### The safe_hook Decorator
+
+- Errors logged to `runs/errors.jsonl`
+- Exit 0 on error (doesn't crash Claude)
+- User-friendly stderr message
+
+### Hook Events
+
+| Event | When | Use |
+|-------|------|-----|
+| `PostToolUse` | After tool completes | Validation, logging |
+| `Stop` | Session ends | Usage tracking |
+| `SubagentStop` | Agent completes | Handoff validation |
+| `PreToolUse` | Before tool runs | Blocking |
+| `SessionStart` | Session begins | Health checks |
+
+---
+
+## Changelog Requirements
+
+Key files requiring CHANGELOG.md updates:
+
+| File Pattern | Reason |
+|--------------|--------|
+| `agents/*.md` | Agent behavior |
+| `hooks/*.py` | Hook logic |
+| `skills/*/SKILL.md` | Skill updates |
+| `templates/CLAUDE.md.*` | Orchestrator changes |
+
+The `changelog-check` hook blocks commits without CHANGELOG updates.
+
+---
+
+## Debug Mode
+
+Enable verbose event logging:
+
+```nix
+alto.debug = true;
+```
+
+Events logged to `runs/logs/events.jsonl`. Query with:
+
+```bash
+alto-logs              # Last 20 events
+alto-logs --metrics    # Aggregated stats
+```
+
+---
+
+## Architecture Reference
+
+- **ARCHITECTURE.md** — High-level design model
+- **AI-CONTEXT.md** — Full agent context (state machine, formats, flow)
+- **OPERATIONS.md** — Commands, configuration, troubleshooting

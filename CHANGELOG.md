@@ -5,6 +5,13 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Changed
+- **Documentation restructured** for distinct audiences:
+  - `README.md` (~95 lines) — Minimal usage guide: highlights, quick start, modes, commands
+  - `ARCHITECTURE.md` (~245 lines) — Human-readable design: models, lifecycle, state machine
+  - `AI-CONTEXT.md` (~450 lines) — Full AI agent context: diagrams, formats, flow, file locations
+  - `OPERATIONS.md` (~370 lines) — Operator reference: commands, config, directory structure, troubleshooting
+  - `DEVELOPMENT.md` (~250 lines) — Contributor guide: dev mode, testing, adding agents/skills/hooks
+  - `CONFIGURATION.md` deleted (content merged into OPERATIONS.md)
 - **Consolidated config into `alto.json`**: Single config file at project root replaces three separate files:
   - `alto.json` now contains `arbiter`, `planning`, and `verification` sections
   - Hooks read from `alto.json` directly (no fallback to legacy files)
