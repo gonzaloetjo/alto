@@ -17,15 +17,17 @@ from pathlib import Path
 
 
 def load_config() -> dict:
-    """Load verification config from runs/verification-config.json."""
-    config_path = Path("runs/verification-config.json")
-    if not config_path.exists():
-        return {}
-
-    try:
-        return json.loads(config_path.read_text())
-    except (json.JSONDecodeError, IOError):
-        return {}
+    """Load verification config from alto.json."""
+    project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
+    alto_json = project_dir / "alto.json"
+    if alto_json.exists():
+        try:
+            data = json.loads(alto_json.read_text())
+            if "verification" in data:
+                return data["verification"]
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {}
 
 
 def match_pattern(file_path: str, pattern: str) -> bool:

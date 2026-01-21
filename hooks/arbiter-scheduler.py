@@ -102,6 +102,20 @@ def count_since(jsonl_file: Path, since_epoch: int) -> int:
                 n += 1
     return n
 
+def load_arbiter_config(project_dir: Path) -> dict:
+    """Load arbiter config from alto.json."""
+    alto_json = project_dir / "alto.json"
+    if alto_json.exists():
+        try:
+            data = json.loads(alto_json.read_text(encoding="utf-8"))
+            if "arbiter" in data:
+                cfg = DEFAULT_CFG.copy()
+                cfg.update(data["arbiter"])
+                return cfg
+        except Exception:
+            pass
+    return DEFAULT_CFG.copy()
+
 @safe_hook("arbiter-scheduler")
 def main():
     hook = json.load(sys.stdin)
@@ -117,7 +131,7 @@ def main():
     arb_dir = runs / "arbiter"
     arb_dir.mkdir(parents=True, exist_ok=True)
 
-    cfg = load_json(arb_dir / "config.json", DEFAULT_CFG)
+    cfg = load_arbiter_config(project_dir)
     arb_state = load_json(arb_dir / "state.json", {"last_checkpoint_epoch": 0, "last_checkpoint_tokens": 0})
 
     now_epoch = int(time.time())

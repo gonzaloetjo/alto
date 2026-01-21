@@ -140,10 +140,7 @@ Use `AskUserQuestion`:
 
 Then follow alto-configure skill for the selected option.
 
-**If "Show current":** Read and display:
-- `runs/arbiter/config.json`
-- `runs/planning-config.json`
-- `runs/verification-config.json`
+**If "Show current":** Read and display `alto.json`.
 
 ---
 

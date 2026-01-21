@@ -4,6 +4,13 @@ All notable changes to ALTO.
 
 ## [Unreleased]
 
+### Changed
+- **Consolidated config into `alto.json`**: Single config file at project root replaces three separate files:
+  - `alto.json` now contains `arbiter`, `planning`, and `verification` sections
+  - Hooks read from `alto.json` directly (no fallback to legacy files)
+  - `alto-configure` skill and templates updated to edit `alto.json`
+  - Legacy files (`runs/arbiter/config.json`, `runs/planning-config.json`, `runs/verification-config.json`) no longer created
+
 ### Added
 - **Deterministic validation hooks** (build mode):
   - `task-validate.py` - Validates planner task files (frontmatter fields, valid role, task_id matches filename, DoD section)

@@ -121,7 +121,7 @@ your-project/
 }
 ```
 
-**Dynamic verification:** Edit `runs/verification-config.json` mid-session without shell restart. See ARCHITECTURE.md for format.
+**Dynamic verification:** Edit `alto.json` → `verification` section mid-session without shell restart. See ARCHITECTURE.md for format.
 
 <details>
 <summary><strong>All options</strong></summary>

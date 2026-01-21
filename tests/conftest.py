@@ -25,8 +25,8 @@ def tmp_project(tmp_path: Path) -> Path:
     """Create a minimal ALTO project structure for testing.
 
     Creates:
+    - alto.json (consolidated config)
     - runs/state.json (empty state)
-    - runs/arbiter/config.json (default config)
     - objective.md (stub)
     """
     project = tmp_path / "test_project"
@@ -46,18 +46,29 @@ def tmp_project(tmp_path: Path) -> Path:
     }
     (runs / "state.json").write_text(json.dumps(state, indent=2))
 
-    # Create arbiter directory and config
+    # Create consolidated alto.json (new primary config)
+    alto_config = {
+        "version": 1,
+        "arbiter": {
+            "protocol": "alto-arbiter-v1",
+            "token_checkpoint_interval": 100000,
+            "time_checkpoint_interval_minutes": 20,
+            "task_checkpoint_interval": 1,
+            "max_files_changed_without_human": 50,
+            "max_lines_changed_without_human": 2000,
+        },
+        "planning": {
+            "require_approval": True,
+            "replan_strategy": "auto",
+            "fixed_batch_size": 5,
+        },
+        "verification": {},
+    }
+    (project / "alto.json").write_text(json.dumps(alto_config, indent=2))
+
+    # Create arbiter directory and state
     arbiter = runs / "arbiter"
     arbiter.mkdir()
-    arbiter_config = {
-        "protocol": "alto-arbiter-v1",
-        "token_checkpoint_interval": 100000,
-        "time_checkpoint_interval_minutes": 20,
-        "task_checkpoint_interval": 1,
-        "max_files_changed_without_human": 50,
-        "max_lines_changed_without_human": 2000,
-    }
-    (arbiter / "config.json").write_text(json.dumps(arbiter_config, indent=2))
 
     # Create empty arbiter state
     (arbiter / "state.json").write_text(json.dumps({

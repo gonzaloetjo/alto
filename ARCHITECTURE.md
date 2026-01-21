@@ -264,6 +264,7 @@ References:
 ```
 CLAUDE.md                    # Orchestrator protocol (copied from template based on mode)
 ARCHITECTURE.md              # This file - AI agent architecture
+alto.json                    # Consolidated config (arbiter, planning, verification)
 objective.md                 # Project goals and requirements
 docs/                        # Implementation docs (alto-docs writes here)
 
@@ -318,8 +319,6 @@ runs/
 ├── orchestrator.json        # Generated: current orchestrator mode
 ├── milestones.md            # Generated: high-level steps (build mode)
 ├── decisions.md             # Generated: architectural trade-offs (build mode)
-├── planning-config.json     # Generated: planning configuration from devenv
-├── verification-config.json # Generated: dynamic verification commands (QA updates)
 ├── plan.md                  # Generated: detailed batch plan (planner output)
 ├── state.json               # Generated: current task + phase + role
 ├── tasks/                   # Generated: task-XXX.md (YAML frontmatter + DoD)
@@ -329,7 +328,6 @@ runs/
 ├── tools/                   # Generated: usage.jsonl (tool invocation log)
 ├── permissions/             # Generated: requests.jsonl (permission prompts)
 ├── arbiter/                 # Arbiter checkpoint system
-│   ├── config.json          # Thresholds (tokens, time, files, lines)
 │   ├── state.json           # Last checkpoint metadata
 │   ├── pending.json         # Snapshot triggering arbiter (transient)
 │   ├── decision.json        # Arbiter output (needs_human, reasons)
@@ -587,13 +585,15 @@ The arbiter is an independent auditor that operates between tasks to decide if h
 * Writes `runs/arbiter/decision.json` with `needs_human` boolean
 * At checkpoint, user can optionally reconfigure (via `alto-configure` skill)
 
-**Thresholds (`runs/arbiter/config.json`):**
+**Thresholds (`alto.json` → `arbiter`):**
 ```json
 {
-  "token_checkpoint_interval": 100000,
-  "task_checkpoint_interval": 3,
-  "max_files_changed_without_human": 50,
-  "max_lines_changed_without_human": 2000
+  "arbiter": {
+    "token_checkpoint_interval": 100000,
+    "task_checkpoint_interval": 3,
+    "max_files_changed_without_human": 50,
+    "max_lines_changed_without_human": 2000
+  }
 }
 ```
 
@@ -623,16 +623,16 @@ When all tasks complete, orchestrator sets `phase = "COMPLETED"` and offers:
 
 | Config | When Applied | Location |
 |--------|--------------|----------|
-| Arbiter thresholds | **Dynamic** | `runs/arbiter/config.json` |
-| Verification commands | **Dynamic** | `runs/verification-config.json` |
-| Planning settings | **Dynamic** | `runs/planning-config.json` |
+| Arbiter thresholds | **Dynamic** | `alto.json` → `arbiter` |
+| Verification commands | **Dynamic** | `alto.json` → `verification` |
+| Planning settings | **Dynamic** | `alto.json` → `planning` |
 | Orchestrator mode | Feature boundary | `devenv.nix` → `alto.orchestrator` |
 | Permissions (allow/deny) | Feature boundary | `devenv.nix` → `.claude/settings.json` |
 | Agent tools | Feature boundary | `devenv.nix` → agent files |
 | Hook definitions | Feature boundary | `devenv.nix` → `.claude/settings.json` |
 | Permission profile | Feature boundary | `devenv.nix` |
 
-**Dynamic:** Edit JSON file, takes effect on next hook invocation. Orchestrator writes these automatically via `alto-configure` skill.
+**Dynamic:** Edit `alto.json`, takes effect on next hook invocation. Orchestrator writes this automatically via `alto-configure` skill.
 
 **Feature boundary:** Edit `devenv.nix`, then run `alto-restart` (or exit Claude and run `devenv shell` + `claude`).
 
@@ -682,21 +682,23 @@ alto.verification = {
 | `test` | `enable`, `command`, `matcher` | Run related tests on change |
 | `custom` | `name`, `command`, `matcher`, `timeout` | Security checks, formatters, etc. |
 
-### Dynamic Verification (runs/verification-config.json)
+### Dynamic Verification (alto.json → verification)
 
 For verification configured mid-session without shell restart:
 
 ```json
 {
-  "*.ts": {
-    "typecheck": { "enable": true, "command": "pnpm type:check" }
-  },
-  "*.py": {
-    "lint": "ruff check {file}",
-    "test": { "enable": true, "command": "pytest" }
-  },
-  "src/api/**/*.ts": {
-    "openapi": "./scripts/validate-openapi.sh"
+  "verification": {
+    "*.ts": {
+      "typecheck": { "enable": true, "command": "pnpm type:check" }
+    },
+    "*.py": {
+      "lint": "ruff check {file}",
+      "test": { "enable": true, "command": "pytest" }
+    },
+    "src/api/**/*.ts": {
+      "openapi": "./scripts/validate-openapi.sh"
+    }
   }
 }
 ```
@@ -707,7 +709,7 @@ For verification configured mid-session without shell restart:
 - Commands can be strings or `{ enable, command }` objects
 - Use `{file}` placeholder for the edited file path
 
-**Static vs Dynamic:** Use static (devenv.nix) for known-at-setup checks; use dynamic (JSON) for checks discovered during build that need tuning.
+**Static vs Dynamic:** Use static (devenv.nix) for known-at-setup checks; use dynamic (`alto.json`) for checks discovered during build that need tuning.
 
 ---
 

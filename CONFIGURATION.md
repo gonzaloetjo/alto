@@ -51,7 +51,7 @@ alto.arbiter = {
 | Balanced | 2000 | 50 | 3 | Normal development (default) |
 | Autonomous | 5000 | 100 | 5 | Trusted environment, large features |
 
-**Runtime alternative**: Edit `runs/arbiter/config.json` directly (no reload needed).
+**Runtime alternative**: Edit `alto.json` → `arbiter` section directly (no reload needed).
 
 ---
 
@@ -150,7 +150,7 @@ alto.verification = {
 };
 ```
 
-**Runtime alternative**: Edit `runs/verification-config.json` for dynamic verification.
+**Runtime alternative**: Edit `alto.json` → `verification` section for dynamic verification.
 
 ---
 
@@ -188,52 +188,41 @@ alto.includeSpawnerSkills = false;  # Include domain skills (api-design, fronten
 
 ---
 
-## Runtime Configuration (runs/*.json)
+## Runtime Configuration (alto.json)
 
-These files can be edited mid-session without reloading.
+This file can be edited mid-session without reloading.
 
-### runs/arbiter/config.json
+### alto.json
 
-```json
-{
-  "max_lines_changed_without_human": 2000,
-  "max_files_changed_without_human": 50,
-  "token_checkpoint_interval": 100000,
-  "task_checkpoint_interval": 3,
-  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
-}
-```
-
-**Changed by**: Orchestrator during configuration, or edit directly.
-
-### runs/verification-config.json
-
-Dynamic verification commands per file pattern.
+Consolidated configuration file at project root:
 
 ```json
 {
-  "*.ts": { "command": "pnpm type:check" },
-  "*.tsx": { "command": "pnpm type:check && pnpm lint" },
-  "*.py": { "command": "pytest" },
-  "*.go": {}
+  "version": 1,
+  "arbiter": {
+    "max_lines_changed_without_human": 2000,
+    "max_files_changed_without_human": 50,
+    "token_checkpoint_interval": 100000,
+    "task_checkpoint_interval": 3,
+    "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
+  },
+  "planning": {
+    "require_approval": true,
+    "replan_strategy": "auto",
+    "fixed_batch_size": 5,
+    "architect_model": "opus",
+    "planner_model": "opus"
+  },
+  "verification": {
+    "*.ts": { "typecheck": "pnpm type:check" },
+    "*.tsx": { "typecheck": "pnpm type:check", "lint": "pnpm lint" },
+    "*.py": { "test": "pytest" },
+    "*.go": {}
+  }
 }
 ```
 
-**Changed by**: QA agent when setting up tooling, or edit directly.
-
-### runs/planning-config.json
-
-```json
-{
-  "require_approval": true,
-  "replan_strategy": "auto",
-  "fixed_batch_size": 5,
-  "architect_model": "opus",
-  "planner_model": "opus"
-}
-```
-
-**Changed by**: Orchestrator, synced from devenv.nix on deploy.
+**Changed by**: Orchestrator during configuration via `alto-configure` skill, or edit directly.
 
 ### runs/orchestrator.json
 
@@ -254,7 +243,7 @@ Dynamic verification commands per file pattern.
 
 Setup mode is designed for configuration. The orchestrator will:
 
-1. **Ask about autonomy** → writes `runs/arbiter/config.json`
+1. **Ask about autonomy** → writes `alto.json` → `arbiter`
 2. **Ask about permissions** → tells user to edit `devenv.nix` if needed
 3. **Skip verification** → QA agent configures when tooling is set up
 
@@ -277,7 +266,7 @@ Minimal configuration. Dev mode is for ALTO development, not consumer projects.
 | Want to... | Edit | Reload? |
 |------------|------|---------|
 | Switch modes | `alto-switch <mode>` | Auto |
-| More autonomy | `runs/arbiter/config.json` | No |
+| More autonomy | `alto.json` → `arbiter` | No |
 | Allow more commands | `devenv.nix` → `permissions.allowBash` | Yes |
 | Add typecheck hook | `devenv.nix` → `verification.typecheck.enable` | Yes |
 | Use cheaper models | `devenv.nix` → `planning.plannerModel = "sonnet"` | Yes |

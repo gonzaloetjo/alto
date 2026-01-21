@@ -58,6 +58,36 @@ chmod -R +w .claude/ 2>/dev/null || true
 # Create runs directory structure
 mkdir -p "$RUNS_DIR"/{tasks,handoffs,arbiter/checkpoints,review,sessions,usage,tools,logs}
 
+# Initialize alto.json if not exists (user can modify, won't be overwritten)
+if [ ! -f "alto.json" ]; then
+  cat > "alto.json" << ALTO_EOF
+{
+  "version": 1,
+  "arbiter": {
+    "max_lines_changed_without_human": $ARBITER_MAX_LINES,
+    "max_files_changed_without_human": $ARBITER_MAX_FILES,
+    "token_checkpoint_interval": $ARBITER_TOKEN_INTERVAL,
+    "task_checkpoint_interval": $ARBITER_TASK_INTERVAL,
+    "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
+  },
+  "planning": {
+    "require_approval": $PLANNING_REQUIRE_APPROVAL,
+    "replan_strategy": "$PLANNING_REPLAN_STRATEGY",
+    "fixed_batch_size": $PLANNING_FIXED_BATCH_SIZE,
+    "architect_model": "$PLANNING_ARCHITECT_MODEL",
+    "planner_model": "$PLANNING_PLANNER_MODEL"
+  },
+  "verification": {
+    "*.ts": {},
+    "*.tsx": {},
+    "*.py": {},
+    "*.go": {}
+  }
+}
+ALTO_EOF
+  echo "Created alto.json"
+fi
+
 # Write debug config for hooks to read
 cat > "$RUNS_DIR/debug-config.json" << DEBUG_EOF
 {
@@ -89,17 +119,6 @@ if [ ! -f "$RUNS_DIR/sessions/modes.json" ]; then
   echo '{"setup": null, "build": null, "dev": null}' > "$RUNS_DIR/sessions/modes.json"
 fi
 
-# Initialize arbiter config (always overwrite to keep in sync)
-cat > "$RUNS_DIR/arbiter/config.json" << ARBITER_EOF
-{
-  "max_lines_changed_without_human": $ARBITER_MAX_LINES,
-  "max_files_changed_without_human": $ARBITER_MAX_FILES,
-  "token_checkpoint_interval": $ARBITER_TOKEN_INTERVAL,
-  "task_checkpoint_interval": $ARBITER_TASK_INTERVAL,
-  "high_risk_bash_prefixes": ["rm -rf /", "sudo rm", "dd if=", "mkfs", "> /dev/"]
-}
-ARBITER_EOF
-
 # Initialize arbiter state if not exists
 if [ ! -f "$RUNS_DIR/arbiter/state.json" ]; then
   cat > "$RUNS_DIR/arbiter/state.json" << 'ARBSTATE_EOF'
@@ -110,29 +129,6 @@ if [ ! -f "$RUNS_DIR/arbiter/state.json" ]; then
   "checkpoint_count": 0
 }
 ARBSTATE_EOF
-fi
-
-# Write planning config (always overwrite to keep in sync)
-cat > "$RUNS_DIR/planning-config.json" << PLANNING_EOF
-{
-  "require_approval": $PLANNING_REQUIRE_APPROVAL,
-  "replan_strategy": "$PLANNING_REPLAN_STRATEGY",
-  "fixed_batch_size": $PLANNING_FIXED_BATCH_SIZE,
-  "architect_model": "$PLANNING_ARCHITECT_MODEL",
-  "planner_model": "$PLANNING_PLANNER_MODEL"
-}
-PLANNING_EOF
-
-# Initialize verification config if not exists (user can modify mid-session)
-if [ ! -f "$RUNS_DIR/verification-config.json" ]; then
-  cat > "$RUNS_DIR/verification-config.json" << 'VERIFY_EOF'
-{
-  "*.ts": {},
-  "*.tsx": {},
-  "*.py": {},
-  "*.go": {}
-}
-VERIFY_EOF
 fi
 
 # Write orchestrator config (always overwrite to keep in sync)
