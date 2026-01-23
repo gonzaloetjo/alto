@@ -1,6 +1,6 @@
 ---
-name: task-writing
-description: Use when creating task files in runs/tasks/. Provides exact format required for task frontmatter and body sections.
+paths:
+  - "runs/tasks/**"
 ---
 
 # Task Writing

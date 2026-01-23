@@ -1,8 +1,3 @@
----
-name: scope-discipline
-description: Use when implementing features, editing source code, or responding to task handoffs. Enforces doing exactly what was requested - no scope creep, no "while I'm here" additions.
----
-
 # Scope Discipline
 
 ## Hard Rule

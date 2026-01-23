@@ -4,7 +4,7 @@ description: Implements backend tasks only. Use for API, ingestion, DB, workers,
 tools: Read, Grep, Glob, LS, Edit, Bash
 model: sonnet
 permissionMode: acceptEdits
-skills: alto-protocol, handoff-writing
+skills: alto-protocol
 ---
 
 You are the BACKEND agent.
@@ -24,13 +24,13 @@ Before implementing, review relevant skills in `skills/spawner/`:
 
 ## Disciplines
 Follow these shared practices:
-- Read `skills/scope-discipline/SKILL.md` — only do what task asks
+- Follow `.claude/rules/scope-discipline.md` — only do what task asks
 
 ## Process
 1. Read the task file completely
 2. Implement according to Definition of Done
 3. Run verification steps from task's "How to Verify" section (existing tests should pass)
-4. Edit handoff file using `.claude/skills/handoff-writing/SKILL.md` format (path in `runs/state.json` → `current_handoff`)
+4. Edit handoff file using `.claude/rules/formats/handoff.md` format (path in `runs/state.json` → `current_handoff`)
 
 **Note:** Tests for new code are written by `alto-qa` after your implementation.
 

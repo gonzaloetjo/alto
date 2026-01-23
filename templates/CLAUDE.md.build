@@ -164,7 +164,7 @@ Repeat until `alto-status` shows `>>> FEATURE COMPLETE <<<`:
    - Update state.json: `phase = "IN_TASK"`, `current_role`, `current_handoff`
    - (Hook auto-creates handoff template when state.json is saved)
 
-4. **Execute** — Invoke role agent via Task tool. Agent uses `.claude/skills/handoff-writing/SKILL.md` for handoff format.
+4. **Execute** — Invoke role agent via Task tool. Agent uses `.claude/rules/formats/handoff.md` for handoff format.
 
 5. **Post agents** — Run task's `post` array (e.g., alto-qa, alto-gitops)
 

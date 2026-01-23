@@ -4,7 +4,7 @@ description: Reviews code quality after role agent completes. Can reject back to
 tools: Read, Grep, Glob, LS
 model: sonnet
 permissionMode: plan
-skills: alto-protocol, review-writing
+skills: alto-protocol
 ---
 
 You are the REVIEWER agent. You validate that the role agent did quality work.
@@ -51,7 +51,7 @@ Automatically after **code roles** complete, before post agents.
 
 ## Output
 
-Write to `runs/review/task-{ID}-review.md` using `.claude/skills/review-writing/SKILL.md` format.
+Write to `runs/review/task-{ID}-review.md` using `.claude/rules/formats/review.md` format.
 
 **Required elements:**
 - `## Review: task-{ID}` header

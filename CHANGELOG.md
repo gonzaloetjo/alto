@@ -5,6 +5,26 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Changed
+- **Skills reorganized using Claude Code native concepts** (Rules, Commands, Skills, Agents):
+  - **Migrated to Rules** (`.claude/rules/`, always loaded at session start):
+    - `scope-discipline.md` - Global constraint rule
+    - `prompt-writing.md` - Prompt writing discipline
+    - `formats/handoff.md` - Path-targeted for `runs/handoffs/**`
+    - `formats/task.md` - Path-targeted for `runs/tasks/**`
+    - `formats/review.md` - Path-targeted for `runs/review/**`
+  - **Converted to Command** (`.claude/commands/`, explicit `/invoke`):
+    - `alto-gitops.md` - Was deterministic+atomic agent, now explicit command
+  - **Removed from Skills** (migrated to rules):
+    - `handoff-writing`, `task-writing`, `review-writing`, `scope-discipline`, `prompt-writing`
+  - **Agent references updated**: All agents now reference `.claude/rules/formats/*.md` instead of `.claude/skills/*-writing/SKILL.md`
+  - **Deploy script updated**: `alto-deploy.sh` now copies rules and commands directories
+
+### Removed
+- `agents/alto-gitops.md` - Converted to command
+- `hooks/tool-use-record.py` - Deprecated stub (replaced by `tool-record.py`)
+- 5 skill directories migrated to rules: `scope-discipline`, `handoff-writing`, `task-writing`, `review-writing`, `prompt-writing`
+
+### Changed
 - **Documentation restructured** for distinct audiences:
   - `README.md` (~95 lines) — Minimal usage guide: highlights, quick start, modes, commands
   - `ARCHITECTURE.md` (~245 lines) — Human-readable design: models, lifecycle, state machine

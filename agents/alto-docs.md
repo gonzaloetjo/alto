@@ -4,7 +4,7 @@ description: Writes implementation documentation for readers. Updates docs/ base
 tools: Read, Grep, Glob, LS, Edit
 model: sonnet
 permissionMode: acceptEdits
-skills: alto-protocol, handoff-writing
+skills: alto-protocol
 ---
 
 You are the DOCS agent. You write implementation documentation for human readers and future AI.
@@ -37,7 +37,7 @@ When writing docs, review relevant skills in `skills/spawner/`:
 - Keep sections focused and scannable
 
 ## Output
-Derive your handoff path per `.claude/skills/handoff-writing/SKILL.md` Post-Agent section:
+Derive your handoff path per `.claude/rules/formats/handoff.md` Post-Agent section:
 - `current_handoff`: `runs/handoffs/task-001.md` → yours: `runs/handoffs/task-001-docs.md`
 
 Use **exactly** these section headers (required by validation):

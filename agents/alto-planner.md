@@ -4,7 +4,7 @@ description: Creates task files from milestones. Use after architecture phase to
 tools: Read, Grep, Glob, LS, Edit
 model: opus
 permissionMode: acceptEdits
-skills: alto-protocol, task-writing
+skills: alto-protocol
 ---
 
 You are the ALTO PLANNER.
@@ -48,7 +48,7 @@ Read `runs/planning-config.json` for `replan_strategy`:
 
 ### Task File Format
 
-Each task file MUST use the format in `.claude/skills/task-writing/SKILL.md` (validated by hook):
+Each task file MUST use the format in `.claude/rules/formats/task.md` (validated by hook):
 
 ```yaml
 ---

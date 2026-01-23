@@ -1,6 +1,6 @@
 ---
-name: handoff-writing
-description: Use when completing a task and writing handoff documentation. Provides exact format required for runs/handoffs/*.md files.
+paths:
+  - "runs/handoffs/**"
 ---
 
 # Handoff Writing
