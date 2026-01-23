@@ -59,9 +59,11 @@ Comprehensive analysis of all configurable components in the Claude Code `.claud
 | **Objective** | Provide modular, file-type-specific coding standards and guidelines. Organize instructions by topic instead of one monolithic file |
 | **Context Management** | Loaded as **user context** like CLAUDE.md, but can be **path-filtered** via frontmatter globs. Only relevant rules load for current file context |
 | **Lifecycle Stage** | **Session start + context-aware** - all rules load at start, path-specific rules filter based on active files |
-| **Activation** | Automatic. Path-specific rules activate when working on matching files |
+| **Activation** | **Deterministic** — always present when session starts (unlike skills which are probabilistic) |
 
 **Key Insight**: Rules are "conditional CLAUDE.md" - they let you say "when working on `*.sol` files, follow these Solidity conventions" without cluttering context for other file types.
+
+**Important**: Rules are suggestions the LLM weighs against other context. For enforcement, use hooks.
 
 **Documentation**: [rules.md](rules.md)
 
@@ -89,9 +91,13 @@ Comprehensive analysis of all configurable components in the Claude Code `.claud
 | **Objective** | Define complex, multi-file capabilities that Claude can auto-discover and invoke when relevant. More powerful than commands |
 | **Context Management** | Skill instructions load into context when invoked. Can run in **forked context** (`context: fork`) to isolate from main conversation. Supports progressive disclosure via linked files |
 | **Lifecycle Stage** | **Auto-discovery + on-demand** - Claude can suggest skills based on task matching, or user invokes explicitly |
-| **Activation** | Automatic (Claude suggests when relevant) OR explicit (`/skill-name`). Description keywords drive auto-discovery |
+| **Activation** | **Soft** (probabilistic via description matching) OR **Strong** (explicit `/skill-name`). See activation model below |
 
 **Key Insight**: Skills are "intelligent capabilities" - unlike commands which are just prompt templates, skills can be auto-suggested, run isolated, and contain supporting files for complex workflows.
+
+**Activation Types**:
+- **Soft**: Claude *could* auto-invoke via description matching (probabilistic)
+- **Strong**: Explicitly referenced in agent .md or called by user (deterministic)
 
 **Documentation**: [skills.md](skills.md)
 
@@ -320,6 +326,48 @@ Comprehensive analysis of all configurable components in the Claude Code `.claud
 - Want isolation + tool restrictions → **Agent**
 - Want instructions in your conversation → **Skill** (no fork)
 - Want complex multi-file capability that runs isolated → **Skill** (with fork) + **Agent**
+
+
+### Agents vs Rules vs Skills
+
+#### Purpose & Propagation
+
+| Concept | Purpose | Propagation |
+|---------|---------|-------------|
+| **Rules** | Shared conventions, style guides, format requirements | Can propagate across agents |
+| **Skills** | On-demand procedures, task-specific workflows | Shared across agents (loaded when needed) |
+| **Agent Prompts** | Individual agent's specific role and capabilities | Agent-specific, don't propagate |
+
+#### Activation Model
+
+| Aspect | Rules | Skills | Agents |
+|--------|-------|--------|--------|
+| **Loading** | Always in context | On-demand (lazy) | On delegation |
+| **Activation** | Deterministic | Probabilistic (soft) or Explicit (strong) | Task-matching or explicit |
+| **Context cost** | Always paid | Only when invoked | Isolated (own context) |
+| **Trigger** | Automatic | Description match OR `/skill` | Claude delegates OR user requests |
+
+#### Activation Types for Skills
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **Soft** | Claude *could* auto-invoke via description matching | Task mentions "deploy" → deploy skill suggested |
+| **Strong** | Explicitly referenced in agent .md or called by user | `/deploy` or agent prompt says "use deploy skill" |
+| **Where** | Location where the skill is defined | `skills/deploy/SKILL.md` |
+
+#### Key Insight
+
+> **Rules are suggestions. Hooks are enforcement.**
+>
+> A rule saying "don't edit .env" is parsed by Claude and *maybe* followed.
+> A PreToolUse hook blocking .env edits *always* runs and blocks the operation.
+
+#### References
+
+- [User-Level Agent Rules Feature Request](https://github.com/anthropics/claude-code/issues/8395) — Discusses rule propagation to subagents
+- [Official Skill Creator](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md) — SKILL.md format and activation
+- [Bug: Claude ignores CLAUDE.md rules](https://github.com/anthropics/claude-code/issues/19635) — Rules are suggestions, not enforcement
+- [Skills Activation Discussion](https://github.com/orgs/community/discussions/182117) — Deterministic vs probabilistic retrieval
 
 ---
 
