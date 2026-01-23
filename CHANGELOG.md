@@ -5,6 +5,25 @@ All notable changes to ALTO.
 ## [Unreleased]
 
 ### Added
+- **Claude Code Knowledge Base** (`claude-code/knowledge-base/`) — AI-optimized documentation:
+  - 15 markdown files (~4160 lines total) covering all Claude Code extensibility features
+  - `index.md` — Navigation hub with feature matrix and selection guide
+  - `overview.md` — Context flow diagrams, lifecycle, "what affects what"
+  - Core features: `tools.md`, `settings.md`, `memory.md`, `permissions.md`
+  - Extensions: `rules.md`, `commands.md`, `skills.md`, `agents.md`, `hooks.md`
+  - Supporting: `mcp.md`, `plan-mode.md`, `output-styles.md`, `quick-reference.md`
+  - Design principles: hierarchical markdown, tables over prose, examples first
+- **ALTO Development Rules** (`rules/alto-development.md`) — 10 distilled rules for dev mode:
+  - Rule Placement (single agent vs multi-agent)
+  - Feature Selection Matrix (rule vs skill vs hook vs command)
+  - CLAUDE.md Size Limits (<300 lines, use file:line references)
+  - Provide Alternatives, Not Just Negatives
+  - Don't Use LLM for Linter Work
+  - Skill Activation Safety (disable-model-invocation for dangerous ops)
+  - Agent Path Restrictions (always specify allowed_paths)
+  - Hook Limitations Awareness (warn messages only reach user)
+  - Context Management in Multi-Agent Systems
+  - Prompt Writing Discipline
 - **PROTOCOL.md** — Action classification and execution model:
   - Classification axes (Input/Output/Process 1-5 scale)
   - Agent categories table (impl, tester, reviewer, controller, planner, support)

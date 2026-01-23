@@ -28,7 +28,6 @@ rm -rf .claude/skills/* .claude/rules/* .claude/commands/* 2>/dev/null || true
 # Deploy rules (always loaded at session start)
 # Global rules (no path targeting)
 cp "$ALTO_SRC"/rules/scope-discipline.md .claude/rules/ 2>/dev/null || true
-cp "$ALTO_SRC"/rules/prompt-writing.md .claude/rules/ 2>/dev/null || true
 # Path-targeted format rules
 cp "$ALTO_SRC"/rules/formats/*.md .claude/rules/formats/ 2>/dev/null || true
 
@@ -46,9 +45,10 @@ if [ "$ORCHESTRATOR" != "dev" ]; then
   cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
 fi
 
-# Copy dev-specific skills (dev orchestrator only)
-# NOTE: prompt-writing is now a rule
+# Copy dev-specific skills and rules (dev orchestrator only)
 if [ "$ORCHESTRATOR" = "dev" ]; then
+  cp "$ALTO_SRC"/rules/prompt-writing.md .claude/rules/ 2>/dev/null || true
+  cp "$ALTO_SRC"/rules/alto-development.md .claude/rules/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
