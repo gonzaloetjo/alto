@@ -1,160 +1,185 @@
 # ALTO Development Rules
 
-> Distilled rules for ALTO dev mode based on Claude Code best practices research.
+> Rules for developing ALTO itself - combining Claude Code best practices with ALTO protocol awareness.
 
 ---
 
-## Rule 1: Rule Placement
+## Part 1: Claude Code Best Practices
 
-**Trigger**: Writing a new rule for agent behavior
-
-**Action**:
-- Single agent only → embed in that agent's `.md` file
-- Multiple agents → create `rules/*.md` file
-
-**Rationale**: Reduces context bloat; rules always load for their scope.
-
----
-
-## Rule 2: Feature Selection Matrix
+### Rule 1: Feature Selection Matrix
 
 **Trigger**: Deciding between rule, skill, hook, or command
-
-**Action**: Use this matrix:
 
 | Need | Use | Why |
 |------|-----|-----|
 | Always-active constraint | Rule | Deterministic, always in context |
 | On-demand procedure | Skill | Lazy loading, saves baseline context |
 | Must enforce (block/log) | Hook | Always executes, can't be ignored |
-| User-triggered shortcut | Command | Explicit invocation, simple template |
-| Warn user (not Claude) | Hook warn | Warn only reaches user, not Claude |
+| User-triggered shortcut | Command | Explicit invocation |
 
-**Rationale**: Context budget is finite (~180k usable); wrong choice wastes tokens.
+> **Key insight**: Rules suggest. Hooks enforce.
 
 ---
 
-## Rule 3: CLAUDE.md/Agent.md Size Limits
+### Rule 2: Size Limits
 
 **Trigger**: Writing orchestrator templates or agent prompts
 
-**Action**:
 - Keep under 300 lines (60 lines ideal)
 - Use `file:line` references, not code snippets
 - Progressive disclosure: reference docs, don't embed
 
-**Rationale**: "May or may not be relevant" system message = non-universal rules get ignored.
-
 ---
 
-## Rule 4: Provide Alternatives, Not Just Negatives
+### Rule 3: Provide Alternatives
 
-**Trigger**: Writing any constraint or rule
+**Trigger**: Writing any constraint
 
-**Action**:
 - BAD: "Never use --foo-bar flag"
 - GOOD: "Use --baz instead of --foo-bar because X"
 
-**Rationale**: Agent gets stuck when it thinks it must use a forbidden thing but has no alternative.
-
 ---
 
-## Rule 5: Don't Use LLM for Linter Work
-
-**Trigger**: Tempted to add style rules (formatting, naming)
-
-**Action**: Use deterministic tools (eslint, prettier, ruff, black) instead
-
-**Rationale**: LLMs are expensive/slow; linters are fast/reliable.
-
----
-
-## Rule 6: Skill Activation Safety
+### Rule 4: Skill Activation Safety
 
 **Trigger**: Creating skill for dangerous operations (deploy, delete, reset)
 
-**Action**:
 ```yaml
----
 disable-model-invocation: true
 user-invocable: true
----
 ```
 
-**Rationale**: Prevents accidental triggering via description matching.
-
 ---
 
-## Rule 7: Agent Path Restrictions
-
-**Trigger**: Creating task for implementation agent
-
-**Action**: Always include explicit `allowed_paths` in task frontmatter
-
-```yaml
----
-allowed_paths:
-  - backend/**
-  - src/api/**
----
-```
-
-**Rationale**: Prevents scope creep; agent can only touch relevant files.
-
----
-
-## Rule 8: Hook Limitations Awareness
-
-**Trigger**: Designing hook-based validation
-
-**Action**: Know these limitations:
+### Rule 5: Hook Limitations
 
 | Limitation | Detail |
 |------------|--------|
 | PreToolUse cannot see result | Runs before tool executes |
-| PostToolUse cannot modify result | Already in context |
-| Warn messages only reach user | Claude doesn't see warn output |
-| Skill-scoped hooks may not trigger | Known issue in plugins |
-
-**Rationale**: Design around actual capabilities, not assumed ones.
+| PostToolUse cannot modify | Result already in context |
+| Warn only reaches user | Claude doesn't see warn output |
 
 ---
 
-## Rule 9: Context Management in Multi-Agent Systems
+## Part 2: ALTO Protocol Awareness
 
-**Trigger**: Designing orchestrator with multiple agents
+### Rule 6: Valid Phase Transitions
 
-**Action**:
-- Use subagents for investigation (separate context window)
-- Keep handoffs concise (they enter next agent's context)
-- Clear context between unrelated tasks
+**Trigger**: Editing `phase-validate.py` or state management
 
-**Rationale**: 200k window, ~20k baseline; subagents prevent context pollution.
+```
+None → ARCHITECTURE
+ARCHITECTURE → PLANNING, BLOCKED
+PLANNING → IN_TASK, BETWEEN_TASKS, BLOCKED
+IN_TASK → BETWEEN_TASKS, BLOCKED
+BETWEEN_TASKS → IN_TASK, PLANNING, COMPLETED, BLOCKED
+BLOCKED → ARCHITECTURE, PLANNING, IN_TASK, BETWEEN_TASKS
+COMPLETED → DEBUG, ARCHITECTURE
+DEBUG → COMPLETED
+```
 
----
-
-## Rule 10: Prompt Writing Discipline
-
-**Trigger**: Writing any ALTO prompt (templates, agents, skills)
-
-**Action**: Follow `rules/prompt-writing.md`:
-- Explicit tool names: `AskUserQuestion` not "ask user"
-- Explicit paths: `runs/state.json` not "state file"
-- Always specify `AskUserQuestion` with Header, Question, Options
-
-**Rationale**: Ambiguous prompts cause tool selection errors.
+Keep `VALID_TRANSITIONS` dict in `phase-validate.py` in sync.
 
 ---
 
-## Quick Reference
+### Rule 7: File Structure
+
+**Trigger**: Creating or moving files
+
+| Directory | Contents |
+|-----------|----------|
+| `agents/*.md` | Agent prompts |
+| `hooks/*.py` | Hook implementations |
+| `skills/*/SKILL.md` | Skills |
+| `rules/*.md` | Always-loaded rules |
+| `rules/formats/*.md` | Path-targeted format rules |
+| `templates/CLAUDE.md.*` | Orchestrator templates |
+| `runs/tasks/*.md` | Task files (planner output) |
+| `runs/handoffs/*.md` | Handoffs (agent output) |
+| `runs/review/*.md` | Reviews (reviewer output) |
+
+---
+
+### Rule 8: Validation Hook Sync
+
+**Trigger**: Changing format rules or validation hooks
+
+| Format Rule | Validation Hook | Keep In Sync |
+|-------------|-----------------|--------------|
+| `formats/task.md` | `task-validate.py` | Required fields |
+| `formats/handoff.md` | `handoff-validate.py` | Required sections |
+| `formats/review.md` | `review-validate.py` | Status format |
+
+---
+
+### Rule 9: Change Impact Matrix
+
+**Trigger**: Making changes to ALTO source
+
+| When You Change | Also Update |
+|-----------------|-------------|
+| Agent prompt | Check format rule reference |
+| Hook logic | Check `devenv.nix` wiring |
+| Phase transitions | `phase-validate.py` VALID_TRANSITIONS |
+| Task format | `task-validate.py` field checks |
+| State.json fields | Hooks that read/write state |
+| New agent | `devenv.nix` + PROTOCOL.md |
+| New hook | `devenv.nix` + PROTOCOL.md |
+| New skill | `skills/<name>/SKILL.md` + deploy script |
+| New rule | `rules/<name>.md` + deploy script (if conditional) |
+
+---
+
+### Rule 10: Agent Output Formats
+
+**Trigger**: Creating or modifying agents
+
+| Agent Category | Output Location | Format Rule |
+|----------------|-----------------|-------------|
+| planner | `runs/tasks/*.md` | `formats/task.md` |
+| impl (backend, frontend) | `runs/handoffs/*.md` | `formats/handoff.md` |
+| tester | `runs/handoffs/*.md` | `formats/handoff.md` |
+| reviewer | `runs/review/*.md` | `formats/review.md` |
+| controller | decision only | — |
+| support | varies | — |
+
+---
+
+## Part 3: Quick Lookups
+
+### Key Files
+
+| Need | Read |
+|------|------|
+| Protocol actions | `PROTOCOL.md` |
+| Architecture overview | `ARCHITECTURE.md` |
+| Hook/agent syntax | `skills/alto-dev-guide/SKILL.md` |
+| Orchestrator behavior | `templates/CLAUDE.md.{mode}` |
+| Deploy logic | `scripts/alto-deploy.sh` |
+
+### Validation Before Commit
+
+```bash
+nix-instantiate --parse devenv.nix > /dev/null && echo "Nix OK"
+python3 -m py_compile hooks/*.py && echo "Python OK"
+```
+
+### Testing
+
+```bash
+alto-test-run --scenario <name> --keep
+```
+
+---
+
+## Anti-Patterns
 
 | Don't | Do Instead |
 |-------|------------|
-| Embed code snippets | Use `file:line` references |
-| Add style rules | Use linters (prettier, ruff) |
-| Say "don't do X" | Say "do Y instead of X because Z" |
+| Embed code in prompts | Use `file:line` references |
+| Add style rules | Use linters |
+| Say "don't do X" | Say "do Y instead" |
 | Auto-invoke dangerous skills | Set `disable-model-invocation: true` |
-| Let agents touch any file | Specify `allowed_paths` |
-| Assume hooks can modify results | Design for actual capabilities |
-| Write 500-line CLAUDE.md | Keep under 300 lines, reference docs |
-| Put universal rules in skills | Put in `rules/*.md` |
+| Change format without hook | Update validation hook too |
+| Add phase without transition | Update `VALID_TRANSITIONS` |
+| Write 500-line CLAUDE.md | Keep under 300, reference docs |

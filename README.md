@@ -37,6 +37,30 @@ single operation                      multiple operations, aware of changes
 
 ---
 
+## How It Works
+
+```
+objective.md → Architecture → Planning → Execution → Completion
+     │              │             │           │           │
+     │              │             │           │           └─▶ debug / next feature
+     │              │             │           │
+     │              │             │           └─▶ role agent → handoff → QA → gitops
+     │              │             │                              │
+     │              │             │                   runs/handoffs/task-XXX.md
+     │              │             │
+     │              │             └─▶ planner creates task files
+     │              │
+     │              └─▶ orchestrator explores, writes milestones
+     │
+     └─▶ user defines feature (setup mode)
+```
+
+Agents never communicate directly. Each writes a structured **handoff** to `runs/handoffs/` which the orchestrator reads and passes to the next agent.
+
+Each phase has arbiter checkpoints for human review. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full lifecycle.
+
+---
+
 ## Quick Start
 
 ```bash

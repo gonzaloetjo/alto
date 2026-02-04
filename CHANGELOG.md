@@ -13,24 +13,22 @@ All notable changes to ALTO.
   - Extensions: `rules.md`, `commands.md`, `skills.md`, `agents.md`, `hooks.md`
   - Supporting: `mcp.md`, `plan-mode.md`, `output-styles.md`, `quick-reference.md`
   - Design principles: hierarchical markdown, tables over prose, examples first
-- **ALTO Development Rules** (`rules/alto-development.md`) — 10 distilled rules for dev mode:
-  - Rule Placement (single agent vs multi-agent)
-  - Feature Selection Matrix (rule vs skill vs hook vs command)
-  - CLAUDE.md Size Limits (<300 lines, use file:line references)
-  - Provide Alternatives, Not Just Negatives
-  - Don't Use LLM for Linter Work
-  - Skill Activation Safety (disable-model-invocation for dangerous ops)
-  - Agent Path Restrictions (always specify allowed_paths)
-  - Hook Limitations Awareness (warn messages only reach user)
-  - Context Management in Multi-Agent Systems
-  - Prompt Writing Discipline
+- **ALTO Development Rules** (`rules/alto-development.md`) — Unified rules for dev mode:
+  - Part 1: Claude Code Best Practices (feature selection, size limits, alternatives, skill safety, hook limitations)
+  - Part 2: ALTO Protocol Awareness (phase transitions, file structure, validation hook sync, change impact matrix, agent output formats)
+  - Part 3: Quick Lookups (key files, validation commands, testing)
 - **PROTOCOL.md** — Action classification and execution model:
-  - Classification axes (Input/Output/Process 1-5 scale)
+  - Classification axes (Input/Output/Process 1-5 scale) as requirements
+  - **Routing Matrix** — Maps axes to execution type (hook/skill/subagent/orchestrator)
+  - Renamed columns: Type → "Runs As", Executor → "Defined In"
+  - Added "Constrained By" column for passive rule references
   - Agent categories table (impl, tester, reviewer, controller, planner, support)
-  - Column reference (Type, Executor, Triggerer)
+  - Column reference (Runs As, Defined In, Triggerer, Constrained By)
   - Setup and Build mode action tables with hierarchical indexing
-  - Passive Constraints with activation model (Soft/Strong/Where)
-  - Rules vs Skills comparison
+  - **Passive Constraints** — Format rules with enforcement hooks
+  - **Constraint Enforcement** — Which hooks enforce which formats
+  - **Validation Summary** — What blocks what
+  - Key insight: "Format rules have validation hooks. Behavioral rules are suggestions only."
 
 ### Changed
 - **ARCHITECTURE.md** — Moved Component Classification to PROTOCOL.md, added reference

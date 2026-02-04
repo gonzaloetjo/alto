@@ -286,26 +286,39 @@ Agents are specialized subprocesses with constrained capabilities:
 
 ---
 
-## Skills Model
+## Extensibility Model
 
-Skills are reusable procedures and rules that agents reference.
+ALTO uses Claude Code's native extensibility concepts:
 
-| Type | Purpose | Example |
-|------|---------|---------|
-| `discipline` | Enforce behavioral rules | `scope-discipline` |
-| `technique` | How-to procedures | `alto-configure` |
-| `reference` | Lookup information | `alto-protocol` |
+| Concept | Location | Activation | Purpose |
+|---------|----------|------------|---------|
+| **Rules** | `rules/` | Always loaded | Constraints (format rules, behavioral discipline) |
+| **Commands** | `commands/` | User `/invoke` | Explicit deterministic actions |
+| **Skills** | `skills/` | Context-matched | On-demand procedures (configure, protocol) |
+| **Agents** | `agents/` | Parent spawns | Multi-step autonomous work |
 
-**Activation:** Agent prompts explicitly reference skills:
-```markdown
-## Skills
-- Read `skills/alto-configure/SKILL.md` — configuration procedures
-```
+### Rules (Always Loaded)
 
-This is reference-based (not discovery-based) for:
-- No discovery overhead per invocation
-- Selective per agent
-- Auditable in prompts
+Format constraints applied by path:
+- `rules/formats/task.md` → enforces task file structure
+- `rules/formats/handoff.md` → enforces handoff structure
+- `rules/formats/review.md` → enforces review output
+
+Behavioral discipline (global):
+- `rules/scope-discipline.md` → prevents scope creep
+- `rules/prompt-writing.md` → explicit tool references
+
+**Key insight**: Rules are suggestions. Hooks (`*-validate.py`) are enforcement.
+
+### Commands (Explicit Invoke)
+
+- `/alto-gitops` — Deterministic git operations
+
+### Skills (Context-Matched)
+
+- `alto-configure` — Edit alto.json settings
+- `alto-objective` — Define feature in objective.md
+- `alto-protocol` — Reference ALTO conventions
 
 ---
 
