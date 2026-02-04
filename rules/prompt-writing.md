@@ -1,8 +1,3 @@
----
-name: prompt-writing
-description: Use when writing or editing ALTO prompts - templates/CLAUDE.md.*, agents/*.md, or skills/*/SKILL.md. Rules for explicit tool references, paths, and user interactions.
----
-
 # Prompt Writing Discipline
 
 Rules for writing CLAUDE.md, agent prompts, and skills.

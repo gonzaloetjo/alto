@@ -4,6 +4,67 @@ All notable changes to ALTO.
 
 ## [Unreleased]
 
+### Added
+- **Claude Code Knowledge Base** (`claude-code/knowledge-base/`) — AI-optimized documentation:
+  - 15 markdown files (~4160 lines total) covering all Claude Code extensibility features
+  - `index.md` — Navigation hub with feature matrix and selection guide
+  - `overview.md` — Context flow diagrams, lifecycle, "what affects what"
+  - Core features: `tools.md`, `settings.md`, `memory.md`, `permissions.md`
+  - Extensions: `rules.md`, `commands.md`, `skills.md`, `agents.md`, `hooks.md`
+  - Supporting: `mcp.md`, `plan-mode.md`, `output-styles.md`, `quick-reference.md`
+  - Design principles: hierarchical markdown, tables over prose, examples first
+- **ALTO Development Rules** (`rules/alto-development.md`) — 10 distilled rules for dev mode:
+  - Rule Placement (single agent vs multi-agent)
+  - Feature Selection Matrix (rule vs skill vs hook vs command)
+  - CLAUDE.md Size Limits (<300 lines, use file:line references)
+  - Provide Alternatives, Not Just Negatives
+  - Don't Use LLM for Linter Work
+  - Skill Activation Safety (disable-model-invocation for dangerous ops)
+  - Agent Path Restrictions (always specify allowed_paths)
+  - Hook Limitations Awareness (warn messages only reach user)
+  - Context Management in Multi-Agent Systems
+  - Prompt Writing Discipline
+- **PROTOCOL.md** — Action classification and execution model:
+  - Classification axes (Input/Output/Process 1-5 scale)
+  - Agent categories table (impl, tester, reviewer, controller, planner, support)
+  - Column reference (Type, Executor, Triggerer)
+  - Setup and Build mode action tables with hierarchical indexing
+  - Passive Constraints with activation model (Soft/Strong/Where)
+  - Rules vs Skills comparison
+
+### Changed
+- **ARCHITECTURE.md** — Moved Component Classification to PROTOCOL.md, added reference
+- **claude-docs/subfolders/rules.md** — Added "Rules vs Skills: Activation Model" section:
+  - Activation types (Soft/Strong), where defined, when to use each
+  - Key insight: rules are suggestions, hooks are enforcement
+- **claude-docs/subfolders/skills.md** — Added "Skills vs Rules: Activation Model" section:
+  - Soft vs Strong activation diagram
+  - When to use each activation type
+- **claude-docs/subfolders/README.md** — Added comprehensive "Agents vs Rules vs Skills" comparison:
+  - Purpose & Propagation table
+  - Activation Model comparison (Loading, Activation, Context cost, Trigger)
+  - References to GitHub issues ([#8395](https://github.com/anthropics/claude-code/issues/8395), [#19635](https://github.com/anthropics/claude-code/issues/19635))
+
+### Changed
+- **Skills reorganized using Claude Code native concepts** (Rules, Commands, Skills, Agents):
+  - **Migrated to Rules** (`.claude/rules/`, always loaded at session start):
+    - `scope-discipline.md` - Global constraint rule
+    - `prompt-writing.md` - Prompt writing discipline
+    - `formats/handoff.md` - Path-targeted for `runs/handoffs/**`
+    - `formats/task.md` - Path-targeted for `runs/tasks/**`
+    - `formats/review.md` - Path-targeted for `runs/review/**`
+  - **Converted to Command** (`.claude/commands/`, explicit `/invoke`):
+    - `alto-gitops.md` - Was deterministic+atomic agent, now explicit command
+  - **Removed from Skills** (migrated to rules):
+    - `handoff-writing`, `task-writing`, `review-writing`, `scope-discipline`, `prompt-writing`
+  - **Agent references updated**: All agents now reference `.claude/rules/formats/*.md` instead of `.claude/skills/*-writing/SKILL.md`
+  - **Deploy script updated**: `alto-deploy.sh` now copies rules and commands directories
+
+### Removed
+- `agents/alto-gitops.md` - Converted to command
+- `hooks/tool-use-record.py` - Deprecated stub (replaced by `tool-record.py`)
+- 5 skill directories migrated to rules: `scope-discipline`, `handoff-writing`, `task-writing`, `review-writing`, `prompt-writing`
+
 ### Changed
 - **Documentation restructured** for distinct audiences:
   - `README.md` (~95 lines) — Minimal usage guide: highlights, quick start, modes, commands

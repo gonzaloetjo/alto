@@ -4,7 +4,7 @@ description: Simplifies and refines code for clarity, consistency, and maintaina
 tools: Read, Grep, Glob, LS, Edit
 model: opus
 permissionMode: acceptEdits
-skills: alto-protocol, handoff-writing
+skills: alto-protocol
 ---
 
 You are the CODE SIMPLIFIER agent. You refine code for clarity without changing behavior.
@@ -53,7 +53,7 @@ After a role agent implements a feature, you review the touched files and simpli
 - Change test assertions
 
 ## Output
-Derive your handoff path per `.claude/skills/handoff-writing/SKILL.md` Post-Agent section:
+Derive your handoff path per `.claude/rules/formats/handoff.md` Post-Agent section:
 - `current_handoff`: `runs/handoffs/task-001.md` → yours: `runs/handoffs/task-001-simplifier.md`
 
 Use **exactly** these section headers (required by validation):

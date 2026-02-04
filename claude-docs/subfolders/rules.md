@@ -317,6 +317,52 @@ Each rule file should cover ONE topic. This makes them:
 
 **Recommendation**: Use `CLAUDE.md` for high-level project context and `.claude/rules/` for detailed coding standards.
 
+## Rules vs Skills: Activation Model
+
+Rules and skills differ fundamentally in how they are activated:
+
+| Aspect | Rules | Skills |
+|--------|-------|--------|
+| **Loading** | Always in context when session starts | On-demand (lazy loading) |
+| **Activation** | Deterministic — always present | Probabilistic — description matching or explicit call |
+| **Context cost** | Always paid (always loaded) | Only paid when invoked |
+| **Best for** | Universal conventions, format constraints | Task-specific procedures |
+
+### Key Insight
+
+> **Rules are suggestions that the LLM weighs against other context. Hooks are enforcement.**
+>
+> A rule saying "don't edit .env" is parsed by Claude and *maybe* followed. A PreToolUse hook blocking .env edits *always* runs and blocks the operation.
+
+### Activation Types for Skills
+
+Skills can have different activation modes:
+
+| Activation | Description |
+|------------|-------------|
+| **Soft** | Claude *could* auto-invoke via description matching (probabilistic) |
+| **Strong** | Explicitly referenced in agent .md or called by user (deterministic) |
+
+### Where Rules and Skills Are Defined
+
+| Type | Location | Example |
+|------|----------|---------|
+| Rules (project) | `.claude/rules/*.md` | `.claude/rules/code-style.md` |
+| Rules (user) | `~/.claude/rules/*.md` | `~/.claude/rules/my-conventions.md` |
+| Rules (embedded) | Inside agent `.md` files | Agent-specific constraints |
+| Skills (project) | `.claude/skills/*/SKILL.md` | `.claude/skills/deploy/SKILL.md` |
+| Skills (user) | `~/.claude/skills/*/SKILL.md` | `~/.claude/skills/commit-helper/SKILL.md` |
+
+### When to Use Each
+
+| Scenario | Use |
+|----------|-----|
+| Coding standards that always apply | Rule |
+| Format constraints for agent output | Rule (embedded in agent .md) |
+| Procedure invoked on specific tasks | Skill (soft activation) |
+| Workflow explicitly triggered by user | Skill (strong activation, `/skill-name`) |
+| Safety guardrails that must be enforced | Hook (not rule) |
+
 ## Loading Behavior
 
 - All rules in `.claude/rules/` are loaded at session start

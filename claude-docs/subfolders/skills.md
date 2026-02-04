@@ -385,6 +385,58 @@ description: Reviews pull requests for code quality, security issues, performanc
 ---
 ```
 
+## Skills vs Rules: Activation Model
+
+Skills and rules differ fundamentally in how they are activated:
+
+| Aspect | Skills | Rules |
+|--------|--------|-------|
+| **Loading** | On-demand (lazy loading) | Always in context |
+| **Activation** | Probabilistic (description matching) or explicit (`/skill`) | Deterministic — always present |
+| **Context cost** | Only paid when invoked | Always paid |
+| **Best for** | Task-specific procedures | Universal conventions, format constraints |
+
+### Activation Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **Soft** | Claude *could* auto-invoke via description matching | Task mentions "deploy" → deploy skill suggested |
+| **Strong** | Explicitly referenced in agent .md or called by user | `/deploy` or agent prompt says "use deploy skill" |
+
+### Soft vs Strong Activation
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SKILL ACTIVATION                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  SOFT (probabilistic)              STRONG (deterministic)        │
+│  ┌─────────────────────┐          ┌─────────────────────┐       │
+│  │ User says "deploy"  │          │ User types /deploy  │       │
+│  │         ↓           │          │         ↓           │       │
+│  │ Claude checks       │          │ Skill loads         │       │
+│  │ skill descriptions  │          │ immediately         │       │
+│  │         ↓           │          │                     │       │
+│  │ Maybe suggests      │          │                     │       │
+│  │ deploy skill        │          │                     │       │
+│  └─────────────────────┘          └─────────────────────┘       │
+│                                                                  │
+│  • May not trigger                 • Always triggers             │
+│  • Depends on description          • Explicit invocation         │
+│  • Context-dependent               • User-controlled             │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### When to Use Soft vs Strong
+
+| Scenario | Activation | Why |
+|----------|------------|-----|
+| Common workflow user will remember | Strong (`/skill`) | Explicit, predictable |
+| Context-dependent procedure | Soft (auto-discovery) | Claude decides when relevant |
+| Background reference material | Soft + `user-invocable: false` | Claude uses, user doesn't invoke |
+| Dangerous operations (deploy, delete) | Strong + `disable-model-invocation: true` | Prevent accidental triggering |
+
 ## Hooks in Skills
 
 ```yaml

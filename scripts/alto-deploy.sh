@@ -16,35 +16,42 @@
 #   PLANNING_ARCHITECT_MODEL - Model for architecture phase
 #   PLANNING_PLANNER_MODEL - Model for planner agent
 
-# Create .claude directory for hooks and skills
-mkdir -p .claude/hooks .claude/skills
+# Create .claude directory for hooks, skills, rules, and commands
+mkdir -p .claude/hooks .claude/skills .claude/rules/formats .claude/commands
 
 # Copy hook scripts (referenced by native hook commands)
 cp -r "$ALTO_SRC"/hooks/*.py .claude/hooks/ 2>/dev/null || true
 
-# Remove old skills before copying (they're read-only from nix store)
-rm -rf .claude/skills/* 2>/dev/null || true
+# Remove old skills/rules/commands before copying (they're read-only from nix store)
+rm -rf .claude/skills/* .claude/rules/* .claude/commands/* 2>/dev/null || true
+
+# Deploy rules (always loaded at session start)
+# Global rules (no path targeting)
+cp "$ALTO_SRC"/rules/scope-discipline.md .claude/rules/ 2>/dev/null || true
+# Path-targeted format rules
+cp "$ALTO_SRC"/rules/formats/*.md .claude/rules/formats/ 2>/dev/null || true
+
+# Deploy commands (explicit /invoke)
+cp "$ALTO_SRC"/commands/*.md .claude/commands/ 2>/dev/null || true
 
 # Copy skills available to all orchestrators
 cp -r "$ALTO_SRC"/skills/alto-switch .claude/skills/ 2>/dev/null || true
 
 # Copy shared ALTO skills (setup and build orchestrators)
+# NOTE: handoff-writing, task-writing, review-writing, scope-discipline are now rules
 if [ "$ORCHESTRATOR" != "dev" ]; then
   cp -r "$ALTO_SRC"/skills/alto-protocol .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-feature-setup .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-configure .claude/skills/ 2>/dev/null || true
-  cp -r "$ALTO_SRC"/skills/handoff-writing .claude/skills/ 2>/dev/null || true
-  cp -r "$ALTO_SRC"/skills/task-writing .claude/skills/ 2>/dev/null || true
-  cp -r "$ALTO_SRC"/skills/review-writing .claude/skills/ 2>/dev/null || true
-  cp -r "$ALTO_SRC"/skills/scope-discipline .claude/skills/ 2>/dev/null || true
 fi
 
-# Copy dev-specific skills (dev orchestrator only)
+# Copy dev-specific skills and rules (dev orchestrator only)
 if [ "$ORCHESTRATOR" = "dev" ]; then
+  cp "$ALTO_SRC"/rules/prompt-writing.md .claude/rules/ 2>/dev/null || true
+  cp "$ALTO_SRC"/rules/alto-development.md .claude/rules/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-dev-guide .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/writing-alto-skills .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-self-fix .claude/skills/ 2>/dev/null || true
-  cp -r "$ALTO_SRC"/skills/prompt-writing .claude/skills/ 2>/dev/null || true
   cp -r "$ALTO_SRC"/skills/alto-test-protocol .claude/skills/ 2>/dev/null || true
 fi
 

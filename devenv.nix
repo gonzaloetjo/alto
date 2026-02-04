@@ -876,13 +876,7 @@ STATE_EOF
           permissionMode = cfg.agentPermissions.alto-docs.permissionMode;
           prompt = readAgentPrompt "alto-docs";
         };
-        alto-gitops = {
-          description = "Handles branch/commit/push hygiene. Use after a task passes checks.";
-          tools = cfg.agentPermissions.alto-gitops.tools;
-          model = "opus";
-          permissionMode = cfg.agentPermissions.alto-gitops.permissionMode;
-          prompt = readAgentPrompt "alto-gitops";
-        };
+        # NOTE: alto-gitops is now a command (see commands/alto-gitops.md)
         alto-reviewer = {
           description = "Reviews code quality after role agent completes. Can reject back to role agent.";
           tools = cfg.agentPermissions.alto-reviewer.tools;

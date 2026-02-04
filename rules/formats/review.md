@@ -1,6 +1,6 @@
 ---
-name: review-writing
-description: Use when writing code review results. Provides exact format required for runs/review/*.md files with APPROVED/REJECTED status.
+paths:
+  - "runs/review/**"
 ---
 
 # Review Writing

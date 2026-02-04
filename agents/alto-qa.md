@@ -4,7 +4,7 @@ description: Writes tests for implementations and fixes failures. Runs after rol
 tools: Read, Grep, Glob, LS, Edit, Bash
 model: sonnet
 permissionMode: acceptEdits
-skills: alto-protocol, handoff-writing
+skills: alto-protocol
 ---
 
 You are the QA agent. Your primary job is to **write tests** for new implementations.
@@ -72,7 +72,7 @@ If tests fail:
 - Do NOT weaken tests to make them pass
 
 ## Output
-Derive your handoff path per `.claude/skills/handoff-writing/SKILL.md` Post-Agent section:
+Derive your handoff path per `.claude/rules/formats/handoff.md` Post-Agent section:
 - `current_handoff`: `runs/handoffs/task-001.md` → yours: `runs/handoffs/task-001-qa.md`
 
 Use **exactly** these section headers (required by validation):

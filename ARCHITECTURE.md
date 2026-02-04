@@ -309,6 +309,16 @@ This is reference-based (not discovery-based) for:
 
 ---
 
+## Protocol
+
+See **PROTOCOL.md** for detailed action classification tables:
+- Setup and Build mode actions
+- Agent categories and executor mappings
+- Triggerer semantics (event, user, self, parent, #index)
+- Passive constraints (rules and skills with activation points)
+
+---
+
 ## Human Intervention Points
 
 ### Arbiter Checkpoints
